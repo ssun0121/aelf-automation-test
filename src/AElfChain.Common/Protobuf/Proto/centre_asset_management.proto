@@ -1,0 +1,269 @@
+/* This files is part of the Hello World smart contract example that is included in Boilerplate.
+ * It is only the definition of the contract, implementation is located in the "contract" folder
+ * and tests are located in the "test" folder.
+ *
+ * You can use this as a basic template for new contracts.
+ * 
+ * When building Boilerplate or the contract project located in the "../contract/AElf.Contracts.CentreAssetManagement/" 
+ * protoc (the protobuf compiler) will be invoked and this file will produce a .c.cs file and .g.cs file, in the 
+ * "../contract/AElf.Contracts.CentreAssetManagement/Protobuf/Generated/" folder. 
+ */
+
+// the version of the language, use proto3 for contracts
+syntax = "proto3";
+
+// some core imports for aelf chain types
+import "aelf/core.proto";
+import "aelf/options.proto";
+
+// import for using the google.protobuf.Empty type.
+import "google/protobuf/empty.proto";
+
+import "google/protobuf/timestamp.proto";
+
+// the name of the C# namespace in which the contract code will be,
+// generated code will also be in this namespace.
+option csharp_namespace = "AElf.Contracts.CentreAssetManagement";
+
+// the contract definition: a gRPC service definition.
+service CentreAssetManagement {
+
+    // the full name of the C# class that will contain the state (here <namespace>.<state-class-name> format).
+    option (aelf.csharp_state) = "AElf.Contracts.CentreAssetManagement.CentreAssetManagementState";
+
+    // an action defined as a gRPC service method.
+    // this action take a google.protobuf.Empty (placeholder for void) as input
+    // and returns a custom defined type: HelloReturn.
+    rpc Hello (google.protobuf.Empty) returns (HelloReturn) {
+    }
+
+    rpc CreateHolder (HolderCreateDto) returns (HolderCreateReturnDto) {
+    }
+
+    rpc RequestUpdateHolder (HolderUpdateRequestDto) returns (google.protobuf.Empty) {
+    }
+
+    rpc ApproveUpdateHolder (HolderUpdateApproveDto) returns (google.protobuf.Empty) {
+
+    }
+
+    //only the owner of the contract, can reboot a holder. usually, the owner of the contract is the whole AELF mainnet
+    //community, so the community need to make clear the belongings.
+    //the owner of the contract should be the org of all produce nodes.
+    rpc RebootHolder (HolderRebootDto) returns (google.protobuf.Empty) {
+
+    }
+    
+    //the owner of holder, or the shutdown address of holder, can shutdown, but cannot reboot
+    rpc ShutdownHolder (HolderShutdownDto) returns  (google.protobuf.Empty) { }
+
+    rpc MoveAssetToMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
+    }
+
+    rpc MoveAssetFromMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
+    }
+
+    rpc GetCategoryContractCallAllowance (CategoryDto) returns (CategoryContractCallAllowanceDto) {
+        option (aelf.is_view) = true;
+    }
+
+    rpc Initialize (InitializeDto) returns (google.protobuf.Empty) {
+    }
+
+
+    rpc RequestWithdraw (WithdrawRequestDto) returns (WithdrawRequestReturnDto) {
+
+    }
+
+    rpc ApproveWithdraw (WithdrawApproveDto) returns (WithdrawApproveReturnDto) {
+
+    }
+
+    rpc CancelWithdraws (CancelWithdrawsDto) returns (google.protobuf.Empty) {
+
+    }
+
+    rpc GetVirtualAddress (AssetMoveDto) returns (aelf.Address) {
+        option (aelf.is_view) = true;
+    }
+
+    rpc SendTransactionByUserVirtualAddress (SendTransactionByUserVirtualAddressDto) returns (google.protobuf.Empty) {
+
+    }
+
+    rpc GetHolderInfo (aelf.Hash) returns (HolderInfo) {
+        option (aelf.is_view) = true;
+    }
+}
+
+
+message WithdrawInfo {
+    aelf.Address address = 1;
+    int64 amount = 2;
+    aelf.Hash holder_id = 3;
+    int32 total_required = 4;
+    repeated aelf.Address approved_addresses = 5;
+    int64 management_addresses_limit_amount = 6;
+    google.protobuf.Timestamp added_time = 7;
+
+}
+
+message ContractCallWhiteList {
+    aelf.Address address = 1;
+    repeated string method_names = 2;
+}
+
+message ContractCallWhiteLists {
+    repeated ContractCallWhiteList list = 1;
+}
+
+message CentreAssetManagementInfo {
+    //for example, {"vote","address_of_vote_contract_1,address_of_vote_contract_2"}
+    //address_of_vote_contract can be ELF_xxx_YYY
+    //or address_of_vote_contract can be a system contract name
+    //map<string,string> category_contract_white_lists = 1;
+
+
+    aelf.Address owner = 1;
+}
+
+message ManagementAddress {
+    aelf.Address address = 1;
+    int64 amount = 2; //how much asset the address can management
+
+    int32 management_addresses_in_total = 3; // how many management keys do we need
+
+    //if we have key:(a,1000),(b,2000),(c,5000).
+    //when management_addresses_limit_amount = 2000, only b and c can be used.
+    int64 management_addresses_limit_amount = 4;
+}
+
+message HolderUpdatingInfo {
+    repeated ManagementAddress management_addresses = 1; // management address can manage asset
+    aelf.Address owner_address = 2; // the owner can change the settings
+    int32 settings_effective_time = 3;
+    aelf.Address shutdown_address = 4;
+    google.protobuf.Timestamp updated_date = 5;
+}
+
+message HolderInfo {
+    string symbol = 1;
+    aelf.Address owner_address = 2; // the owner can change the settings
+    map<string, ManagementAddress> management_addresses = 3; // management address can manage asset
+    aelf.Address main_address = 4;
+
+    int32 settings_effective_time = 5;
+    aelf.Address shutdown_address = 6;
+    bool is_shutdown = 7;
+
+    HolderUpdatingInfo updating_info = 8;
+}
+
+// a custom message, used as the return type of the Hello action
+message HelloReturn {
+    string Value = 1;
+}
+
+message CategoryDto {
+    string category = 1;
+}
+
+message CategoryContractCallAllowanceDto {
+    string category = 1;
+    repeated ContractCallWhiteList list = 2;
+}
+
+
+message HolderCreateDto {
+    string symbol = 1;
+    aelf.Address owner_address = 2; // the owner can change the settings
+    repeated ManagementAddress management_addresses = 3; // management address can manage asset
+    int32 settings_effective_time = 4;
+    aelf.Address shutdow_address = 5;
+}
+
+message HolderCreateReturnDto {
+    aelf.Hash id = 1;
+    HolderInfo info = 2;
+}
+
+message HolderUpdateRequestDto {
+    aelf.Hash holder_id = 1;
+    repeated ManagementAddress management_addresses = 2; // management address can manage asset
+    aelf.Address owner_address = 3; // the owner can change the settings
+    int32 settings_effective_time = 4;
+    aelf.Address shutdown_address = 5;
+}
+
+message HolderUpdateApproveDto {
+    aelf.Hash holder_id = 1;
+}
+
+message HolderRebootDto {
+    aelf.Address holder_owner = 1;
+    aelf.Hash holder_id = 2;
+}
+
+message HolderShutdownDto{
+    aelf.Hash holder_id = 2;
+}
+
+message AssetMoveDto {
+    aelf.Hash holder_id = 1;
+    int64 amount = 2;
+    string user_token = 3;
+    aelf.Hash address_category_hash = 4;
+}
+
+message AssetMoveReturnDto {
+    bool success = 1;
+}
+
+message InitializeDto {
+
+    //key is category
+    //(vote, {})
+    map<string, ContractCallWhiteLists> category_to_contact_call_white_lists_map = 1;
+    aelf.Address owner = 2;
+}
+
+message WithdrawRequestDto {
+    aelf.Address address = 1;
+    int64 amount = 2;
+    aelf.Hash holder_id = 3;
+}
+message WithdrawRequestReturnDto {
+    aelf.Hash id = 1;
+}
+
+message WithdrawApproveDto {
+    aelf.Hash id = 1;
+    aelf.Address address = 2;
+    int64 amount = 3;
+}
+
+message WithdrawApproveReturnDto {
+    int32 total_required = 1;
+    int32 approved_addresses = 2;
+    enum Status {
+        APPROVING = 0;
+        APPROVED = 1;
+        EXPIRED = 2;
+    }
+
+    Status status = 3;
+}
+
+message SendTransactionByUserVirtualAddressDto {
+    aelf.Address to = 1;
+    string method_name = 2;
+    bytes args = 3;
+    aelf.Hash holder_id = 4;
+    string user_token = 5;
+    aelf.Hash address_category_hash = 6;
+}
+
+message CancelWithdrawsDto {
+    repeated aelf.Hash ids = 1;
+    aelf.Hash holder_id = 2;
+}

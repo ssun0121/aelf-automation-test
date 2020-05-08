@@ -1,0 +1,234 @@
+syntax = "proto3";
+
+import "aelf/core.proto";
+import "aelf/options.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+option csharp_namespace = "AElf.Contracts.DAOContract";
+
+service DAOContract {
+    option (aelf.csharp_state) = "AElf.Contracts.DAOContract.DAOContractState";
+    
+    rpc Initialize (InitializeInput) returns (google.protobuf.Empty) {
+    }
+    
+    rpc ReleaseProposal (ReleaseProposalInput) returns (google.protobuf.Empty) {
+    }
+    
+    rpc ChangeDepositInfo (DepositInfo) returns (google.protobuf.Empty) {
+    }
+    
+    // DAO Management
+    //   To be a DAO member, need to be approved by parliament.
+    rpc ProposeJoin (aelf.Address) returns (google.protobuf.Empty) {
+    }
+    //   To not be a DAO member.
+    rpc Quit (google.protobuf.Empty) returns (google.protobuf.Empty) {
+    }
+    //   To expel someone from DAO, need to be approved by parliament.
+    rpc ProposeExpel (aelf.Address) returns (google.protobuf.Empty) {
+    }
+    rpc AdjustProposalReleaseThreshold (DAOProposalReleaseThreshold) returns (google.protobuf.Empty) {
+    }
+    
+    rpc ProjectPreAudition (ProjectPreAuditionInput) returns (google.protobuf.Empty)  {
+    }
+    rpc SetReferendumOrganizationAddress (aelf.Address) returns (google.protobuf.Empty) {
+    }
+    
+    // Grant Project Management
+    //   Developer propose a project for DAO to approve.
+    rpc ProposeProjectToDAO (ProposeProjectInput) returns (aelf.Hash) {
+    }
+    //   Developer propose a project for parliament to approve (after DAO).
+    rpc ProposeProjectToParliament (ProposeProjectWithBudgetsInput) returns (aelf.Hash) {
+    }
+    rpc Invest (InvestInput) returns (google.protobuf.Empty) {
+    }
+    //   Interfaces used by DAO Contract itself.
+    rpc UpdateGrantProject (ProjectInfo) returns (google.protobuf.Empty) {
+    }
+    
+    // Bounty Project Management
+    //   DAO member project a bounty project for DAO to approve.
+    rpc ProposeBountyProject (ProposeProjectInput) returns (aelf.Hash) {
+    }
+    //   DAO member project a bounty project for parliament to approve (after DAO).
+    rpc ProposeIssueBountyProject (ProposeProjectWithBudgetsInput) returns (aelf.Hash) {
+    }
+    //   Developer propose to take over a bounty project.
+    rpc ProposeTakeOverBountyProject (ProposeTakeOverBountyProjectInput) returns (aelf.Hash) {
+    }
+    //   Developer propose an audition for all developers to approve.
+    rpc ProposeDevelopersAudition (ProposeAuditionInput) returns (aelf.Hash) {
+    }
+    //   Interfaces used by DAO Contract itself.
+    rpc UpdateBountyProject (ProjectInfo) returns (google.protobuf.Empty) {
+    }
+    
+    // Common
+    //   Developer propose to deliver project to DAO.
+    rpc ProposeDeliver (ProposeAuditionInput) returns (aelf.Hash) {
+    }
+    //   To add a project (either grant project or bounty project).
+    rpc AddProject (ProjectInfo) returns (google.protobuf.Empty) {
+    }
+    //   To remove a project.
+    //   DAO member can propose to remove a project.
+    rpc ProposeRemoveProject (aelf.Hash) returns (aelf.Hash) {
+    }
+    rpc RemoveProject (aelf.Hash) returns (google.protobuf.Empty) {
+    }
+    
+    // Views
+    rpc GetDAOMemberList (google.protobuf.Empty) returns (MemberList) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetBudgetPlan (GetBudgetPlanInput) returns (BudgetPlan) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetPreviewProposalId (ProposeProjectInput) returns (aelf.Hash) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetProjectInfo (aelf.Hash) returns (ProjectInfo) {
+        option (aelf.is_view) = true;
+    }
+    rpc CalculateProjectId (ProposeProjectInput) returns (aelf.Hash) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetPreAuditionResult (aelf.Hash) returns (google.protobuf.BoolValue) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetReferendumOrganizationAddress (google.protobuf.Empty) returns (aelf.Address) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetDepositInfo (google.protobuf.Empty) returns (DepositInfo) {
+        option (aelf.is_view) = true;
+    }
+}
+
+message InitializeInput {
+    DepositInfo deposit_info = 1;
+    repeated aelf.Address initial_member_list = 2;
+}
+
+message ReleaseProposalInput {
+    aelf.Hash project_id = 1;
+    aelf.Hash proposal_id = 2;
+    ProposalOrganizationType organization_type = 3;
+}
+
+message DepositInfo {
+    string symbol = 1;
+    int64 amount = 2;
+}
+
+message DAOProposalReleaseThreshold {
+    int64 minimal_approval_threshold = 1;
+    int64 maximal_rejection_threshold = 2;
+    int64 maximal_abstention_threshold = 3;
+    int64 minimal_vote_threshold = 4;
+}
+
+message ProjectPreAuditionInput {
+    string pull_request_url = 1;
+    string commit_id = 2;
+}
+
+message ProposeProjectInput {
+    string pull_request_url = 1;
+    string commit_id = 2;
+    aelf.Hash pre_audition_hash = 3;
+    bool is_developers_audition_required = 4;
+}
+
+message ProposeProjectWithBudgetsInput {
+    aelf.Hash project_id = 1;
+    repeated BudgetPlan budget_plans = 2;
+}
+
+message BudgetPlan {
+    int32 index = 1;
+    int32 phase = 2;
+    string symbol = 3;
+    int64 amount = 4;
+    aelf.Address receiver_address = 5;
+    int64 paid_in_amount = 6;
+    string deliver_pull_request_url = 7;
+    string deliver_commit_id = 8;
+    bool is_approved_by_developers = 9;
+}
+
+message ProposeAuditionInput {
+    aelf.Hash project_id = 1;
+    string deliver_pull_request_url = 2;
+    string deliver_commit_id = 3;
+    int32 budget_plan_index = 4;
+}
+
+message ProposeTakeOverBountyProjectInput {
+    aelf.Hash project_id = 1;
+    repeated int32 budget_plan_indices = 2;
+}
+
+message MemberList {
+    repeated aelf.Address value = 1;
+}
+
+message GetBudgetPlanInput {
+    aelf.Hash project_id = 1;
+    int32 budget_plan_index = 2;
+}
+
+message ProjectInfo {
+    string pull_request_url = 1;
+    string commit_id = 2;
+    aelf.Hash pre_audition_hash = 3;
+    ProjectStatus status = 4;
+    repeated BudgetPlan budget_plans = 5;
+    int32 current_budget_plan_index = 6;
+    aelf.Hash profit_scheme_id = 7;
+    aelf.Address virtual_address = 8;// Save budgets and act as profit scheme manager.
+    ProjectType project_type = 9;
+    bool is_developers_audition_required = 10;
+}
+
+message InvestInput {
+    aelf.Hash project_id = 1;
+    string symbol = 2;
+    int64 amount = 3;
+}
+
+enum ProjectStatus {
+    PROPOSED = 0;// Proposed by developer (Grant) or by DAO member (Bounty)
+    APPROVED = 1;// Approved budget plans.
+    READY = 2;// Budgets are ready.
+    TAKEN = 3;// Developers taken this project.
+    DELIVERED = 4;// Developers finished developing.
+}
+
+enum ProjectType {
+    GRANT = 0;
+    BOUNTY = 1;
+}
+
+enum ProposalOrganizationType {
+    PARLIAMENT = 0;
+    D_A_O = 1;
+    DEVELOPERS = 2;
+}
+
+enum InvestmentStatus {
+    NOT_ENOUGH = 0;
+    COMPLETE = 1;
+}
+
+// LogEvents
+
+message InvestmentFeedback {
+    option (aelf.is_event) = true;
+    int64 remain_amount = 1;
+    string symbol = 2;
+    InvestmentStatus investment_status = 3;
+}
