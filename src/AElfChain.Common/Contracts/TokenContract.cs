@@ -137,13 +137,13 @@ namespace AElfChain.Common.Contracts
             }).Amount;
         }
 
-        public long GetAllowance(string from, string to, string symbol = "")
+        public long GetAllowance(string owner, string spender, string symbol = "")
         {
             return CallViewMethod<GetAllowanceOutput>(TokenMethod.GetAllowance,
                 new GetAllowanceInput
                 {
-                    Owner = from.ConvertAddress(),
-                    Spender = to.ConvertAddress(),
+                    Owner = owner.ConvertAddress(),
+                    Spender = spender.ConvertAddress(),
                     Symbol = NodeOption.GetTokenSymbol(symbol)
                 }).Allowance;
         }

@@ -112,7 +112,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public async Task ApproveUpdateHolder()
         {
             var Id = "ddcd6446db4c61570b25e93af0e4ee493667c88ee9a98e9a2f43744abdce8dd5";
-            var holderId = HashHelper.HexStringToHash(Id);
+            var holderId = Hash.LoadFromHex(Id);
             var result = await _adminCentreAssetStub.RequestUpdateHolder.SendAsync(new HolderUpdateRequestDto
             {
                 HolderId = holderId,
@@ -154,7 +154,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var Id = "ddcd6446db4c61570b25e93af0e4ee493667c88ee9a98e9a2f43744abdce8dd5";
             var amount = 10_00000000;
-            var holderId = HashHelper.HexStringToHash(Id);
+            var holderId =  Hash.LoadFromHex(Id);
             var userBalance = _tokenContract.GetUserBalance(TestAccount);
 
             AssetMoveDto assetMoveFromVirtualToMainDto1 = new AssetMoveDto()
@@ -166,17 +166,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var virtualAddress1 = await _centreAssetStub.GetVirtualAddress.CallAsync(assetMoveFromVirtualToMainDto1);
 
             _tokenContract.SetAccount(TestAccount);
-            var result = _tokenContract.TransferBalance(TestAccount, virtualAddress1.GetFormatted(), amount);
+            var result = _tokenContract.TransferBalance(TestAccount, virtualAddress1.ToBase58(), amount);
             var fee = result.GetDefaultTransactionFee();
             var userAfterBalance = _tokenContract.GetUserBalance(TestAccount);
             userAfterBalance.ShouldBe(userBalance - amount - fee);
-            var virtualAddress1Balance = _tokenContract.GetUserBalance(virtualAddress1.GetFormatted());
+            var virtualAddress1Balance = _tokenContract.GetUserBalance(virtualAddress1.ToBase58());
             Logger.Info($"virtualAddress1Balance: {virtualAddress1Balance}");
             var toResult = await _adminCentreAssetStub.MoveAssetToMainAddress.SendAsync(assetMoveFromVirtualToMainDto1);
             toResult.Output.Success.ShouldBeTrue();
             toResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            var virtualAfterAddress1Balance = _tokenContract.GetUserBalance(virtualAddress1.GetFormatted());
+            var virtualAfterAddress1Balance = _tokenContract.GetUserBalance(virtualAddress1.ToBase58());
             virtualAfterAddress1Balance.ShouldBe(virtualAddress1Balance-amount);
 
             AssetMoveDto assetMoveFromMainToVirtualTokenLockDto1 = new AssetMoveDto()
@@ -184,18 +184,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Amount = amount / 2,
                 UserToken = NativeSymbol,
                 HolderId = holderId,
-                AddressCategoryHash = Hash.FromString("token_lock")
+                AddressCategoryHash = HashHelper.ComputeFrom("token_lock")
             };
             var userVoteAddress1 =
                 await _centreAssetStub.GetVirtualAddress.CallAsync(assetMoveFromMainToVirtualTokenLockDto1);
-            var virtualVoteAddressBalance = _tokenContract.GetUserBalance(userVoteAddress1.GetFormatted());
+            var virtualVoteAddressBalance = _tokenContract.GetUserBalance(userVoteAddress1.ToBase58());
 
             var fromResult =
                 await _adminCentreAssetStub.MoveAssetFromMainAddress.SendAsync(assetMoveFromMainToVirtualTokenLockDto1);
             fromResult.Output.Success.ShouldBeTrue();
             fromResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            var virtualVoteAfterAddressBalance = _tokenContract.GetUserBalance(userVoteAddress1.GetFormatted());
+            var virtualVoteAfterAddressBalance = _tokenContract.GetUserBalance(userVoteAddress1.ToBase58());
             virtualVoteAfterAddressBalance.ShouldBe(virtualVoteAddressBalance + amount/2);
             
             var transferResult = await _adminCentreAssetStub.SendTransactionByUserVirtualAddress.SendAsync(
@@ -211,11 +211,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     To = _tokenContract.Contract,
                     HolderId = holderId,
                     UserToken = NativeSymbol,
-                    AddressCategoryHash = Hash.FromString("token_lock"),
+                    AddressCategoryHash = HashHelper.ComputeFrom("token_lock"),
                 });
             transferResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
             
-            var virtualVoteAfterTransferAddressBalance = _tokenContract.GetUserBalance(userVoteAddress1.GetFormatted());
+            var virtualVoteAfterTransferAddressBalance = _tokenContract.GetUserBalance(userVoteAddress1.ToBase58());
             virtualVoteAfterTransferAddressBalance.ShouldBe(virtualVoteAfterAddressBalance - 1_00000000);
             
             var userAfterTransferBalance = _tokenContract.GetUserBalance(TestAccount);
@@ -227,13 +227,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var Id = "ddcd6446db4c61570b25e93af0e4ee493667c88ee9a98e9a2f43744abdce8dd5";
             var amount = 1_00000000;
-            var holderId = HashHelper.HexStringToHash(Id);
+            var holderId = Hash.LoadFromHex(Id);
             AssetMoveDto assetMoveFromMainToVirtualTokenLockDto1 = new AssetMoveDto()
             {
                 Amount = amount / 2,
                 UserToken = NativeSymbol,
                 HolderId = holderId,
-                AddressCategoryHash = Hash.FromString("token_lock")
+                AddressCategoryHash = HashHelper.ComputeFrom("token_lock")
             };
             var userVoteAddress1 =
                 await _centreAssetStub.GetVirtualAddress.CallAsync(assetMoveFromMainToVirtualTokenLockDto1);
@@ -250,11 +250,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     To = _tokenConverter.Contract,
                     HolderId = holderId,
                     UserToken = NativeSymbol,
-                    AddressCategoryHash = Hash.FromString("token_lock"),
+                    AddressCategoryHash = HashHelper.ComputeFrom("token_lock"),
                 });
             transferResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            var cpuBalance = _tokenContract.GetUserBalance(userVoteAddress1.GetFormatted(), "CPU");
+            var cpuBalance = _tokenContract.GetUserBalance(userVoteAddress1.ToBase58(), "CPU");
             cpuBalance.ShouldBe(amount);
         }
 
@@ -263,7 +263,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var Id = "7488edec73cfea49108e62b1d09d15bdf41246dc6731c8c7189dfab699aafe05";
             var amount = 10_00000000;
-            var holderId = HashHelper.HexStringToHash(Id);
+            var holderId = Hash.LoadFromHex(Id);
             var userOriginBalance = _tokenContract.GetUserBalance(OtherAccount);
             await TransferToMainAddress(holderId,amount,NativeSymbol);
 
@@ -302,7 +302,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var Id = "7488edec73cfea49108e62b1d09d15bdf41246dc6731c8c7189dfab699aafe05";
             var amount = 10_00000000;
-            var holderId = HashHelper.HexStringToHash(Id);
+            var holderId = Hash.LoadFromHex(Id);
             var userOriginBalance = _tokenContract.GetUserBalance(OtherAccount);
             await TransferToMainAddress(holderId,amount,NativeSymbol);
 
@@ -337,7 +337,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public async Task ShutdownHolder()
         {
             var Id = "ddcd6446db4c61570b25e93af0e4ee493667c88ee9a98e9a2f43744abdce8dd5";
-            var holderId = HashHelper.HexStringToHash(Id);
+            var holderId = Hash.LoadFromHex(Id);
             var failedResult = await _centreAssetStub.ShutdownHolder.SendAsync(new HolderShutdownDto
             {
                 HolderId = holderId
@@ -355,7 +355,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public async Task RebootHolder()
         {
             var Id = "ddcd6446db4c61570b25e93af0e4ee493667c88ee9a98e9a2f43744abdce8dd5";
-            var holderId = HashHelper.HexStringToHash(Id);
+            var holderId = Hash.LoadFromHex(Id);
 
             var result = await _adminCentreAssetStub.RebootHolder.SendAsync(new HolderRebootDto()
             {
@@ -412,17 +412,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var virtualAddress1 = await _centreAssetStub.GetVirtualAddress.CallAsync(assetMoveFromVirtualToMainDto1);
 
             _tokenContract.SetAccount(TestAccount);
-            var result = _tokenContract.TransferBalance(TestAccount, virtualAddress1.GetFormatted(), amount*2);
+            var result = _tokenContract.TransferBalance(TestAccount, virtualAddress1.ToBase58(), amount*2);
             var fee = result.GetDefaultTransactionFee();
             var userAfterBalance = _tokenContract.GetUserBalance(TestAccount);
             userAfterBalance.ShouldBe(userBalance - amount*2 - fee);
-            var virtualAddress1Balance = _tokenContract.GetUserBalance(virtualAddress1.GetFormatted());
+            var virtualAddress1Balance = _tokenContract.GetUserBalance(virtualAddress1.ToBase58());
             Logger.Info($"virtualAddress1Balance: {virtualAddress1Balance}");
             var toResult = await _centreAssetStub.MoveAssetToMainAddress.SendAsync(assetMoveFromVirtualToMainDto1);
             toResult.Output.Success.ShouldBeTrue();
             toResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            var virtualAfterAddress1Balance = _tokenContract.GetUserBalance(virtualAddress1.GetFormatted());
+            var virtualAfterAddress1Balance = _tokenContract.GetUserBalance(virtualAddress1.ToBase58());
 //            virtualAfterAddress1Balance.ShouldBe(virtualAddress1Balance-amount);
         }
     }

@@ -18,6 +18,7 @@ using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
+using Volo.Abp.Threading;
 using DepositInfo = AElf.Contracts.DAOContract.DepositInfo;
 using InitializeInput = AElf.Contracts.DAOContract.InitializeInput;
 
@@ -49,10 +50,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public string ReviewAccount2 { get; } = "28qLVdGMokanMAp9GwfEqiWnzzNifh8LS9as6mzJFX1gQBB823";
         public string ReviewAccount3 { get; } = "eFU9Quc8BsztYpEHKzbNtUpu9hGKgwGD2tyL13MqtFkbnAoCZ";
 
-        private static string RpcUrl { get; } = "192.168.197.14:8000";
+        private static string RpcUrl { get; } = "192.168.199.205:8000";
         private static string NativeSymbol = "ELF";
         private long DepositAmount = 10_00000000;
-        private long amount = 1000_00000000;
+        private long amount = 10000_00000000;
         private string pullRequestUrl = "A.github.com";
         private string commitId = "http://xxx.com";
 
@@ -61,7 +62,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             Log4NetHelper.LogInit("DAOContractTest_");
             Logger = Log4NetHelper.GetLogger();
-            NodeInfoHelper.SetConfig("nodes-env1-main");
+            NodeInfoHelper.SetConfig("nodes-env205-main");
             NodeManager = new NodeManager(RpcUrl);
             AuthorityManager = new AuthorityManager(NodeManager);
 
@@ -71,18 +72,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _parliament = _genesisContract.GetParliamentContract(InitAccount);
             _association = _genesisContract.GetAssociationAuthContract(InitAccount);
             _referendum = _genesisContract.GetReferendumAuthContract(InitAccount);
-//            _daoContract = new DAOContract(NodeManager, InitAccount);
-//            Logger.Info($"CentreAsset contract : {_daoContract}");
+            _daoContract = new DAOContract(NodeManager, InitAccount);
+            Logger.Info($"CentreAsset contract : {_daoContract}");
 
-            _daoContract = new DAOContract(NodeManager, InitAccount,
-                "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS");
+//            _daoContract = new DAOContract(NodeManager, InitAccount,
+//                "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS");
             _admDaoContractStub =
                 _daoContract.GetTestStub<DAOContractContainer.DAOContractStub>(InitAccount);
             _daoContractStub =
                 _daoContract.GetTestStub<DAOContractContainer.DAOContractStub>(TestAccount);
             _tokenContractStub = _tokenContract.GetTestStub<TokenContractContainer.TokenContractStub>(InitAccount);
             _tokenContract.TransferBalance(InitAccount, TestAccount, 1000_00000000, "ELF");
-//            AsyncHelper.RunSync(InitializeDAOContract);
+            AsyncHelper.RunSync(InitializeDAOContract);
         }
 
         #region dao 
@@ -166,12 +167,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var proposer = _referendum.GetOrganization(referendumOrganization).ProposerWhiteList.Proposers.First();
             var createProposal = _referendum.CreateProposal(_daoContract.ContractAddress,
                 nameof(DAOMethod.ProjectPreAudition),
-                input, referendumOrganization, proposer.GetFormatted());
+                input, referendumOrganization, proposer.ToBase58());
             var approveAmount = _referendum.GetOrganization(referendumOrganization).ProposalReleaseThreshold
                 .MinimalVoteThreshold;
-            _tokenContract.ApproveToken(proposer.GetFormatted(), _referendum.ContractAddress, approveAmount);
-            _referendum.Approve(createProposal, proposer.GetFormatted());
-            var release = _referendum.ReleaseProposal(createProposal, proposer.GetFormatted());
+            _tokenContract.ApproveToken(proposer.ToBase58(), _referendum.ContractAddress, approveAmount);
+            _referendum.Approve(createProposal, proposer.ToBase58());
+            var release = _referendum.ReleaseProposal(createProposal, proposer.ToBase58());
             release.Status.ShouldBe(TransactionResultStatus.Mined);
 
             var projectId = await GetProject();
@@ -204,7 +205,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var member in members.Value)
             {
                 if (member.Equals(_daoContract.Contract)) continue;
-                _association.ApproveProposal(proposalId, member.GetFormatted());
+                _association.ApproveProposal(proposalId, member.ToBase58());
             }
 
             var projectId = await GetProject();
@@ -336,7 +337,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var member in members.Value)
             {
                 if (member.Equals(_daoContract.Contract)) continue;
-                _association.ApproveProposal(proposalId, member.GetFormatted());
+                _association.ApproveProposal(proposalId, member.ToBase58());
             }
 
             var release1 = await _daoContractStub.ReleaseProposal.SendAsync(new ReleaseProposalInput
@@ -368,7 +369,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var member in members.Value)
             {
                 if (member.Equals(_daoContract.Contract)) continue;
-                _association.ApproveProposal(proposalId, member.GetFormatted());
+                _association.ApproveProposal(proposalId, member.ToBase58());
             }
 
             var release = await _daoContractStub.ReleaseProposal.SendAsync(new ReleaseProposalInput
@@ -409,7 +410,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var member in members.Value)
             {
                 if (member.Equals(_daoContract.Contract)) continue;
-                _association.ApproveProposal(proposalId, member.GetFormatted());
+                _association.ApproveProposal(proposalId, member.ToBase58());
             }
 
             var projectId = await GetProject();
@@ -500,7 +501,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var member in members.Value)
             {
                 if (member.Equals(_daoContract.Contract)) continue;
-                _association.ApproveProposal(proposalId, member.GetFormatted());
+                _association.ApproveProposal(proposalId, member.ToBase58());
             }
 
             var release = await _daoContractStub.ReleaseProposal.SendAsync(new ReleaseProposalInput
@@ -564,7 +565,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var member in members.Value)
             {
                 if (member.Equals(_daoContract.Contract)) continue;
-                _association.ApproveProposal(proposalId, member.GetFormatted());
+                _association.ApproveProposal(proposalId, member.ToBase58());
             }
 
             var release = await _daoContractStub.ReleaseProposal.SendAsync(new ReleaseProposalInput
@@ -649,7 +650,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var member in members.Value)
             {
                 if (member.Equals(_daoContract.Contract)) continue;
-                _association.ApproveProposal(proposalId, member.GetFormatted());
+                _association.ApproveProposal(proposalId, member.ToBase58());
             }
 
             var release = await _daoContractStub.ReleaseProposal.SendAsync(new ReleaseProposalInput
@@ -715,7 +716,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var member in members.Value)
             {
                 if (member.Equals(_daoContract.Contract)) continue;
-                _association.ApproveProposal(proposalId, member.GetFormatted());
+                _association.ApproveProposal(proposalId, member.ToBase58());
             }
 
             var release = await _daoContractStub.ReleaseProposal.SendAsync(new ReleaseProposalInput
