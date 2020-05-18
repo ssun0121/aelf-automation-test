@@ -86,7 +86,7 @@ namespace AElf.Automation.TokenSwapTest
 
             if (swapPair.DepositAmount < expectedAmount)
             {
-                await Deposit(expectedAmount * 10);
+                await Deposit(expectedAmount * 2);
                 beforeSwapBalance = TokenService.GetUserBalance(TokenSwapService.ContractAddress, Symbol);
                 beforeSwapElfBalance = TokenService.GetUserBalance(TokenSwapService.ContractAddress, NativeSymbol);
             }
@@ -103,6 +103,7 @@ namespace AElf.Automation.TokenSwapTest
                 merkle.IsLeftChildNode = isLeftInfo[i];
                 merklePathNodes.Add(merkle);
             }
+
             var merklePath = new Types.MerklePath {MerklePathNodes = {merklePathNodes}};
 
             try
@@ -131,7 +132,7 @@ namespace AElf.Automation.TokenSwapTest
                 Console.WriteLine($"Transaction is NotExisted ...\n{e.Message}");
                 expectedAmount = 0;
             }
-            
+
             var balance = TokenService.GetUserBalance(receiveAccount, Symbol);
             var elfBalance = TokenService.GetUserBalance(receiveAccount, NativeSymbol);
             elfBalance.ShouldBe(beforeElfBalance + expectedAmount);
@@ -148,6 +149,8 @@ namespace AElf.Automation.TokenSwapTest
                 {SwapId = PairId, TargetTokenSymbol = NativeSymbol});
             swapElfPair.DepositAmount.ShouldBe(afterSwapElfBalance);
             swapElfPair.DepositAmount.ShouldBe(beforeSwapElfBalance - expectedAmount);
+            
+            TransferToTokenSwapContract(receiveAccount,afterSwapElfBalance,afterSwapBalance);
         }
 
         private async Task Deposit(long depositAmount)
@@ -259,6 +262,18 @@ namespace AElf.Automation.TokenSwapTest
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             TokenService.IssueBalance(InitAccount, InitAccount, 10_00000000_00000000, Symbol);
+        }
+
+        private void TransferToTokenSwapContract(string receiver, long elfBalance, long balance)
+        {
+            Logger.Info($"Check the balance of receiver account {receiver}, ELF balance is {elfBalance}, {Symbol} balance is {balance}");
+            if (receiver.Equals(InitAccount)) return;
+            if (elfBalance <= 100000000000000) return;
+            TokenService.SetAccount(receiver);
+            TokenService.TransferBalance(receiver, InitAccount, elfBalance / 2);
+            if (balance <= 100000000000000) return;
+            TokenService.SetAccount(receiver);
+            TokenService.TransferBalance(receiver, InitAccount, balance / 2, Symbol);
         }
     }
 }
