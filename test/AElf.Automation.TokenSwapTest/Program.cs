@@ -25,7 +25,7 @@ namespace AElf.Automation.TokenSwapTest
 
             var tokenSwap = new TokenSwap(TokenSwapContract, PairId);
             var currentRound = await tokenSwap.CheckTree();
-            var index = TokenSwapRound == 0 ? currentRound : TokenSwapRound;
+            var index = TokenSwapRound == 0 || TokenSwapRound > currentRound ? currentRound : TokenSwapRound;
             TreeInfos = EnvPrepare.GetDefaultEnv().GetCurrentTreeInfo(index);
 
             while (index < 128)
@@ -33,7 +33,7 @@ namespace AElf.Automation.TokenSwapTest
                 if (TreeInfos.Count != 0)
                 {
                     var root = TreeInfos[index].MerkleRoot;
-                    if (TokenSwapRound > currentRound -1 || currentRound ==0 )
+                    if (index > currentRound -1 || currentRound ==0 )
                     {
                         Logger.Info($"Add {index} round: {root}");
                         await tokenSwap.AddSwapRound(root, index);
