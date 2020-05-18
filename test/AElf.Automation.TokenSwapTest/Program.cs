@@ -33,8 +33,9 @@ namespace AElf.Automation.TokenSwapTest
                 if (TreeInfos.Count != 0)
                 {
                     var root = TreeInfos[index].MerkleRoot;
-                    if (index != currentRound || currentRound ==0 )
+                    if (TokenSwapRound != currentRound || currentRound ==0 )
                     {
+                        Logger.Info($"Add {index} round: {root}");
                         await tokenSwap.AddSwapRound(root, index);
                     }
 
