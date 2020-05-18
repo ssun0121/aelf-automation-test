@@ -7,6 +7,7 @@ using AElfChain.Common;
 using AElfChain.Common.Helpers;
 using log4net;
 using McMaster.Extensions.CommandLineUtils;
+using Shouldly;
 
 namespace AElf.Automation.TokenSwapTest
 {
@@ -33,16 +34,16 @@ namespace AElf.Automation.TokenSwapTest
                 if (TreeInfos.Count != 0)
                 {
                     var root = TreeInfos[index].MerkleRoot;
-                    if (index > currentRound -1 || TokenSwapRound == 0 )
+                    if (index > currentRound - 1 || TokenSwapRound == 0)
                     {
                         Logger.Info($"Add {index} round: {root}");
                         await tokenSwap.AddSwapRound(root, index);
                     }
-
+                    TreeInfos[index].ReceiptCounts.ShouldBe(TreeInfos[index].Receipts.Count);
                     Logger.Info($"\nRound: {index}\nTree: {TreeInfos[index].TreeIndex}\nRoot: {root}" +
                                 $"\nReceipt count:{TreeInfos[index].ReceiptCounts}");
 
-                                var receiptInfos = TreeInfos[index].Receipts;
+                    var receiptInfos = TreeInfos[index].Receipts;
                     Logger.Info("Start swap token: ");
                     foreach (var receipt in receiptInfos)
                     {
@@ -53,7 +54,7 @@ namespace AElf.Automation.TokenSwapTest
                     index = await tokenSwap.CheckTree();
                     if (index <= TreeInfos.Last().Key) continue;
                 }
-                
+
                 TreeCount = TreeInfos.Count;
                 while (TreeCount.Equals(TreeInfos.Count))
                 {
@@ -79,7 +80,7 @@ namespace AElf.Automation.TokenSwapTest
 
         [Option("-p|--pairId", Description = "Swap Id")]
         private static string PairId { get; set; }
-        
+
         [Option("-r|--swapRound", Description = "Swap Round")]
         private static int TokenSwapRound { get; set; }
     }
