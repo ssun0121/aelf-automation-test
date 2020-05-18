@@ -38,10 +38,7 @@ namespace AElf.Automation.TokenSwapTest
                 TokenSwapService.GetTestStub<TokenSwapContractContainer.TokenSwapContractStub>(InitAccount);
             if (!TokenService.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
                 CreateTokenAndIssue();
-            if (pairId != null)
-                PairId = Hash.LoadFromHex(pairId);
-            else
-                PairId = AsyncHelper.RunSync(CreateSwap);
+            PairId = pairId != null ? Hash.LoadFromHex(pairId) : AsyncHelper.RunSync(CreateSwap);
         }
 
         private ContractServices GetContractServices(string tokenSwapContract)
@@ -126,12 +123,13 @@ namespace AElf.Automation.TokenSwapTest
                     var nonIndexed = Transferred.Parser.ParseFrom(tokenTransferredEvent.NonIndexed);
                     nonIndexed.Amount.ShouldBe(expectedAmount);
                 }
-
+                else
+                    expectedAmount = 0;
             }
             catch (TimeoutException e)
             {
                 Console.WriteLine($"Transaction is NotExisted ...\n{e.Message}");
-                throw;
+                expectedAmount = 0;
             }
             
             var balance = TokenService.GetUserBalance(receiveAccount, Symbol);

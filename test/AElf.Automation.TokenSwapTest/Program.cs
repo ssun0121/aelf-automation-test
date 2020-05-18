@@ -24,15 +24,16 @@ namespace AElf.Automation.TokenSwapTest
             Logger = Log4NetHelper.GetLogger();
 
             var tokenSwap = new TokenSwap(TokenSwapContract, PairId);
-            var index = TokenSwapRound == 0 ? await tokenSwap.CheckTree() : TokenSwapRound;
-            TreeInfos = EnvPrepare.GetDefaultEnv().GetCurrentTreeInfo(TokenSwapRound);
+            var currentRound = await tokenSwap.CheckTree();
+            var index = TokenSwapRound == 0 ? currentRound : TokenSwapRound;
+            TreeInfos = EnvPrepare.GetDefaultEnv().GetCurrentTreeInfo(index);
 
             while (index < 128)
             {
                 if (TreeInfos.Count != 0)
                 {
                     var root = TreeInfos[index].MerkleRoot;
-                    if (TokenSwapRound != index || index ==0 )
+                    if (index != currentRound || currentRound ==0 )
                     {
                         await tokenSwap.AddSwapRound(root, index);
                     }
