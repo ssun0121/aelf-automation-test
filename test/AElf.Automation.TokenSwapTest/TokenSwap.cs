@@ -150,7 +150,7 @@ namespace AElf.Automation.TokenSwapTest
             swapElfPair.DepositAmount.ShouldBe(afterSwapElfBalance);
             swapElfPair.DepositAmount.ShouldBe(beforeSwapElfBalance - expectedAmount);
             
-            TransferToTokenSwapContract(receiveAccount,afterSwapElfBalance,afterSwapBalance);
+            TransferToTokenSwapContract(receiveAccount,elfBalance,balance);
         }
 
         private async Task Deposit(long depositAmount)
