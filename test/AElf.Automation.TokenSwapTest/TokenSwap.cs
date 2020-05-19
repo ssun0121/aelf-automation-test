@@ -108,7 +108,8 @@ namespace AElf.Automation.TokenSwapTest
 
             try
             {
-                var result = await SwapContractStub.SwapToken.SendAsync(new SwapTokenInput
+                var receiverStub = TokenSwapService.GetTestStub<TokenSwapContractContainer.TokenSwapContractStub>(receiveAccount);
+                var result = await receiverStub.SwapToken.SendAsync(new SwapTokenInput
                 {
                     SwapId = PairId,
                     OriginAmount = originAmount,
