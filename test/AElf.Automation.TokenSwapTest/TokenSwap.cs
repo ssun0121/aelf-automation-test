@@ -67,10 +67,6 @@ namespace AElf.Automation.TokenSwapTest
             var originAmount = receiptInfo.Amount;
             var uniqueId = Hash.LoadFromHex(receiptInfo.UniqueId);
 
-            var receiveAccount = receiptInfo.Receiver;
-            var beforeBalance = TokenService.GetUserBalance(receiveAccount, Symbol);
-            var beforeElfBalance = TokenService.GetUserBalance(receiveAccount, NativeSymbol);
-
             var beforeSwapBalance = TokenService.GetUserBalance(TokenSwapService.ContractAddress, Symbol);
             var swapPair = await SwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
                 {SwapId = PairId, TargetTokenSymbol = Symbol});
@@ -90,6 +86,10 @@ namespace AElf.Automation.TokenSwapTest
                 beforeSwapBalance = TokenService.GetUserBalance(TokenSwapService.ContractAddress, Symbol);
                 beforeSwapElfBalance = TokenService.GetUserBalance(TokenSwapService.ContractAddress, NativeSymbol);
             }
+            
+            var receiveAccount = receiptInfo.Receiver;
+            var beforeBalance = TokenService.GetUserBalance(receiveAccount, Symbol);
+            var beforeElfBalance = TokenService.GetUserBalance(receiveAccount, NativeSymbol);
 
             var stringInfo = receiptInfo.MerklePath.Nodes;
             var isLeftInfo = receiptInfo.MerklePath.Positions;
