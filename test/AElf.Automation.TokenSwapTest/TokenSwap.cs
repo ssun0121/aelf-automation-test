@@ -86,7 +86,7 @@ namespace AElf.Automation.TokenSwapTest
 
             if (swapPair.DepositAmount < expectedAmount)
             {
-                await Deposit(expectedAmount * 2);
+                await Deposit(expectedAmount);
                 beforeSwapBalance = TokenService.GetUserBalance(TokenSwapService.ContractAddress, Symbol);
                 beforeSwapElfBalance = TokenService.GetUserBalance(TokenSwapService.ContractAddress, NativeSymbol);
             }
@@ -269,12 +269,11 @@ namespace AElf.Automation.TokenSwapTest
         {
             Logger.Info($"Check the balance of receiver account {receiver}, ELF balance is {elfBalance}, {Symbol} balance is {balance}");
             if (receiver.Equals(InitAccount)) return;
-            if (elfBalance <= 100000000000000) return;
             TokenService.SetAccount(receiver);
-            TokenService.TransferBalance(receiver, InitAccount, elfBalance / 2);
-            if (balance <= 100000000000000) return;
-            TokenService.SetAccount(receiver);
-            TokenService.TransferBalance(receiver, InitAccount, balance / 2, Symbol);
+            if (balance > 10000_00000000) 
+                TokenService.TransferBalance(receiver, InitAccount, balance - 10000_00000000, Symbol);
+            if (elfBalance > 10000_00000000)
+                TokenService.TransferBalance(receiver, InitAccount, elfBalance - 10000_00000000);
         }
     }
 }
