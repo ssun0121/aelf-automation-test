@@ -38,7 +38,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public static string Member { get; } = "2frDVeV6VxUozNqcFbgoxruyqCRAuSyXyfCaov6bYWc7Gkxkh2";
         public static string OtherAccount { get; } = "W4xEKTZcvPKXRAmdu9xEpM69ArF7gUxDh9MDgtsKnu7JfePXo";
         
-        public readonly List<string> Members = new List<string>{InitAccount,Member,OtherAccount};
+        public List<string> Members;
         private static string MainRpcUrl { get; } = "http://192.168.197.14:8000";
         private static string SideRpcUrl { get; } = "http://192.168.197.14:8001";
         private static string SideRpcUrl2 { get; } = "http://192.168.197.14:8002";
@@ -58,7 +58,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             NM = new NodeManager(SideRpcUrl);
             var services = new ContractServices(NM, InitAccount, Type);
             MainManager = new ContractManager(NM, InitAccount);
-
+            Members = new List<string>{InitAccount,Member,OtherAccount};
             Tester = new ContractTester(services);
             if (Type == "Side2" && !isOrganization)
             {
@@ -535,8 +535,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         private ReleaseContractInput ProposalNewContract(ContractTester tester, string account,
-            ContractDeploymentInput input)
+            ContractDeploymentInput input, string password="")
         {
+            tester.GenesisService.SetAccount(account, password);
             var result = tester.GenesisService.ProposeNewContract(input, account);
             result.Status.ShouldBe(TransactionResultStatus.Mined);
             var proposalId = ProposalCreated.Parser
@@ -573,6 +574,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var miners = tester.GetMiners();
             foreach (var miner in miners)
             {
+                if(miner.Equals("2GRH6gYPhRu7SxYby56sxdXGVuAuXS5atfjRmeFPKWJB3VMJAw")) continue;
                 tester.ParliamentService.SetAccount(miner);
                 var approve =
                     tester.ParliamentService.ExecuteMethodWithResult(ParliamentMethod.Approve, proposalId);

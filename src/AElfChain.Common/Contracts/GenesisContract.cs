@@ -107,9 +107,9 @@ namespace AElfChain.Common.Contracts
         }
 
         public TransactionResultDto ReleaseApprovedContract(ReleaseContractInput input,
-            string caller)
+            string caller, string password = "")
         {
-            SetAccount(caller);
+            SetAccount(caller, password);
             var result = ExecuteMethodWithResult(GenesisMethod.ReleaseApprovedContract, new ReleaseContractInput
             {
                 ProposalId = input.ProposalId,
@@ -119,9 +119,9 @@ namespace AElfChain.Common.Contracts
         }
 
         public TransactionResultDto ReleaseCodeCheckedContract(ReleaseContractInput input,
-            string caller)
+            string caller, string password = "")
         {
-            SetAccount(caller);
+            SetAccount(caller, password);
             var result = ExecuteMethodWithResult(GenesisMethod.ReleaseCodeCheckedContract, new ReleaseContractInput
             {
                 ProposalId = input.ProposalId,
@@ -198,7 +198,7 @@ namespace AElfChain.Common.Contracts
                 {NameProvider.Election, HashHelper.ComputeFrom("AElf.ContractNames.Election")},
                 {NameProvider.Profit, HashHelper.ComputeFrom("AElf.ContractNames.Profit")},
                 {NameProvider.Vote, HashHelper.ComputeFrom("AElf.ContractNames.Vote")},
-                {NameProvider.Treasury,HashHelper.ComputeFrom("AElf.ContractNames.Treasury")},
+                {NameProvider.Treasury, HashHelper.ComputeFrom("AElf.ContractNames.Treasury")},
                 {NameProvider.Token, HashHelper.ComputeFrom("AElf.ContractNames.Token")},
                 {NameProvider.TokenHolder, HashHelper.ComputeFrom("AElf.ContractNames.TokenHolder")},
                 {NameProvider.TokenConverter, HashHelper.ComputeFrom("AElf.ContractNames.TokenConverter")},

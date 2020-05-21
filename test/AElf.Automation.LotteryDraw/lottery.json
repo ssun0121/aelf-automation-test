@@ -1,0 +1,24 @@
+{
+  "TestEnvironment": "Offline1",
+  "EnvironmentInfo": 
+  [
+    {
+      "Environment": "Offline1",
+      "ConfigFile": "nodes-env1-main",
+      "Owner": "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK",
+      "Password": 123
+    },
+    {
+      "Environment": "Offline205",
+      "ConfigFile": "nodes-env205-main",
+      "Owner": "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK",
+      "Password": 123
+    }
+  ],
+  "LotteryContract": "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG",
+  "TokenInfo": 
+  {      
+    "Symbol":"LOT",
+    "Price" : 100000000000
+  }
+}

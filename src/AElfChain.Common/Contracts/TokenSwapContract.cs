@@ -10,7 +10,7 @@ namespace AElfChain.Common.Contracts
         SwapToken,
         ChangeSwapRatio,
         Deposit,
-        
+
         //View
         GetSwapPair,
         GetCurrentSwapRound
@@ -23,10 +23,11 @@ namespace AElfChain.Common.Contracts
         {
         }
 
-        public TokenSwapContract(INodeManager nodeManager, string callAddress, string contractAddress) :
+        public TokenSwapContract(INodeManager nodeManager, string callAddress, string contractAddress,
+            string password = "") :
             base(nodeManager, contractAddress)
         {
-            SetAccount(callAddress);
+            SetAccount(callAddress, password);
         }
     }
 }

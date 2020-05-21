@@ -70,9 +70,10 @@ namespace AElfChain.Common.Contracts
             Logger = Log4NetHelper.GetLogger();
         }
 
-        public TransactionResultDto TransferBalance(string from, string to, long amount, string symbol = "")
+        public TransactionResultDto TransferBalance(string from, string to, long amount, string symbol = "",
+            string password = "")
         {
-            var tester = GetNewTester(from);
+            var tester = GetNewTester(from, password);
             var result = tester.ExecuteMethodWithResult(TokenMethod.Transfer, new TransferInput
             {
                 Symbol = NodeOption.GetTokenSymbol(symbol),
@@ -99,9 +100,10 @@ namespace AElfChain.Common.Contracts
             return result;
         }
 
-        public TransactionResultDto ApproveToken(string from, string to, long amount, string symbol = "")
+        public TransactionResultDto ApproveToken(string from, string to, long amount, string symbol = "",
+            string password = "")
         {
-            SetAccount(from);
+            SetAccount(from, password);
             var result = ExecuteMethodWithResult(TokenMethod.Approve, new ApproveInput
             {
                 Symbol = NodeOption.GetTokenSymbol(symbol),
