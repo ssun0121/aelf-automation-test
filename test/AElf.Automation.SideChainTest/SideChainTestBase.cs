@@ -44,16 +44,17 @@ namespace AElf.Automation.SideChainTests
         {
             //Init Logger
             Log4NetHelper.LogInit();
-            NodeInfoHelper.SetConfig("nodes-env1-main");
+            NodeInfoHelper.SetConfig("nodes");
             InitAccount = ConfigInfoHelper.Config.MainChainInfos.Account;
             var mainUrl = ConfigInfoHelper.Config.MainChainInfos.MainChainUrl;
             var password = ConfigInfoHelper.Config.MainChainInfos.Password;
             var sideUrls = ConfigInfoHelper.Config.SideChainInfos.Select(l => l.SideChainUrl).ToList();
             Members = new List<string> {InitAccount, TestAccount, OtherAccount, MemberAccount};
             Logger.Info($"url :{mainUrl}");
+            // var account = "kV73ST71ajpWfoMHNo9rrpqATzF1DF2XUcTT3YSQ6HXmwbDC4";
 
             MainServices = new ContractServices(mainUrl, InitAccount, password);
-            AuthorityManager = new AuthorityManager(MainServices.NodeManager);
+//            AuthorityManager = new AuthorityManager(MainServices.NodeManager);
 //            SideAuthorityManager = new AuthorityManager(SideAServices.NodeManager);
 
             SideServices = new List<ContractServices>();
@@ -64,11 +65,11 @@ namespace AElf.Automation.SideChainTests
             }
 
             SideAServices = SideServices.First();
-            SideBServices = new ContractServices(sideUrls[1], InitAccount, NodeOption.DefaultPassword);
+//            SideBServices = new ContractServices(sideUrls[1], InitAccount, NodeOption.DefaultPassword);
 
             TokenContractStub = MainServices.TokenContractStub;
-            Miners = new List<string>();
-            Miners = AuthorityManager.GetCurrentMiners();
+//            Miners = new List<string>();
+//            Miners = AuthorityManager.GetCurrentMiners();
         }
 
         #region Other Method
@@ -354,9 +355,9 @@ namespace AElf.Automation.SideChainTests
         }
 
         protected TransactionResultDto CrossChainReceive(ContractServices services, string account,
-            CrossChainReceiveTokenInput input)
+            CrossChainReceiveTokenInput input, string password ="")
         {
-            services.TokenService.SetAccount(account);
+            services.TokenService.SetAccount(account, password);
             var result = services.TokenService.ExecuteMethodWithResult(TokenMethod.CrossChainReceiveToken, input);
             return result;
         }

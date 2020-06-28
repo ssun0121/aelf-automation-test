@@ -28,12 +28,12 @@ namespace AElf.Automation.EconomicSystemTest
         }
 
         [TestMethod]
-        [DataRow(0, 100)]
+        [DataRow(0, 10000_00000000)]
         public void Vote_One_Candidates_ForBP(int no, long amount)
         {
-            var account = "YF8o6ytMB7n5VF9d1RDioDXqyQ9EQjkFK3AwLPCH2b9LxdTEq";
-            Behaviors.TokenService.TransferBalance(InitAccount, account, 1000_00000000);
-            var voteResult = Behaviors.UserVote(account, FullNodeAddress[no], 150, amount);
+//            var account = "YF8o6ytMB7n5VF9d1RDioDXqyQ9EQjkFK3AwLPCH2b9LxdTEq";
+//            Behaviors.TokenService.TransferBalance(InitAccount, InitAccount, 1000_00000000);
+            var voteResult = Behaviors.UserVote(InitAccount, FullNodeAddress[no], 150, amount);
             var voteId = Hash.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(voteResult.ReturnValue));
             var logVoteId = Voted.Parser
                 .ParseFrom(ByteString.FromBase64(voteResult.Logs.First(l => l.Name.Equals(nameof(Voted))).NonIndexed))

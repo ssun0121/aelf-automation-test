@@ -136,8 +136,8 @@ namespace AElf.Automation.TokenSwapTest
 
             var balance = TokenService.GetUserBalance(receiveAccount, Symbol);
             var elfBalance = TokenService.GetUserBalance(receiveAccount, NativeSymbol);
-            elfBalance.ShouldBe(beforeElfBalance + expectedAmount);
-            balance.ShouldBe(beforeBalance + expectedAmount);
+            elfBalance.ShouldBeGreaterThanOrEqualTo(beforeElfBalance + expectedAmount);
+            balance.ShouldBeLessThanOrEqualTo(beforeBalance + expectedAmount);
 
             var afterSwapBalance = TokenService.GetUserBalance(TokenSwapService.ContractAddress, Symbol);
             swapPair = await SwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput

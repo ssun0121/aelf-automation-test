@@ -32,7 +32,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private LotteryContractContainer.LotteryContractStub _adminLotteryDemoStub;
 
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
-        private string TestAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
+        private string TestAccount { get; } = "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6";
         private List<string> Tester = new List<string>();
         private static string RpcUrl { get; } = "192.168.199.205:8000";
         private string Symbol { get; } = "LOT";
@@ -71,13 +71,46 @@ namespace AElf.Automation.Contracts.ScenarioTest
 //                }
 //            }
         }
+        
+        [TestMethod]
+        public async Task AddRewardList()
+        {
+            var result =
+               await _adminLotteryDemoStub.AddRewardList.SendAsync(
+                    new RewardList
+                    {
+                        RewardMap =
+                        {
+                            {"level1","iphone11"},
+                            {"level2","Mac"},
+                            {"level3","switch"},
+                            {"level4","小米平板"},
+                        }
+                    });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            var getInfo = await _adminLotteryDemoStub.GetRewardName.CallAsync(new StringValue
+            {
+                Value = "level3"
+            });
+            getInfo.Value.ShouldBe("switch");
+        }
+
+        [TestMethod]
+        public async Task GetRewardName()
+        {
+            var result = await _adminLotteryDemoStub.GetRewardName.CallAsync(new StringValue
+            {
+                Value = "xxx"
+            });
+            result.Value.ShouldBe("xxx");
+        }
 
         [TestMethod]
         public void Buy()
         {
             foreach (var tester in Tester)
             {
-                var amount = CommonHelper.GenerateRandomNumber(1, 5);
+                var amount = CommonHelper.GenerateRandomNumber(1, 10);
                 var balance = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, Symbol);
                 var userBeforeBalance = _tokenContract.GetUserBalance(tester, Symbol);
                 if (userBeforeBalance < 10000_00000000)
@@ -145,6 +178,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
+        public async Task SetRewardListForOnePeriod(long period)
+        {
+            var result = await _adminLotteryDemoStub.SetRewardListForOnePeriod.SendAsync(new RewardsInfo
+            {
+                Period = period,
+                Rewards =
+                {
+                    {"level1",5}
+                }
+            });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
         public void PrepareDraw()
         {
             _lotteryDemoContract.SetAccount(InitAccount);
@@ -153,8 +200,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void Draw()
+        public async Task Draw()
         {
+            var period = 1;
+            await SetRewardListForOnePeriod(period);
             _lotteryDemoContract.SetAccount(InitAccount);
             var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.PrepareDraw, new Empty());
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -168,18 +217,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
             }
 
             _lotteryDemoContract.SetAccount(InitAccount);
-            var drawResult = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.Draw, new DrawInput
+            var drawResult = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.Draw, new Int64Value 
             {
-                LevelsCount = {1}
+                Value = period
             });
             drawResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
-
+        
         [TestMethod]
         public async Task TakeReward()
         {
-            var rewardResult = await _adminLotteryDemoStub.GetRewardResult.CallAsync(new Int64Value {Value = 3});
-            var lotteries = rewardResult.RewardLotteries.Where(l => l.Level.Equals(1)).ToList();
+            var rewardResult = await _adminLotteryDemoStub.GetRewardResult.CallAsync(new Int64Value {Value = 11});
+            var lotteries = rewardResult.RewardLotteries;
             foreach (var lottery in lotteries)
             {
 //                lottery.RegistrationInformation.ShouldBe("");
@@ -192,8 +241,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }
 
-            rewardResult = await _adminLotteryDemoStub.GetRewardResult.CallAsync(new Int64Value {Value = 3});
-            lotteries = rewardResult.RewardLotteries.Where(l => l.Level.Equals(1)).ToList();
+            rewardResult = await _adminLotteryDemoStub.GetRewardResult.CallAsync(new Int64Value {Value = 11});
+            lotteries = rewardResult.RewardLotteries;
             foreach (var lottery in lotteries)
             {
                 lottery.RegistrationInformation.ShouldBe("中奖啦");
@@ -204,7 +253,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public async Task TakeReward_Failed()
         {
             var rewardResult = await _lotteryDemoStub.GetRewardResult.CallAsync(new Int64Value {Value = 1});
-            var lotteries = rewardResult.RewardLotteries.Where(l => l.Level.Equals(1)).ToList();
+            var lotteries = rewardResult.RewardLotteries;
             foreach (var lottery in lotteries)
             {
                 lottery.RegistrationInformation.ShouldBe("");
@@ -217,6 +266,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 });
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Failed);
             }
+        }
+
+        [TestMethod]
+        public async Task Suspend()
+        {
+            var result = await _adminLotteryDemoStub.Suspend.SendAsync(new Empty());
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        public async Task Recover()
+        {
+            var result = await _adminLotteryDemoStub.Recover.SendAsync(new Empty());
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
         }
 
         [TestMethod]
@@ -251,12 +314,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task GetRewardResult()
         {
-            var result = await _adminLotteryDemoStub.GetRewardResult.CallAsync(new Int64Value {Value = 5});
+            var result = await _adminLotteryDemoStub.GetRewardResult.CallAsync(new Int64Value {Value = 3});
             var lotteries = result.RewardLotteries;
-            var level_1 = lotteries.Where(l => l.Level.Equals(1)).ToList();
-            var level_2 = lotteries.Where(l => l.Level.Equals(2)).ToList();
-            var level_3 = lotteries.Where(l => l.Level.Equals(3)).ToList();
-//            var level_4 = lotteries.Where(l => l.Level.Equals(4)).ToList();
+            Logger.Info($"{lotteries}");
         }
 
         [TestMethod]
@@ -267,10 +327,51 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var result = await _lotteryDemoStub.GetBoughtLotteries.CallAsync(new GetBoughtLotteriesInput
                 {
                     Period = 0,
-                    StartIndex = 92,
+                    StartId = 0,
                     Owner = tester.ConvertAddress()
                 });
+                var count = await _lotteryDemoStub.GetBoughtLotteriesCount.CallAsync(tester.ConvertAddress());
+                result.Lotteries.Count.ShouldBe((int)count.Value);
+                Logger.Info($"{tester} lotteries: {result.Lotteries}");
             }
+        }
+        
+        [TestMethod]
+        public async Task GetBoughtLotteriesCount()
+        {
+            long sum = 0;
+            foreach (var tester in Tester)
+            {
+                var result = await _lotteryDemoStub.GetBoughtLotteriesCount.CallAsync(tester.ConvertAddress());
+                sum = sum + result.Value;
+                Logger.Info($"{tester} has {result.Value} lotteries");
+            }
+
+            var count = await _adminLotteryDemoStub.GetAllLotteriesCount.CallAsync(new Empty());
+            count.Value.ShouldBe(sum);
+            Logger.Info($"all lotteries are : {count.Value}");
+
+            var rewardCount = 0;
+            var period = await _adminLotteryDemoStub.GetCurrentPeriodNumber.CallAsync(new Empty());
+            Logger.Info($"Current period number is :{period.Value}");
+            for (var i = 1; i<=period.Value; i++)
+            {
+                var periodInfo = await _adminLotteryDemoStub.GetPeriod.CallAsync(new Int64Value {Value = i});
+                Logger.Info(
+                    $"{i}: Start id is: {periodInfo.StartId}; BlockNumber :{periodInfo.BlockNumber}; Rewards: {periodInfo.Rewards}; RewardsId :{periodInfo.RewardIds}");
+                rewardCount = rewardCount + periodInfo.RewardIds.Count;
+            }
+            
+            var noResult = await _adminLotteryDemoStub.GetNoRewardLotteriesCount.CallAsync(new Empty());
+            noResult.Value.ShouldBe(count.Value - rewardCount);
+            Logger.Info($"NoRewardLotteriesCount: {noResult.Value}");
+        }
+
+        [TestMethod]
+        public async Task GetNoRewardLotteriesCount()
+        {
+            var result = await _adminLotteryDemoStub.GetNoRewardLotteriesCount.CallAsync(new Empty());
+            Logger.Info($"NoRewardLotteriesCount: {result.Value}");
         }
 
         [TestMethod]
@@ -279,7 +380,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var result = await _lotteryDemoStub.GetBoughtLotteries.CallAsync(new GetBoughtLotteriesInput
             {
                 Period = 0,
-                StartIndex = 44,
                 Owner = TestAccount.ConvertAddress()
             });
         }
@@ -289,14 +389,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var period = await _adminLotteryDemoStub.GetCurrentPeriodNumber.CallAsync(new Empty());
             Logger.Info($"Current period number is :{period.Value}");
-            var periodInfo = await _adminLotteryDemoStub.GetPeriod.CallAsync(new Int64Value {Value = period.Value});
-            Logger.Info($"Start id is: {periodInfo.StartId}; BlockNumber :{periodInfo.BlockNumber}");
+            for (var i = 1; i<=period.Value; i++)
+            {
+                var periodInfo = await _adminLotteryDemoStub.GetPeriod.CallAsync(new Int64Value {Value = i});
+                Logger.Info(
+                    $"{i}: Start id is: {periodInfo.StartId}; BlockNumber :{periodInfo.BlockNumber}; Rewards: {periodInfo.Rewards}; RewardsId :{periodInfo.RewardIds}");
+            }
+            var currentPeriodInfo = await _adminLotteryDemoStub.GetPeriod.CallAsync(new Int64Value {Value = period.Value});
             var currentPeriod = await _adminLotteryDemoStub.GetCurrentPeriod.CallAsync(new Empty());
-            currentPeriod.BlockNumber.ShouldBe(periodInfo.BlockNumber);
+            currentPeriod.BlockNumber.ShouldBe(currentPeriodInfo.BlockNumber);
             var result = await _adminLotteryDemoStub.GetSales.CallAsync(new Int64Value {Value = period.Value});
-            Logger.Info($"{result.Value}");
-//            var result1 = await _adminLotteryDemoStub.GetSales.CallAsync(new Int64Value {Value = period.Value-1});
-//            Logger.Info($"{result1.Value}");
+            Logger.Info($"Sales: {result.Value}");
         }
 
 

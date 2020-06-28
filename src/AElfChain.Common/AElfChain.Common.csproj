@@ -52,6 +52,7 @@
         <ProtoContract Include="Protobuf\Proto\lottery_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\dao_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\centre_asset_management.proto" />
+        <ProtoContract Include="Protobuf\Proto\bingo_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
@@ -10,8 +11,10 @@ using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
+using Google.Protobuf;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 using Shouldly;
 using Tokenswap;
 
@@ -31,11 +34,55 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private string TestAccount { get; } = "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6";
         private static string RpcUrl { get; } = "192.168.199.205:8000";
         private string Symbol { get; } = "LOT";
+        private string[] targetAddress;
 
         //822c3c33a2c14bf22b300d3efae0054dce1e6f4266350ad923f549f187a5bcd4
         //192b8fddc45c155f444a266c3d9f90c5c90a3351d584fe91714e6fb6c78f4754
         //5404d13ed76614d01b616417064b2b971d0348399fb8773330f4763459b80ae4
-        private string PairId { get; } = "fccb3863ef305a4f8761522afdcc3fc00160e3ee8034bb05e86cd33f856f10ad";
+        private string PairId { get; } = "1caeff2902a1efd613ad4e176ccad2dc5d34339f4d92051eaeba65ac471b7c69";
+
+        public class TreeInfos
+        {
+            [JsonProperty("treeInfos")] public List<TreeInfo> Trees { get; set; }
+        }
+
+        public class TreeInfo
+        {
+            [JsonProperty("index")] public int index { get; set; }
+            [JsonProperty("root")] public string root { get; set; }
+        }
+
+        public class SwapInfo
+        {
+            private TreeInfos _instance;
+            private string _jsonContent;
+            private readonly object _lockObj = new object();
+
+            public TreeInfos TreeInfo => GetInfo();
+
+            private TreeInfos GetInfo()
+            {
+                lock (_lockObj)
+                {
+                    try
+                    {
+                        var localPath = CommonHelper.GetDefaultDataDir();
+                        var config = Path.Combine(localPath, $@"tokenSwapTest/TreeInfo.json");
+                        _jsonContent = File.ReadAllText(config);
+                    }
+                    catch (FileNotFoundException e)
+                    {
+                        Console.WriteLine($"Could not find file");
+                        return null;
+                    }
+
+                    _instance = JsonConvert.DeserializeObject<TreeInfos>(_jsonContent);
+                }
+
+                return _instance;
+            }
+        }
+
 
         [TestInitialize]
         public void Initialize()
@@ -56,6 +103,53 @@ namespace AElf.Automation.Contracts.ScenarioTest
 //            _tokenContract.TransferBalance(InitAccount, TestAccount, 1000000000000);
             if (!_tokenContract.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
                 CreateTokenAndIssue();
+            targetAddress = new string[]
+            {
+                "2oSMWm1tjRqVdfmrdL8dgrRvhWu1FP8wcZidjS6wPbuoVtxhEz",
+                "WRy3ADLZ4bEQTn86ENi5GXi5J1YyHp9e99pPso84v2NJkfn5k",
+                "2frDVeV6VxUozNqcFbgoxruyqCRAuSyXyfCaov6bYWc7Gkxkh2",
+                "2ZYyxEH6j8zAyJjef6Spa99Jx2zf5GbFktyAQEBPWLCvuSAn8D",
+                "eFU9Quc8BsztYpEHKzbNtUpu9hGKgwGD2tyL13MqtFkbnAoCZ",
+                "2V2UjHQGH8WT4TWnzebxnzo9uVboo67ZFbLjzJNTLrervAxnws",
+                "EKRtNn3WGvFSTDewFH81S7TisUzs9wPyP4gCwTww32waYWtLB",
+                "2LA8PSHTw4uub71jmS52WjydrMez4fGvDmBriWuDmNpZquwkNx",
+                "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6",
+                "YF8o6ytMB7n5VF9d1RDioDXqyQ9EQjkFK3AwLPCH2b9LxdTEq",
+                "h6CRCFAhyozJPwdFRd7i8A5zVAqy171AVty3uMQUQp1MB9AKa",
+                "28qLVdGMokanMAp9GwfEqiWnzzNifh8LS9as6mzJFX1gQBB823",
+                "2Dyh4ASm6z7CaJ1J1WyvMPe2sJx5TMBW8CMTKeVoTMJ3ugQi3P",
+                "2G4L1S7KPfRscRP6zmd7AdVwtptVD3vR8YoF1ZHgPotDNbZnNY",
+                "W4xEKTZcvPKXRAmdu9xEpM69ArF7gUxDh9MDgtsKnu7JfePXo",
+                "2REajHMeW2DMrTdQWn89RQ26KQPRg91coCEtPP42EC9Cj7sZ61",
+                "2a6MGBRVLPsy6pu4SVMWdQqHS5wvmkZv8oas9srGWHJk7GSJPV",
+                "2cv45MBBUHjZqHva2JMfrGWiByyScNbEBjgwKoudWQzp6vX8QX",
+                "7BSmhiLtVqHSUVGuYdYbsfaZUGpkL2ingvCmVPx66UR5L5Lbs"
+            };
+        }
+
+        [TestMethod]
+        public void Transfer()
+        {
+            foreach (var receiver in targetAddress)
+            {
+                if (receiver.Equals(InitAccount)) continue;
+                var elfBalance = _tokenContract.GetUserBalance(receiver);
+                var balance = _tokenContract.GetUserBalance(receiver, Symbol);
+                Logger.Info(
+                    $"Check the balance of receiver account {receiver}, ELF balance is {elfBalance}, {Symbol} balance is {balance}");
+
+                if (elfBalance <= 10000_00000000) continue;
+                _tokenContract.SetAccount(receiver);
+                _tokenContract.TransferBalance(receiver, InitAccount, elfBalance - 10000_00000000);
+                if (balance <= 10000_00000000) continue;
+                _tokenContract.SetAccount(receiver);
+                _tokenContract.TransferBalance(receiver, InitAccount, balance - 10000_00000000, Symbol);
+            }
+
+            var initBalance = _tokenContract.GetUserBalance(InitAccount);
+            var initSymbolBalance = _tokenContract.GetUserBalance(InitAccount, Symbol);
+            Logger.Info(
+                $"Balance of init account {InitAccount}, ELF balance is {initBalance}, {Symbol} balance is {initSymbolBalance}");
         }
 
         [TestMethod]
@@ -112,12 +206,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow("0xf9c3f6bf4a3d4ce60857e176ff47287e706cecd3ebe7253719ebc0d5f83fa762", 0)]
-//        [DataRow("0x409b0c8e42bb7e66d1b671633baf2d9544fed1777233dcaa02cebee46119396c", 1)]
-//        [DataRow("0xe5e9f9725c20edddceabfb1bd9952913f36584f7e14fff4d48773de9ebba0c9b", 2)]
-//        [DataRow("0x7bc1c986d4d278ac315c7f0d05939c0e11ae915497f062b754d18fa0986bcf6e", 3)]
-//        [DataRow("0xe6b0a09ddfdf9e0276b763807084f0128e18f79ce2e3dcef1cebb2d9819c92c7", 4)]
-//        [DataRow("0x868d493601681be3b957943eaa8c2524b5e55c588d995151e9659ad6573948d7", 5)]
+        public async Task AddManyRound()
+        {
+            var swapInfo = new SwapInfo();
+            var treeInfo = swapInfo.TreeInfo;
+            foreach (var tree in treeInfo.Trees)
+            {
+                await AddSwapRound(tree.root, tree.index);
+            }
+        }
+
+        [TestMethod]
+        [DataRow("0x72fd2306d145cbdcc7a295ee2cf36be8da6cb6e3532123a360f994be14abd76d", 0)]
         public async Task AddSwapRound(string root, int id)
         {
             var pId = Hash.LoadFromHex(PairId);

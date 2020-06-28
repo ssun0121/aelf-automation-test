@@ -10,6 +10,10 @@ namespace AElfChain.Common.Contracts
         Draw,
         PrepareDraw,
         TakeReward,
+        AddRewardList,
+        SetRewardListForOnePeriod,
+        Suspend,
+        Recover,
         
         //View
         GetRewardResult,

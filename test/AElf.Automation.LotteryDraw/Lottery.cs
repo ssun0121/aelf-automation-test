@@ -131,9 +131,9 @@ namespace AElf.Automation.LotteryTest
             }
 
             LotteryService.SetAccount(Owner, Password);
-            var drawResult = LotteryService.ExecuteMethodWithResult(LotteryMethod.Draw, new DrawInput
+            var drawResult = LotteryService.ExecuteMethodWithResult(LotteryMethod.Draw, new Int64Value
             {
-                LevelsCount = {1}
+                Value = 1
             });
             drawResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             

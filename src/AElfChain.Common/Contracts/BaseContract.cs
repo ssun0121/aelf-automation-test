@@ -286,7 +286,7 @@ namespace AElfChain.Common.Contracts
             Logger.Info("Deploy contract with authority mode.");
             var authority = new AuthorityManager(NodeManager, CallAddress);
             var miner = authority.GetCurrentMiners().First();
-            var contractAddress = authority.DeployContractWithAuthority(miner, FileName);
+            var contractAddress = authority.DeployContractWithAuthority(CallAddress, FileName);
             ContractAddress = contractAddress.ToBase58();
         }
 

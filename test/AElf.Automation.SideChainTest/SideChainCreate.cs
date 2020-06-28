@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Acs1;
 using Acs3;
 using Acs7;
@@ -345,9 +346,9 @@ namespace AElf.Automation.SideChainTests
         [DataRow("28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK")]
         public void CheckBalance(string account)
         {
-            var balance = GetBalance(MainServices, MainServices.CrossChainService.ContractAddress,
+            var balance = GetBalance(SideAServices, account,
                 NodeOption.NativeTokenSymbol);
-            Logger.Info($"side chain balance is {balance}");
+            Logger.Info($"side chain user balance is {balance}");
 
             var userBalance = GetBalance(MainServices, account, NodeOption.NativeTokenSymbol);
             Logger.Info($"user balance is {userBalance}");

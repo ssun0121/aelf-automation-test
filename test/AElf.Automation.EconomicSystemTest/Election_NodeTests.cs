@@ -45,8 +45,10 @@ namespace AElf.Automation.EconomicSystemTest
         [TestMethod]
         public void NodeAnnounceElectionAction()
         {
+            var balance = Behaviors.TokenService.GetUserBalance(InitAccount);
             foreach (var user in FullNodeAddress)
             {
+                Behaviors.TransferToken(InitAccount, user, 10_1000_00000000);
                 var election = Behaviors.ElectionService.GetNewTester(user, "123");
                 var electionResult = election.ExecuteMethodWithResult(ElectionMethod.AnnounceElection, new Empty());
                 electionResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
