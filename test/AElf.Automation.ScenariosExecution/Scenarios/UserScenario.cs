@@ -108,16 +108,17 @@ namespace AElf.Automation.ScenariosExecution.Scenarios
             $"20% user vote profit for account: {account}.\r\nDetails number: {voteProfit.Details}".WriteSuccessLine();
 
             //Get user profit amount
-            var profitAmount = Profit.GetProfitAmount(account, schemeId);
-            if (profitAmount == 0)
+            var profitMap = Profit.GetProfitsMap(account, schemeId);
+            if (profitMap.Equals(new ReceivedProfitsMap()))
                 return;
-
+            var profitAmount = profitMap.Value["ELF"];
             Logger.Info($"Profit amount: user {account} profit amount is {profitAmount}");
             var beforeBalance = Token.GetUserBalance(account);
             var profit = Profit.GetNewTester(account);
             var profitResult = profit.ExecuteMethodWithResult(ProfitMethod.ClaimProfits, new ClaimProfitsInput
             {
-                SchemeId = schemeId
+                SchemeId = schemeId,
+                Beneficiary = account.ConvertAddress()
             }, out var existed);
             if (existed) return; //if found tx existed and return
             if (profitResult.Status.ConvertTransactionResultStatus() != TransactionResultStatus.Mined) return;
@@ -163,7 +164,7 @@ namespace AElf.Automation.ScenariosExecution.Scenarios
             var beforeVoteShareBalance = Token.GetUserBalance(account, "SHARE");
 
             var beforeCandidateVote = Election.GetCandidateVoteCount(candidatePublicKey);
-            if (beforeElfBalance < amount * 10000_0000) // balance not enough, bp transfer again
+            if (beforeElfBalance < amount) // balance not enough, bp transfer again
             {
                 const long transferAmount = 1_0000_00000000L;
                 var token = Token.GetNewTester(AllNodes.First().Account);
@@ -205,10 +206,10 @@ namespace AElf.Automation.ScenariosExecution.Scenarios
             var checkResult = true;
 
             //check vote result process
-            if (beforeElfBalance != afterElfBalance + amount * 10000_0000L + transactionFee)
+            if (beforeElfBalance != afterElfBalance + amount + transactionFee)
             {
                 Logger.Error(
-                    $"User vote cost balance check failed. ELF: {beforeElfBalance}/{afterElfBalance + amount * 10000_0000L + transactionFee}");
+                    $"User vote cost balance check failed. ELF: {beforeElfBalance}/{afterElfBalance + amount + transactionFee}");
                 checkResult = false;
             }
 

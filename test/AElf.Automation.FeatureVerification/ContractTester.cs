@@ -24,7 +24,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public readonly ReferendumContract ReferendumService;
         public readonly TokenContract TokenService;
         public readonly VoteContract VoteService;
-
+        public readonly TreasuryContract TreasuryContract;
+        public readonly TokenHolderContract TokenHolderContract;
+        public readonly TokenConverterContract TokenConverterContract;
 
         public ContractTester(ContractServices contractServices)
         {
@@ -43,6 +45,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             ReferendumService = ContractServices.ReferendumService;
             ConfigurationService = ContractServices.ConfigurationService;
             CrossChainService = ContractServices.CrossChainService;
+            TreasuryContract = ContractServices.TreasuryContract;
+            TokenHolderContract = ContractServices.TokenHolderContract;
+            TokenConverterContract = ContractServices.TokenConverterService;
         }
 
         public List<string> GetMiners()
@@ -79,9 +84,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var miner in miners)
             {
                 var balance = TokenService.GetUserBalance(miner, symbol);
-                if (account == miner || balance > 10000_00000000) continue;
+                if (account == miner || balance > 200_00000000) continue;
                 TokenService.SetAccount(account);
-                TokenService.TransferBalance(account, miner, 20000_000000000, symbol);
+                TokenService.TransferBalance(account, miner, 200_000000000, symbol);
             }
         }
 

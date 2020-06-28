@@ -54,9 +54,6 @@ namespace AElf.Automation.SideChainTests
             // var account = "kV73ST71ajpWfoMHNo9rrpqATzF1DF2XUcTT3YSQ6HXmwbDC4";
 
             MainServices = new ContractServices(mainUrl, InitAccount, password);
-//            AuthorityManager = new AuthorityManager(MainServices.NodeManager);
-//            SideAuthorityManager = new AuthorityManager(SideAServices.NodeManager);
-
             SideServices = new List<ContractServices>();
             foreach (var side in sideUrls)
             {
@@ -67,6 +64,8 @@ namespace AElf.Automation.SideChainTests
             SideAServices = SideServices.First();
 //            SideBServices = new ContractServices(sideUrls[1], InitAccount, NodeOption.DefaultPassword);
 
+            AuthorityManager = new AuthorityManager(MainServices.NodeManager);
+            SideAuthorityManager = new AuthorityManager(SideAServices.NodeManager);
             TokenContractStub = MainServices.TokenContractStub;
 //            Miners = new List<string>();
 //            Miners = AuthorityManager.GetCurrentMiners();
@@ -84,7 +83,7 @@ namespace AElf.Automation.SideChainTests
 
         #endregion
 
-        #region cross chain verify 
+        #region cross chain verify
 
         protected CrossChainMerkleProofContext GetBoundParentChainHeightAndMerklePathByHeight(ContractServices services,
             string account,
@@ -160,7 +159,7 @@ namespace AElf.Automation.SideChainTests
                 services.CallAddress, services.GenesisService.ContractAddress,
                 GenesisMethod.ValidateSystemContractAddress.ToString(), new ValidateSystemContractAddressInput
                 {
-                    Address =services.TokenService.Contract,
+                    Address = services.TokenService.Contract,
                     SystemContractHashName = HashHelper.ComputeFrom("AElf.ContractNames.Token")
                 });
             return validateTransaction;
@@ -247,13 +246,13 @@ namespace AElf.Automation.SideChainTests
             var miners = GetMiners(services);
             foreach (var miner in miners)
             {
-                if(miner.ToBase58().Equals(InitAccount)) continue;
                 services.ParliamentService.SetAccount(miner.ToBase58(), "123");
                 var balance = services.TokenService.GetUserBalance(miner.ToBase58());
-                if (balance< 1000_00000000)
+                if (balance < 1000_00000000 && !miner.ToBase58().Equals(InitAccount))
                 {
                     services.TokenService.TransferBalance(InitAccount, miner.ToBase58(), 1000_00000000);
                 }
+
                 var result = services.ParliamentService.ExecuteMethodWithResult(ParliamentMethod.Approve, proposalId);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }

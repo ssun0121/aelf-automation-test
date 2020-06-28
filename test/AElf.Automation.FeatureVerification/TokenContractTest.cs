@@ -11,7 +11,6 @@ using AElfChain.Common.Managers;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 using Shouldly;
 
 namespace AElf.Automation.Contracts.ScenarioTest
@@ -37,21 +36,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private AuthorityManager AuthorityManager { get; set; }
 
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
-        private string BpAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
+        private string BpAccount { get; } = "2ZYyxEH6j8zAyJjef6Spa99Jx2zf5GbFktyAQEBPWLCvuSAn8D";
         private string TestAccount { get; } = "2oSMWm1tjRqVdfmrdL8dgrRvhWu1FP8wcZidjS6wPbuoVtxhEz";
-
-        private static string RpcUrl { get; } = "52.90.147.175:8000";
-        private string Symbol { get; } = "TEST";
         
-//        private List<string> SideChainSymbol = new List<string> {"EPC","EDA","EDB","EDC","EDD"};
-        private List<string> SideChainSymbol = new List<string> {"STA", "STB"};
-
+        private static string RpcUrl { get; } = "192.168.197.42:8000";
+        private string Symbol { get; } = "TEST";
+        private string Symbol1 { get; } = "NOPROFIT";
+        private string Symbol2 { get; } = "NOWHITE";
+        
         [TestInitialize]
         public void Initialize()
         {
-            Log4NetHelper.LogInit("ContractTest");
+            Log4NetHelper.LogInit("TokenContractTest");
             Logger = Log4NetHelper.GetLogger();
-            NodeInfoHelper.SetConfig("nodes-online-test-main");
+            NodeInfoHelper.SetConfig("nodes-env1-main");
 
             NodeManager = new NodeManager(RpcUrl);
             AuthorityManager = new AuthorityManager(NodeManager, InitAccount);
@@ -83,36 +81,26 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public async Task NewStubTest_Execution()
+        public async Task ChangeIssuer()
         {
-            var tokenContractAddress =
-                ("WnV9Gv3gioSh3Vgaw8SSB96nV8fWUNxuVozCf6Y14e7RXyGaM").ConvertAddress();
-            var tester = new ContractTesterFactory(NodeManager);
-            var tokenStub = tester.Create<TokenContractContainer.TokenContractStub>(tokenContractAddress, InitAccount);
-            var transactionResult = await tokenStub.Transfer.SendAsync(new TransferInput
+            await CreateToken(Symbol, long.MaxValue);
+            var tokenInfo = _tokenContract.GetTokenInfo(Symbol);
+            var sub = _genesisContract.GetTokenStub(tokenInfo.Issuer.ToBase58());
+            var result = await sub.ChangeTokenIssuer.SendAsync(new ChangeTokenIssuerInput
             {
-                Amount = 100,
-                Symbol = NodeOption.NativeTokenSymbol,
-                To = TestAccount.ConvertAddress(),
-                Memo = "Test transfer with new sdk"
+                NewTokenIssuer = TestAccount.ConvertAddress(),
+                Symbol = tokenInfo.Symbol
             });
-            transactionResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            //query balance
-            var result = await tokenStub.GetBalance.CallAsync(new GetBalanceInput
-            {
-                Owner = TestAccount.ConvertAddress(),
-                Symbol = NodeOption.NativeTokenSymbol
-            });
-            result.Balance.ShouldBeGreaterThanOrEqualTo(100);
-        }
+            tokenInfo = _tokenContract.GetTokenInfo(Symbol);
+            tokenInfo.Issuer.ShouldBe(TestAccount.ConvertAddress());
+            _tokenContract.SetAccount(TestAccount);
+            var issue = _tokenContract.IssueBalance(TestAccount, InitAccount, 1000, Symbol);
+            issue.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-        [TestMethod]
-        public void DeployContractWithAuthority_Test()
-        {
-            var authority = new AuthorityManager(NodeManager, TestAccount);
-            var contractAddress = authority.DeployContractWithAuthority(TestAccount, "AElf.Contracts.MultiToken.dll");
-            contractAddress.ShouldNotBeNull();
+            var balance = _tokenContract.GetUserBalance(InitAccount, Symbol);
+            balance.ShouldBe(1000+1000000_0000);
         }
 
         [TestMethod]
@@ -147,27 +135,42 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var afterOtherTokenBalance = await _testTokenSub.GetBalance.CallAsync(new GetBalanceInput
             {
-                Owner = TestAccount.ConvertAddress(),
+                Owner = InitAccount.ConvertAddress(),
                 Symbol = Symbol
             });
 
             Logger.Info(
-                $"After buy token, user ELF balance is {afterBalance} user EPC balance is {afterOtherTokenBalance}");
+                $"After buy token, user ELF balance is {afterBalance} user {Symbol} balance is {afterOtherTokenBalance}");
         }
 
         [TestMethod]
-        public async Task AddConnector()
+        public async Task AddListConnector()
         {
-            var amount = 9000000_00000000;
-            await CreateToken(amount);
+            var list = new List<string>(){Symbol,Symbol1,Symbol2};
+            foreach (var symbol in list)
+            {
+                await AddConnector(symbol);
+            }
+        }
+
+        [TestMethod]
+        public async Task AddConnector(string symbol)
+        {
+            var amount = 80000000_0000000000;
+            await CreateToken(symbol,amount);
+            await IssueToken(symbol, amount);
             var input = new PairConnectorParam
             {
                 NativeWeight = "0.05",
                 ResourceWeight = "0.05",
-                ResourceConnectorSymbol = Symbol,
-                NativeVirtualBalance = 100_0000_00000000
+                ResourceConnectorSymbol = symbol,
+                NativeVirtualBalance = 100000000_00000000,
             };
             var organization = _parliamentContract.GetGenesisOwnerAddress();
+            var connectorController = await _tokenConverterSub.GetControllerForManageConnector.CallAsync(new Empty());
+            connectorController.ContractAddress.ShouldBe(_parliamentContract.Contract);
+            connectorController.OwnerAddress.ShouldBe(organization);
+            
             var proposal = _parliamentContract.CreateProposal(_tokenConverterContract.ContractAddress,
                 nameof(TokenConverterMethod.AddPairConnector), input, organization, BpAccount);
             var miners = AuthorityManager.GetCurrentMiners();
@@ -175,7 +178,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var result = _parliamentContract.ReleaseProposal(proposal, BpAccount);
             result.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            var ELFamout = await GetNeededDeposit(amount);
+            var ELFamout = await GetNeededDeposit(amount,symbol);
             Logger.Info($"Need ELF : {ELFamout}");
             (await _bpTokenSub.Approve.SendAsync(new ApproveInput
             {
@@ -187,13 +190,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             (await _bpTokenSub.Approve.SendAsync(new ApproveInput
             {
                 Spender = _tokenConverterContract.Contract,
-                Symbol = Symbol,
+                Symbol = symbol,
                 Amount = amount
             })).TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
             var buildInput = new ToBeConnectedTokenInfo
             {
-                TokenSymbol = Symbol,
+                TokenSymbol = symbol,
                 AmountToTokenConvert = amount
             };
 
@@ -202,7 +205,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var tokenConverterBalance = await _tokenSub.GetBalance.CallAsync(new GetBalanceInput
             {
-                Symbol = Symbol,
+                Symbol = symbol,
                 Owner = _tokenConverterContract.Contract
             });
             tokenConverterBalance.Balance.ShouldBe(amount);
@@ -213,8 +216,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var input = new Connector
             {
-                Symbol = "STA",
-                VirtualBalance = 100_0000_00000000
+                Symbol = Symbol,
+                VirtualBalance = 100_0000_00000000,
             };
 
             var organization = _parliamentContract.GetGenesisOwnerAddress();
@@ -259,9 +262,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var result3 = await _tokenSub.GetCalculateFeeCoefficientsForContract.CallAsync(new Int32Value {Value = 3});
             Logger.Info($"{result3}");
-
-            var result4 = await _tokenSub.GetCalculateFeeCoefficientsForContract.CallAsync(new Int32Value {Value = 4});
-            Logger.Info($"{result4}");
         }
 
         [TestMethod]
@@ -304,33 +304,30 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     {Owner = acs8Contract.ConvertAddress(), Symbol = s});
                 Logger.Info($"{s} balance is {balance.Balance}");
             }
-
-            foreach (var s in ResourceSymbol)
-            {
-                var balance = await _tokenSub.GetBalance.CallAsync(new GetBalanceInput
-                    {Owner = acs8Contract.ConvertAddress(), Symbol = s});
-                Logger.Info($"{s} balance is {balance.Balance}");
-            }
         }
 
-        private async Task CreateToken(long amount)
+        private async Task CreateToken(string symbol,long amount)
         {
-            var result = await _bpTokenSub.Create.SendAsync(new CreateInput
+            if (!_tokenContract.GetTokenInfo(symbol).Equals(new TokenInfo())) return;
+            var result = await _tokenSub.Create.SendAsync(new CreateInput
             {
-                Issuer = BpAccount.ConvertAddress(),
-                Symbol = Symbol,
+                Issuer = InitAccount.ConvertAddress(),
+                Symbol = symbol,
                 Decimals = 8,
                 IsBurnable = true,
                 TokenName = "TEST symbol",
-                TotalSupply = 100000000_00000000
+                TotalSupply = amount
             });
 
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+        }
 
-            var issueResult = await _bpTokenSub.Issue.SendAsync(new IssueInput
+        private async Task IssueToken(string symbol, long amount)
+        {
+            var issueResult = await _tokenSub.Issue.SendAsync(new IssueInput
             {
                 Amount = amount,
-                Symbol = Symbol,
+                Symbol = symbol,
                 To =  BpAccount.ConvertAddress()
             });
             issueResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
@@ -338,11 +335,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
             balance.ShouldBe(amount);
         }
 
-        private async Task<long> GetNeededDeposit(long amount)
+        private async Task<long> GetNeededDeposit(long amount,string symbol)
         {
             var result = await _tokenConverterSub.GetNeededDeposit.CallAsync(new ToBeConnectedTokenInfo
             {
-                TokenSymbol = Symbol,
+                TokenSymbol = symbol,
                 AmountToTokenConvert = amount
             });
             return result.NeedAmount;

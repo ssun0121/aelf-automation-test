@@ -28,6 +28,7 @@ namespace AElfChain.Common.Contracts
         GetScheme,
         GetReleasedProfitsInformation,
         GetProfitDetails,
+        GetProfitsMap,
         GetProfitItem,
         GetProfitAmount
     }
@@ -36,13 +37,14 @@ namespace AElfChain.Common.Contracts
     {
         Treasury,
 
-        MinerReward,
-        BackupSubsidy,
-        CitizenWelfare,
-
-        MinerBasicReward,
-        VotesWeightReward,
-        ReElectionReward
+        MinerReward, //6
+        BackupSubsidy,//2
+        CitizenWelfare,//2
+        
+//MinerReward: MinerBasicReward,VotesWeightReward,ReElectionReward
+        MinerBasicReward,//4
+        VotesWeightReward,//1
+        ReElectionReward//1
     }
 
     public class ProfitContract : BaseContract<ProfitMethod>
@@ -115,8 +117,20 @@ namespace AElfChain.Common.Contracts
             var newTester = GetNewTester(account);
             return newTester.CallViewMethod<Int64Value>(ProfitMethod.GetProfitAmount, new ClaimProfitsInput
             {
-                SchemeId = schemeId
+                SchemeId = schemeId,
+                Beneficiary = account.ConvertAddress()
             }).Value;
+        }
+        
+        public ReceivedProfitsMap GetProfitsMap(string account, Hash schemeId)
+        {
+            var newTester = GetNewTester(account);
+            var profitsMap = newTester.CallViewMethod<ReceivedProfitsMap>(ProfitMethod.GetProfitsMap, new ClaimProfitsInput
+            {
+                SchemeId = schemeId,
+                Beneficiary = account.ConvertAddress()
+            });
+            return profitsMap;
         }
 
         public Address GetSchemeAddress(Hash schemeId, long period)

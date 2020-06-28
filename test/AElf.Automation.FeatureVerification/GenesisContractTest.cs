@@ -5,8 +5,6 @@ using System.Threading.Tasks;
 using Acs0;
 using Acs1;
 using Acs3;
-using AElf.Contracts.Association;
-using AElf.Contracts.Referendum;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
 using AElfChain.Common.Contracts;
@@ -19,7 +17,6 @@ using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
-using CreateOrganizationInput = AElf.Contracts.Association.CreateOrganizationInput;
 
 namespace AElf.Automation.Contracts.ScenarioTest
 {
@@ -37,12 +34,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public static string Creator { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
         public static string Member { get; } = "2frDVeV6VxUozNqcFbgoxruyqCRAuSyXyfCaov6bYWc7Gkxkh2";
         public static string OtherAccount { get; } = "W4xEKTZcvPKXRAmdu9xEpM69ArF7gUxDh9MDgtsKnu7JfePXo";
-        
         public List<string> Members;
         private static string MainRpcUrl { get; } = "http://192.168.197.14:8000";
         private static string SideRpcUrl { get; } = "http://192.168.197.14:8001";
         private static string SideRpcUrl2 { get; } = "http://192.168.197.14:8002";
-        private string Type { get; } = "Side1";
+        private string Type { get; } = "Main";
 
         [TestInitialize]
         public void Initialize()
@@ -55,7 +51,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             #endregion
 
-            NM = new NodeManager(SideRpcUrl);
+            NM = new NodeManager(MainRpcUrl);
             var services = new ContractServices(NM, InitAccount, Type);
             MainManager = new ContractManager(NM, InitAccount);
             Members = new List<string>{InitAccount,Member,OtherAccount};
@@ -80,6 +76,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Tester.TransferTokenToMiner(InitAccount);
                 Tester.TransferToken(OtherAccount);
             }
+            Members = new List<string>{InitAccount,Member,OtherAccount};
         }
 
         // SideChain:  IsAuthoiryRequired == true; IsPrivilegePreserved == true;
@@ -122,6 +119,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void DeploySmartContract_AuthorityRequiredFalse()
         {
             var input = ContractDeploymentInput("AElf.Contracts.MultiToken");
+            Tester.GenesisService.SetAccount(InitAccount);
             var result = Tester.GenesisService.ExecuteMethodWithResult(GenesisMethod.DeploySystemSmartContract,input);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }

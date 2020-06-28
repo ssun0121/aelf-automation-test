@@ -13,8 +13,10 @@ namespace AElfChain.Common.Contracts
         Vote,
         Withdraw,
         UpdateTermNumber,
+        ChangeVotingOption,
 
         //view
+        GetCalculateVoteWeight,
         GetElectionResult,
         GetVotesInformation,
         GetCandidateInformation,
@@ -29,7 +31,10 @@ namespace AElfChain.Common.Contracts
         GetVotesInformationWithRecords,
         GetElectorVoteWithAllRecords,
         GetNextElectCountDown,
-        GetElectorVote
+        GetElectorVoteWithRecords,
+        GetElectorVote,
+        GetVoteWeightSetting,
+        GetVoteWeightProportion
     }
 
     public class ElectionContract : BaseContract<ElectionMethod>

@@ -22,6 +22,7 @@ service TokenContractImpl {
     }
     rpc TakeResourceTokenBack (TakeResourceTokenBackInput) returns (google.protobuf.Empty) {
     }
+
     rpc RegisterCrossChainTokenContractAddress (RegisterCrossChainTokenContractAddressInput) returns (google.protobuf.Empty) {
     }
     rpc SetFeeReceiver (aelf.Address) returns (google.protobuf.Empty) {
@@ -49,6 +50,9 @@ service TokenContractImpl {
     }
 
     // Views
+    rpc GetFeeReceiver (google.protobuf.Empty) returns (aelf.Address){
+        option (aelf.is_view) = true;
+    }
     rpc GetResourceUsage (google.protobuf.Empty) returns (ResourceUsage) {
         option (aelf.is_view) = true;
     }

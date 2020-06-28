@@ -28,9 +28,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private ILog Logger { get; set; }
         private INodeManager NodeManager { get; set; }
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
-
-        private string BpAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
-
 //        private static string RpcUrl { get; } = "18.212.240.254:8000";
         private static string RpcUrl { get; } = "192.168.197.14:8000";
         private string Symbol { get; } = "TEST";
@@ -53,6 +50,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task BuyResource()
         {
+            var token = _tokenContract.GetTokenInfo("ELF");
+            var burnedToken = token.Burned;
             foreach (var resource in ResourceSymbol)
             {
                 var balance = await _tokenSub.GetBalance.CallAsync(new GetBalanceInput
@@ -75,6 +74,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 });
                 var size = result.Transaction.CalculateSize();
                 Logger.Info($"transfer size is: {size}");
+                var fee = result.TransactionResult.GetDefaultTransactionFee();
+                var burnedFee = (long)(fee * 0.1);
 
                 var afterBalance = await _tokenSub.GetBalance.CallAsync(new GetBalanceInput
                 {
@@ -82,6 +83,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Symbol = NodeManager.GetNativeTokenSymbol()
                 });
 
+                var resourceFee =(long) ((balance.Balance - afterBalance.Balance + fee) * 0.005 * 0.5);
                 var afterOtherTokenBalance = await _tokenSub.GetBalance.CallAsync(new GetBalanceInput
                 {
                     Owner = InitAccount.ConvertAddress(),
@@ -90,6 +92,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
                 Logger.Info(
                     $"After buy token, user ELF balance is {afterBalance} user {resource} balance is {afterOtherTokenBalance}");
+                token = _tokenContract.GetTokenInfo("ELF");
+                var afterBurnedToken = token.Burned;
+                afterBurnedToken.ShouldBeGreaterThan(burnedToken + burnedFee);
             }
         }
 

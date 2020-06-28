@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using Acs3;
 using AElf.Contracts.Parliament;
 using AElf.CSharp.Core.Extension;
@@ -98,12 +99,13 @@ namespace AElfChain.Common.Contracts
             var approveTxIds = new List<string>();
             foreach (var user in callers)
             {
+                if (user.Equals("2GRH6gYPhRu7SxYby56sxdXGVuAuXS5atfjRmeFPKWJB3VMJAw")) continue;
                 var tester = GetNewTester(user);
-                var txId = tester.ExecuteMethodWithTxId(ParliamentMethod.Approve, proposalId);
-                approveTxIds.Add(txId);
+                var txId = tester.ExecuteMethodWithResult(ParliamentMethod.Approve, proposalId);
+                txId.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }
 
-            NodeManager.CheckTransactionListResult(approveTxIds);
+            Thread.Sleep(10000);
         }
 
         public TransactionResult ReleaseProposal(Hash proposalId, string caller = null)

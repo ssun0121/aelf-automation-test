@@ -165,7 +165,7 @@ namespace AElfChain.Common.Managers
             var release = _genesis.ReleaseCodeCheckedContract(checkCodeRelease, caller);
             release.Status.ShouldBe("MINED");
             var byteString =
-                ByteString.FromBase64(release.Logs.First(l => l.Name.Contains(nameof(CodeUpdated))).NonIndexed);
+                ByteString.FromBase64(release.Logs.First(l => l.Name.Contains(nameof(CodeUpdated))).Indexed.First());
             var updateAddress = CodeUpdated.Parser.ParseFrom(byteString).Address;
             Logger.Info($"Contract update passed authority, contract address: {updateAddress}");
         }
@@ -215,7 +215,9 @@ namespace AElfChain.Common.Managers
                     MaximalAbstentionThreshold = maximalAbstentionThreshold,
                     MaximalRejectionThreshold = maximalRejectionThreshold,
                     MinimalVoteThreshold = minimalVoteThreshold
-                }
+                },
+                ProposerAuthorityRequired = true,
+                ParliamentMemberProposingAllowed = true
             };
             var transactionResult =
                 _parliament.ExecuteMethodWithResult(ParliamentMethod.CreateOrganization,createOrganizationInput);
@@ -413,7 +415,7 @@ namespace AElfChain.Common.Managers
             {
                 var hash = HashHelper.ComputeFrom(code);
                 var registration =
-                    _genesis.CallViewMethod<SmartContractRegistration>(GenesisMethod.GetSmartContractRegistration,
+                    _genesis.CallViewMethod<SmartContractRegistration>(GenesisMethod.GetSmartContractRegistrationByCodeHash,
                         hash);
                 if (registration.Equals(new SmartContractRegistration())) return code;
                 code = CodeInjectHelper.ChangeContractCodeHash(code);
