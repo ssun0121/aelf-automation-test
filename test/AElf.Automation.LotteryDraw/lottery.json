@@ -4,8 +4,8 @@
   [
     {
       "Environment": "Offline1",
-      "ConfigFile": "nodes-env1-main",
-      "Owner": "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK",
+      "ConfigFile": "nodes-env-single",
+      "Owner": "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6",
       "Password": 123
     },
     {
@@ -15,7 +15,7 @@
       "Password": 123
     }
   ],
-  "LotteryContract": "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG",
+  "LotteryContract": "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS",
   "TokenInfo": 
   {      
     "Symbol":"LOT",

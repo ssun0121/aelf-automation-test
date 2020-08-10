@@ -2,7 +2,7 @@ using AElfChain.Common.Managers;
 
 namespace AElfChain.Common.Contracts
 {
-    public enum LotteryMethod
+    public enum LotteryDemoMethod
     {
         //Action
         Initialize,
@@ -20,14 +20,14 @@ namespace AElfChain.Common.Contracts
         GetLotteries
     }
 
-    public class LotteryContract : BaseContract<LotteryMethod>
+    public class LotteryDemoContract : BaseContract<LotteryDemoMethod>
     {
-        public LotteryContract(INodeManager nodeManager, string callAddress) :
+        public LotteryDemoContract(INodeManager nodeManager, string callAddress) :
             base(nodeManager, "AElf.Contracts.LotteryContract", callAddress)
         {
         }
 
-        public LotteryContract(INodeManager nodeManager, string callAddress, string contractAddress) :
+        public LotteryDemoContract(INodeManager nodeManager, string callAddress, string contractAddress) :
             base(nodeManager, contractAddress)
         {
             SetAccount(callAddress);

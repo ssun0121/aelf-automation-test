@@ -28,7 +28,7 @@ namespace AElfChain.Common.Contracts
         {
             NodeManager = nodeManager;
             FileName = fileName;
-
+            CallAddress = callAddress;
             DeployContract(callAddress);
         }
 

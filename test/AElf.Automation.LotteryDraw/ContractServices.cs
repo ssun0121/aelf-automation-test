@@ -22,7 +22,7 @@ namespace AElf.Automation.LotteryTest
 
         public GenesisContract GenesisService { get; set; }
         public TokenContract TokenService { get; set; }
-        public LotteryContract LotteryService { get; set;}
+        public LotteryDemoContract LotteryService { get; set;}
         
         public string CallAccount { get; set; }
         public Address CallAddress { get; set; }
@@ -36,9 +36,9 @@ namespace AElf.Automation.LotteryTest
             TokenService = GenesisService.GetTokenContract();
             
             if(LotteryContract == "")
-                LotteryService = new LotteryContract(NodeManager, CallAccount);
+                LotteryService = new LotteryDemoContract(NodeManager, CallAccount);
             else
-                LotteryService = new LotteryContract(NodeManager, CallAccount, LotteryContract);
+                LotteryService = new LotteryDemoContract(NodeManager, CallAccount, LotteryContract);
         }
     }
 }

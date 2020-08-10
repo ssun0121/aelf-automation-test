@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AElf.Contracts.LotteryContract;
+using AElf.Contracts.LotteryDemoContract;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
 using AElfChain.Common;
@@ -15,7 +15,6 @@ using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 using Volo.Abp.Threading;
-using InitializeInput = AElf.Contracts.LotteryContract.InitializeInput;
 
 namespace AElf.Automation.Contracts.ScenarioTest
 {
@@ -27,14 +26,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private TokenContract _tokenContract;
         private GenesisContract _genesisContract;
-        private LotteryContract _lotteryDemoContract;
-        private LotteryContractContainer.LotteryContractStub _lotteryDemoStub;
-        private LotteryContractContainer.LotteryContractStub _adminLotteryDemoStub;
+        private LotteryDemoContract _lotteryDemoContract;
+        private LotteryDemoContractContainer.LotteryDemoContractStub _lotteryDemoStub;
+        private LotteryDemoContractContainer.LotteryDemoContractStub _adminLotteryDemoStub;
 
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
         private string TestAccount { get; } = "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6";
         private List<string> Tester = new List<string>();
-        private static string RpcUrl { get; } = "192.168.199.205:8000";
+        private static string RpcUrl { get; } = "192.168.199.109:8002";
         private string Symbol { get; } = "LOT";
         private const long Price = 1000_00000000;
 
@@ -49,18 +48,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
             NodeManager = new NodeManager(RpcUrl);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
-            _lotteryDemoContract = new LotteryContract(NodeManager, InitAccount);
+            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount);
             Logger.Info($"Lottery contract : {_lotteryDemoContract}");
 //            if (!_tokenContract.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
 //                CreateTokenAndIssue();
-//            _lotteryDemoContract = new LotteryContract(NodeManager, InitAccount,
-//                "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ");
+//            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount,
+//                "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG");
             InitializeLotteryDemoContract();
 
             _adminLotteryDemoStub =
-                _lotteryDemoContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(InitAccount);
+                _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(InitAccount);
             _lotteryDemoStub =
-                _lotteryDemoContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(TestAccount);
+                _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(TestAccount);
 //            _tokenContract.TransferBalance(InitAccount, TestAccount, 1000_00000000, "ELF");
 //            foreach (var tester in Tester)
 //            {
@@ -125,7 +124,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var allowance = _tokenContract.GetAllowance(tester, _lotteryDemoContract.ContractAddress, Symbol);
                 allowance.ShouldBeGreaterThanOrEqualTo(amount * Price);
                 _lotteryDemoContract.SetAccount(tester);
-                var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.Buy, new Int64Value
+                var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.Buy, new Int64Value
                 {
                     Value = amount
                 });
@@ -162,7 +161,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             allowance.ShouldBeGreaterThanOrEqualTo(amount * Price);
 
             _lotteryDemoContract.SetAccount(TestAccount);
-            var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.Buy, new Int64Value
+            var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.Buy, new Int64Value
             {
                 Value = amount
             });
@@ -195,17 +194,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void PrepareDraw()
         {
             _lotteryDemoContract.SetAccount(InitAccount);
-            var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.PrepareDraw, new Empty());
+            var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.PrepareDraw, new Empty());
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
 
         [TestMethod]
         public async Task Draw()
         {
-            var period = 1;
-            await SetRewardListForOnePeriod(period);
+            var period = await _adminLotteryDemoStub.GetCurrentPeriodNumber.CallAsync(new Empty());
+            await SetRewardListForOnePeriod(period.Value);
             _lotteryDemoContract.SetAccount(InitAccount);
-            var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.PrepareDraw, new Empty());
+            var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.PrepareDraw, new Empty());
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var block = result.BlockNumber;
             var currentBlock = AsyncHelper.RunSync(() => NodeManager.ApiClient.GetBlockHeightAsync());
@@ -217,9 +216,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             }
 
             _lotteryDemoContract.SetAccount(InitAccount);
-            var drawResult = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.Draw, new Int64Value 
+            var drawResult = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.Draw, new Int64Value 
             {
-                Value = period
+                Value = period.Value
             });
             drawResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
@@ -233,7 +232,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
 //                lottery.RegistrationInformation.ShouldBe("");
                 _lotteryDemoContract.SetAccount(lottery.Owner.ToBase58());
-                var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.TakeReward, new TakeRewardInput
+                var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.TakeReward, new TakeRewardInput
                 {
                     RegistrationInformation = "中奖啦",
                     LotteryId = lottery.Id
@@ -259,7 +258,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 lottery.RegistrationInformation.ShouldBe("");
                 var errorAddress = Tester.Where(a => !a.Equals(lottery.Owner.ToBase58())).ToList().First();
                 _lotteryDemoContract.SetAccount(errorAddress);
-                var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.TakeReward, new TakeRewardInput
+                var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.TakeReward, new TakeRewardInput
                 {
                     RegistrationInformation = "中奖啦",
                     LotteryId = lottery.Id
@@ -403,10 +402,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
 
-        private void InitializeLotteryDemoContract()
+        [TestMethod]
+        public void InitializeLotteryDemoContract()
         {
             var result =
-                _lotteryDemoContract.ExecuteMethodWithResult(LotteryMethod.Initialize,
+                _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.Initialize,
                     new InitializeInput
                     {
                         TokenSymbol = Symbol,

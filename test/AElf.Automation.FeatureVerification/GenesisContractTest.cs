@@ -285,7 +285,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var byteString =
                 ByteString.FromBase64(release.Logs.First(l => l.Name.Contains(nameof(ContractDeployed))).NonIndexed);
             var deployAddress = ContractDeployed.Parser.ParseFrom(byteString).Address;
-            Logger.Info($"{deployAddress}");
+            var author = Tester.GenesisService.GetContractAuthor(deployAddress);
+            Logger.Info($"{deployAddress};{author}");
         }
 
         [TestMethod]
@@ -369,6 +370,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var result = Tester.GenesisService.ExecuteMethodWithResult(GenesisMethod.ProposeUpdateContract, input);
             result.Status.ShouldBe("FAILED");
             result.Error.Contains("Unauthorized to propose.").ShouldBeTrue();
+        }
+
+        [TestMethod]
+        public void GetWhiteList()
+        {
+            var contractDeploymentController =
+                Tester.GenesisService.CallViewMethod<AuthorityInfo>(GenesisMethod.GetContractDeploymentController,
+                    new Empty());
+            var organization = Tester.ParliamentService.GetOrganization(contractDeploymentController.OwnerAddress);
+            var proposeWhiteList =
+                Tester.ParliamentService.CallViewMethod<ProposerWhiteList>(ParliamentMethod.GetProposerWhiteList, new Empty());
         }
 
         [TestMethod]

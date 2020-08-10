@@ -1,6 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using AElf.Contracts.LotteryContract;
+using AElf.Contracts.LotteryDemoContract;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
 using AElfChain.Common;
@@ -22,22 +24,25 @@ namespace AElf.Automation.LotteryTest
         public readonly string Owner;
         public readonly string Password;
         public string LotteryContract;
+        public Dictionary<string, int> RewardList;
+        
         public EnvironmentInfo EnvironmentInfo { get; set; }
-        public readonly LotteryContract LotteryService;
-        public readonly LotteryContractContainer.LotteryContractStub LotteryStub;
+        public readonly LotteryDemoContract LotteryService;
+        public readonly LotteryDemoContractContainer.LotteryDemoContractStub LotteryStub;
 
         public readonly TokenContract TokenService;
         public readonly ContractServices ContractServices;
 
-        public Lottery()
+        public Lottery(string rewards,string counts)
         {
+            GetRewardList(rewards, counts);
             GetConfig();
             Owner = EnvironmentInfo.Owner;
             Password = EnvironmentInfo.Password;
             ContractServices = GetContractServices(LotteryContract);
             TokenService = ContractServices.TokenService;
             LotteryService = ContractServices.LotteryService;
-            LotteryStub = LotteryService.GetTestStub<LotteryContractContainer.LotteryContractStub>(Owner);
+            LotteryStub = LotteryService.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(Owner);
             if (LotteryContract == "")
                 InitializeLotteryDemoContract();
             if (!TokenService.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
@@ -64,6 +69,28 @@ namespace AElf.Automation.LotteryTest
             EnvironmentInfo =
                 config.EnvironmentInfos.Find(o => o.Environment.Contains(testEnvironment));
             NodeInfoHelper.SetConfig(EnvironmentInfo.ConfigFile);
+        }
+
+        private void GetRewardList(string rewards,string counts)
+        {
+            var rewardList = rewards.Split(",").ToList();
+            var countList = counts.Split(",").ToList();
+            try
+            {
+                rewardList.Count.ShouldBe(countList.Count);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Please input correct reward list");
+                throw;
+            }
+            
+            RewardList = new Dictionary<string, int>();
+            for (int i = 0; i < rewardList.Count; i++)
+            {
+                var c = int.Parse(countList[i]);
+                RewardList.Add(rewardList[i],c);
+            }
         }
 
         public void Buy()
@@ -96,7 +123,7 @@ namespace AElf.Automation.LotteryTest
                 allowance.ShouldBeGreaterThanOrEqualTo(amount * Price);
 
                 LotteryService.SetAccount(buyer);
-                var result = LotteryService.ExecuteMethodWithResult(LotteryMethod.Buy, new Int64Value
+                var result = LotteryService.ExecuteMethodWithResult(LotteryDemoMethod.Buy, new Int64Value
                 {
                     Value = amount
                 });
@@ -119,8 +146,9 @@ namespace AElf.Automation.LotteryTest
             Logger.Info($"Before draw period number is :{period.Value}");            
             
             LotteryService.SetAccount(Owner, Password);
-            var result = LotteryService.ExecuteMethodWithResult(LotteryMethod.PrepareDraw, new Empty());
+            var result = LotteryService.ExecuteMethodWithResult(LotteryDemoMethod.PrepareDraw, new Empty());
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            SetRewardListForOnePeriod(period.Value);
             var block = result.BlockNumber;
             var currentBlock = AsyncHelper.RunSync(() => ContractServices.NodeManager.ApiClient.GetBlockHeightAsync());
             while (currentBlock < block + amount.Value)
@@ -131,9 +159,9 @@ namespace AElf.Automation.LotteryTest
             }
 
             LotteryService.SetAccount(Owner, Password);
-            var drawResult = LotteryService.ExecuteMethodWithResult(LotteryMethod.Draw, new Int64Value
+            var drawResult = LotteryService.ExecuteMethodWithResult(LotteryDemoMethod.Draw, new Int64Value
             {
-                Value = 1
+                Value = period.Value
             });
             drawResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             
@@ -141,12 +169,25 @@ namespace AElf.Automation.LotteryTest
             afterPeriod.Value.ShouldBe(period.Value + 1);
             Logger.Info($"After draw period number is :{afterPeriod.Value}");            
         }
+        
+        private void SetRewardListForOnePeriod(long period)
+        {
+            var result = LotteryService.ExecuteMethodWithResult(LotteryDemoMethod.SetRewardListForOnePeriod, new RewardsInfo
+            {
+                Period = period,
+                Rewards =
+                {
+                    RewardList
+                }
+            });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
 
         private void InitializeLotteryDemoContract()
         {
             LotteryService.SetAccount(Owner, Password);
             var result =
-                LotteryService.ExecuteMethodWithResult(LotteryMethod.Initialize,
+                LotteryService.ExecuteMethodWithResult(LotteryDemoMethod.Initialize,
                     new InitializeInput
                     {
                         TokenSymbol = Symbol,

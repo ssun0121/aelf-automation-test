@@ -9,7 +9,7 @@ namespace AElfChain.Common.Contracts
     public class BingoGameContract : BaseContract<BingoMethod>
     {
         public BingoGameContract(INodeManager nodeManager, string callAddress) :
-            base(nodeManager, "AElf.Contracts.BingoGameContract", callAddress)
+            base(nodeManager, "AElf.Contracts.BingoContract", callAddress)
         {
         }
 

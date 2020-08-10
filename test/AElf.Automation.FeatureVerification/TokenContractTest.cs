@@ -67,6 +67,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
+        public async Task CreateTest()
+        {
+           await CreateToken(Symbol,1000000000_00000000);
+           await IssueToken(Symbol,1000000000_00000000);
+        }
+
+        [TestMethod]
         public async Task NewStubTest_Call()
         {
             var tokenContractAddress =
@@ -315,8 +322,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Symbol = symbol,
                 Decimals = 8,
                 IsBurnable = true,
-                TokenName = "TEST symbol",
-                TotalSupply = amount
+                TokenName = "TEST",
+                TotalSupply = amount,
+                IsProfitable = true
             });
 
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
@@ -328,10 +336,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 Amount = amount,
                 Symbol = symbol,
-                To =  BpAccount.ConvertAddress()
+                To =  InitAccount.ConvertAddress()
             });
             issueResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
-            var balance = _tokenContract.GetUserBalance(BpAccount, Symbol);
+            var balance = _tokenContract.GetUserBalance(InitAccount, Symbol);
             balance.ShouldBe(amount);
         }
 
