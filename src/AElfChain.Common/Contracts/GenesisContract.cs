@@ -48,23 +48,23 @@ namespace AElfChain.Common.Contracts
         private readonly Dictionary<NameProvider, Address> _systemContractAddresses =
             new Dictionary<NameProvider, Address>();
 
-        private GenesisContract(INodeManager nodeManager, string callAddress, string genesisAddress)
+        private GenesisContract(INodeManager nodeManager, string callAddress, string genesisAddress,string password = "")
             : base(nodeManager, genesisAddress)
         {
-            SetAccount(callAddress);
+            SetAccount(callAddress,password);
             Logger = Log4NetHelper.GetLogger();
         }
 
         public static Dictionary<NameProvider, Hash> NameProviderInfos => InitializeSystemContractsName();
 
-        public static GenesisContract GetGenesisContract(INodeManager nm, string callAddress = "")
+        public static GenesisContract GetGenesisContract(INodeManager nm, string callAddress = "",string password ="")
         {
             if (callAddress == "")
                 callAddress = nm.GetRandomAccount();
 
             var genesisContract = nm.GetGenesisContractAddress();
 
-            return new GenesisContract(nm, callAddress, genesisContract);
+            return new GenesisContract(nm, callAddress, genesisContract,password);
         }
 
         public bool UpdateContract(string account, string contractAddress, string contractFileName)

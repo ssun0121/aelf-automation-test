@@ -103,7 +103,7 @@ message TakeRewardInput {
     string registration_information = 2;
 }
 
-message Lottery {              
+message Lottery {
     int64 id = 1;
     aelf.Address owner = 2;
     string reward_name = 3;
@@ -118,6 +118,7 @@ message PeriodBody {
     int64 start_id = 5;
     map<string, int32> rewards = 6;
     google.protobuf.Timestamp supposed_draw_date = 7;
+    google.protobuf.Timestamp actual_draw_date = 8;
 }
 
 message LotteryList {

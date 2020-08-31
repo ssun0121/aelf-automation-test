@@ -33,14 +33,14 @@ namespace AElfChain.Common.Contracts
             return new ProfitContract(genesis.NodeManager, caller, profit.ToBase58());
         }
 
-        public static TokenContract GetTokenContract(this GenesisContract genesis, string caller = "")
+        public static TokenContract GetTokenContract(this GenesisContract genesis, string caller = "",string password="")
         {
             if (caller == "")
                 caller = genesis.CallAddress;
 
             var token = genesis.GetContractAddressByName(NameProvider.Token);
 
-            return new TokenContract(genesis.NodeManager, caller, token.ToBase58());
+            return new TokenContract(genesis.NodeManager, caller, token.ToBase58(),password);
         }
 
         public static TokenHolderContract GetTokenHolderContract(this GenesisContract genesis, string caller = "")

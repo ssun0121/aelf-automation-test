@@ -64,10 +64,10 @@ namespace AElfChain.Common.Contracts
             Logger = Log4NetHelper.GetLogger();
         }
 
-        public TokenContract(INodeManager nodeManager, string callAddress, string contractAddress) :
+        public TokenContract(INodeManager nodeManager, string callAddress, string contractAddress,string password ="") :
             base(nodeManager, contractAddress)
         {
-            SetAccount(callAddress);
+            SetAccount(callAddress,password);
             Logger = Log4NetHelper.GetLogger();
         }
 
