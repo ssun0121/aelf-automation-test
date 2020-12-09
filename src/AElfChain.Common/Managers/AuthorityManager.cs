@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Acs0;
-using Acs3;
+using AElf.Standards.ACS0;
+using AElf.Standards.ACS3;
 using AElf;
 using AElf.Client.Dto;
 using AElf.Contracts.Association;
@@ -35,6 +35,8 @@ namespace AElfChain.Common.Managers
         public AuthorityManager(INodeManager nodeManager, string caller = "")
         {
             GetConfigNodeInfo();
+            if (caller == "")
+                caller = _info.Nodes.First().Account;
             NodeManager = nodeManager;
             _genesis = GenesisContract.GetGenesisContract(nodeManager, caller);
             _consensus = _genesis.GetConsensusContract();
@@ -43,7 +45,7 @@ namespace AElfChain.Common.Managers
             _association = _genesis.GetAssociationAuthContract();
             _referendum = _genesis.GetReferendumAuthContract();
 
-            CheckBpBalance();
+            CheckBpBalance(caller);
         }
 
         public INodeManager NodeManager { get; set; }
@@ -75,8 +77,6 @@ namespace AElfChain.Common.Managers
                 Code = ByteString.CopyFrom(code),
                 Category = KernelHelper.DefaultRunnerCategory
             };
-            var approveUsers = GetMinApproveMiners();
-
             var proposalNewContact = _genesis.ProposeNewContract(input, caller);
             var proposalId = ProposalCreated.Parser
                 .ParseFrom(proposalNewContact.Logs.First(l => l.Name.Contains(nameof(ProposalCreated))).NonIndexed)
@@ -90,8 +90,8 @@ namespace AElfChain.Common.Managers
                 ProposalId = proposalId,
                 ProposedContractInputHash = proposalHash
             };
-
-            var transactionResult = ApproveAndRelease(releaseInput, approveUsers, caller);
+            var approveUsers = GetMinApproveMiners();
+            var transactionResult = ApproveAndRelease(releaseInput, caller);
             transactionResult.Status.ShouldBe("MINED");
 
             var deployProposalId = ProposalCreated.Parser
@@ -130,8 +130,6 @@ namespace AElfChain.Common.Managers
                 Address = address.ConvertAddress(),
                 Code = ByteString.CopyFrom(code)
             };
-            var approveUsers = GetMinApproveMiners();
-
             var proposalUpdateContact = _genesis.ProposeUpdateContract(input, caller);
             var proposalId = ProposalCreated.Parser
                 .ParseFrom(proposalUpdateContact.Logs.First(l => l.Name.Contains(nameof(ProposalCreated))).NonIndexed)
@@ -146,7 +144,7 @@ namespace AElfChain.Common.Managers
                 ProposedContractInputHash = proposalHash
             };
 
-            var transactionResult = ApproveAndRelease(releaseInput, approveUsers, caller);
+            var transactionResult = ApproveAndRelease(releaseInput, caller);
             var deployProposalId = ProposalCreated.Parser
                 .ParseFrom(ByteString.FromBase64(transactionResult.Logs
                     .First(l => l.Name.Contains(nameof(ProposalCreated))).NonIndexed))
@@ -190,8 +188,9 @@ namespace AElfChain.Common.Managers
                 .Pubkeys.Count;
             var organization = _genesis.GetContractDeploymentController().OwnerAddress;
             var voteInfo = _parliament.GetOrganization(organization).ProposalReleaseThreshold.MinimalVoteThreshold;
-            var minNumber = (int) (minersCount * 10000 / voteInfo);
+            var minNumber = (int) (10000 / voteInfo * minersCount) + 1;
             var currentMiners = GetCurrentMiners();
+            minNumber = minNumber > currentMiners.Count ? currentMiners.Count : minNumber;
             return currentMiners.Take(minNumber).ToList();
         }
 
@@ -200,7 +199,7 @@ namespace AElfChain.Common.Managers
             return _parliament.GetGenesisOwnerAddress();
         }
         
-        public Address CreateNewParliamentOrganization()
+        public Address CreateNewParliamentOrganization(string account)
         {
             var minimalApprovalThreshold = 7500;
             var maximalAbstentionThreshold = 2500;
@@ -219,6 +218,7 @@ namespace AElfChain.Common.Managers
                 ProposerAuthorityRequired = true,
                 ParliamentMemberProposingAllowed = true
             };
+            _parliament.SetAccount(account);
             var transactionResult =
                 _parliament.ExecuteMethodWithResult(ParliamentMethod.CreateOrganization,createOrganizationInput);
             var organizationAddress =
@@ -228,12 +228,11 @@ namespace AElfChain.Common.Managers
             return organizationAddress;
         }
         
-        public Address CreateAssociationOrganization(IEnumerable<string> members = null)
+        public Address CreateAssociationOrganization(IEnumerable<string> members = null,string token = "TEST")
         {
             if (members == null)
-            {
                 members = NodeInfoHelper.Config.Nodes.Select(l => l.Account).ToList().Take(3);
-            }
+            token = token == "TEST" ? "TEST" : token;
 //            create association organization
             var enumerable = members.Select(o => o.ConvertAddress());
             var addresses = enumerable as Address[] ?? enumerable.ToArray();
@@ -247,9 +246,9 @@ namespace AElfChain.Common.Managers
                     MinimalVoteThreshold = 2
                 },
                 ProposerWhiteList = new ProposerWhiteList {Proposers = {addresses.First()}},
-                OrganizationMemberList = new OrganizationMemberList {OrganizationMembers = {addresses}}
+                OrganizationMemberList = new OrganizationMemberList {OrganizationMembers = {addresses}},
+                CreationToken = HashHelper.ComputeFrom(token)
             };
-            _association.SetAccount(addresses.First().ToBase58());
             var result = _association.ExecuteMethodWithResult(AssociationMethod.CreateOrganization,
                 createInput);
             var organizationAddress =
@@ -289,7 +288,7 @@ namespace AElfChain.Common.Managers
         
         public long GetPeriod()
         {
-            return _consensus.GetCurrentTermInformation();
+            return _consensus.GetCurrentTermInformation().TermNumber;
         }
 
         public TransactionResult ExecuteTransactionWithAuthority(string contractAddress, string method, IMessage input,
@@ -321,12 +320,18 @@ namespace AElfChain.Common.Managers
                 callUser);
         }
 
-        private TransactionResultDto ApproveAndRelease(ReleaseContractInput input, IEnumerable<string> approveUsers,
-            string callUser)
+        private TransactionResultDto ApproveAndRelease(ReleaseContractInput input, string callUser)
         {
+            var approveUsers = GetMinApproveMiners();
             //approve
-            _parliament.MinersApproveProposal(input.ProposalId, approveUsers);
-
+            _parliament.MinersApproveProposal(input.ProposalId, approveUsers); 
+            var proposalInfo = _parliament.CheckProposal(input.ProposalId);
+            if (!proposalInfo.ToBeReleased && proposalInfo.ApprovalCount < approveUsers.Count) 
+            {
+                Logger.Info("Get approve users again:");
+                approveUsers = GetMinApproveMiners();
+                _parliament.MinersApproveProposal(input.ProposalId, approveUsers); 
+            }
             //release
             return _genesis.ReleaseApprovedContract(input, callUser);
         }
@@ -358,17 +363,19 @@ namespace AElfChain.Common.Managers
             return proposal.ToBeReleased;
         }
 
-        private void CheckBpBalance()
+        private void CheckBpBalance(string caller)
         {
             Logger.Info("Check bp balance and transfer for authority.");
             var bps = GetCurrentMiners();
             var primaryToken = NodeManager.GetPrimaryTokenSymbol();
-            var initAccount = _info.Nodes.First().Account;
+            var callerBalance = _token.GetUserBalance(caller,primaryToken);
+            if (callerBalance <= 1000_00000000 * bps.Count)
+                return;
             foreach (var bp in bps)
             {
                 var balance = _token.GetUserBalance(bp, primaryToken);
-                if (balance < 1000_00000000 && !bp.Equals(initAccount))
-                    _token.TransferBalance(initAccount, bp, 10000_00000000 - balance, primaryToken);
+                if (balance < 1000_00000000)
+                    _token.TransferBalance(caller, bp, 1000_00000000 - balance, primaryToken);
             }
         }
 
@@ -413,12 +420,12 @@ namespace AElfChain.Common.Managers
         {
             while (true)
             {
+                code = CodeInjectHelper.ChangeContractCodeHash(code);
                 var hash = HashHelper.ComputeFrom(code);
                 var registration =
                     _genesis.CallViewMethod<SmartContractRegistration>(GenesisMethod.GetSmartContractRegistrationByCodeHash,
                         hash);
                 if (registration.Equals(new SmartContractRegistration())) return code;
-                code = CodeInjectHelper.ChangeContractCodeHash(code);
             }
         }
     }

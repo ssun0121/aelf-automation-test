@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Acs0;
-using Acs1;
+using AElf.Standards.ACS0;
+using AElf.Standards.ACS1;
 using AElf;
 using AElf.Client.Dto;
 using AElf.Contracts.Genesis;
@@ -10,7 +10,6 @@ using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using Shouldly;
 using Volo.Abp.Threading;
 
 namespace AElfChain.Common.Contracts
@@ -133,21 +132,16 @@ namespace AElfChain.Common.Contracts
         public TransactionResult ProposeNewContract(ContractDeploymentInput input,
             string caller = null)
         {
-            var tester = GetTestStub<BasicContractZeroContainer.BasicContractZeroStub>(caller);
+            var tester = GetTestStub<BasicContractZeroImplContainer.BasicContractZeroImplStub>(caller);
             var result = AsyncHelper.RunSync(() => tester.ProposeNewContract.SendAsync(input));
-            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined,
-                result.TransactionResult.TransactionId.ToHex);
-
             return result.TransactionResult;
         }
 
         public TransactionResult ProposeUpdateContract(ContractUpdateInput input,
             string caller = null)
         {
-            var tester = GetTestStub<BasicContractZeroContainer.BasicContractZeroStub>(caller);
+            var tester = GetTestStub<BasicContractZeroImplContainer.BasicContractZeroImplStub>(caller);
             var result = AsyncHelper.RunSync(() => tester.ProposeUpdateContract.SendAsync(input));
-            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
-
             return result.TransactionResult;
         }
 

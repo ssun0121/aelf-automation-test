@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Acs3;
+using AElf.Standards.ACS3;
 using AElf.Contracts.Association;
 using AElf.Types;
 using AElfChain.Common;
@@ -30,7 +30,7 @@ namespace AElf.Automation.E2ETest
             var firstBp = ConfigNodes.First();
 
             NodeManager = new NodeManager(firstBp.Endpoint);
-            AuthorityManager = new AuthorityManager(NodeManager);
+            AuthorityManager = new AuthorityManager(NodeManager,firstBp.Account);
             ContractManager = new ContractManager(NodeManager, firstBp.Account);
             EnvCheck = EnvCheck.GetDefaultEnvCheck();
             TransferToNodes();

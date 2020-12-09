@@ -1,12 +1,9 @@
 using System.Collections.Generic;
-using Acs0;
-using Acs1;
-using Acs2;
-using Acs3;
-using Acs4;
-using Acs6;
-using Acs7;
-using Acs8;
+using AElf.Standards.ACS0;
+using AElf.Standards.ACS1;
+using AElf.Standards.ACS2;
+using AElf.Standards.ACS3;
+using AElf.Standards.ACS8;
 using AElf.Contracts.Association;
 using AElf.Contracts.Configuration;
 using AElf.Contracts.Consensus.AEDPoS;
@@ -29,6 +26,9 @@ using AElf.Contracts.TestContract.TransactionFees;
 using AElf.Contracts.TokenConverter;
 using AElf.Contracts.Treasury;
 using AElf.Contracts.Vote;
+using AElf.Standards.ACS4;
+using AElf.Standards.ACS6;
+using AElf.Standards.ACS7;
 using Google.Protobuf.Reflection;
 
 namespace AElfChain.Common.Contracts.Serializer

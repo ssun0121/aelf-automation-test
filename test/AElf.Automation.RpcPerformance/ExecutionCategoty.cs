@@ -9,7 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Acs0;
+using AElf.Standards.ACS0;
 using AElf.Client.Service;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
@@ -129,7 +129,6 @@ namespace AElf.Automation.RpcPerformance
                             break;
                         case TransactionResultStatus.Pending:
                         case TransactionResultStatus.NotExisted:
-                        case TransactionResultStatus.Unexecutable:
                             Logger.Warn($"Transaction {item.TxId} execution status: {status}.");
                             continue;
                         default:
@@ -224,7 +223,6 @@ namespace AElf.Automation.RpcPerformance
                     Decimals = 8,
                     Issuer = account.ConvertAddress(),
                     IsBurnable = true,
-                    IsProfitable = true,
                     IssueChainId = ChainHelper.ConvertBase58ToChainId(chainStatus.ChainId)
                 });
                 var balance = systemToken.GetUserBalance(account);
@@ -240,7 +238,6 @@ namespace AElf.Automation.RpcPerformance
                     Decimals = 2,
                     Issuer = account.ConvertAddress(),
                     IsBurnable = true,
-                    IsProfitable = true,
                     IssueChainId = ChainHelper.ConvertBase58ToChainId(chainStatus.ChainId)
                 });
                 TxIdList.Add(transactionId);
@@ -271,6 +268,7 @@ namespace AElf.Automation.RpcPerformance
         
         public void InitializeSideChainToken()
         {
+            InitializeMainContracts();
         }
 
         public void ExecuteOneRoundTransactionTask()
@@ -595,7 +593,7 @@ namespace AElf.Automation.RpcPerformance
             /*
             Parallel.For(0, count, i =>
             {
-                var result = NodeManager.UnlockAccount(AccountList[i].Account);
+                var result = FromNoeNodeManager.UnlockAccount(AccountList[i].Account);
                 if (!result)
                     throw new Exception($"Account unlock {AccountList[i].Account} failed.");
             });
