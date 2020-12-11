@@ -64,26 +64,48 @@ namespace AElf.Automation.RpcPerformance
                 
                 var authority = NodeInfoHelper.Config.RequireAuthority;
                 var isMainChain = nodeManager.IsMainChain();
-                if (authority)
+                var onlyDeploy = RpcConfig.ReadInformation.OnlyDeploy;
+                if (!onlyDeploy)
                 {
-                    if (isMainChain)
-                        performance.DeployContractsWithAuthority();
-                    else if (chainId.Equals("tDVW"))
-                        performance.SideChainDeployContractsWithCreator();
+                    if (authority)
+                    {
+                        if (isMainChain)
+                            performance.DeployContractsWithAuthority();
+                        else if (chainId.Equals("tDVW"))
+                            performance.SideChainDeployContractsWithCreator();
+                        else
+                            performance.SideChainDeployContractsWithAuthority();
+                    }
                     else
+                    {
+                        performance.DeployContracts();
+                    }
+
+                    if (chainId.Equals("AELF"))
+                        performance.InitializeMainContracts();
+                    else
+                        performance.InitializeSideChainToken();
+                
+                    ExecuteTransactionPerformanceTask(performance, ExecuteMode);
+                }
+                else
+                {
+                    var times = 0;
+                    if (isMainChain)
+                        while (true)
+                        {
+                            Logger.Info($"Deploy round: {times}");
+                            performance.DeployContractsWithAuthority();
+                            performance.InitializeMainContracts();
+                            performance.ExecuteOneRoundTransactionTask();
+                            times++;
+                        }
+                    if (chainId.Equals("tDVW"))
+                        while (true)
+                            performance.SideChainDeployContractsWithCreator();
+                    if (chainId.Equals("tDVV"))
                         performance.SideChainDeployContractsWithAuthority();
                 }
-                else
-                {
-                    performance.DeployContracts();
-                }
-
-                if (chainId.Equals("AELF"))
-                    performance.InitializeMainContracts();
-                else
-                    performance.InitializeSideChainToken();
-                
-                ExecuteTransactionPerformanceTask(performance, ExecuteMode);
             }
             catch (TimeoutException e)
             {
