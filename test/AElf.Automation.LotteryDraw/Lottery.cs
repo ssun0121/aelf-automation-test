@@ -205,7 +205,6 @@ namespace AElf.Automation.LotteryTest
                 Decimals = 8,
                 Issuer = Owner.ConvertAddress(),
                 IsBurnable = true,
-                IsProfitable = true,
                 TokenName = "LOT"
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);

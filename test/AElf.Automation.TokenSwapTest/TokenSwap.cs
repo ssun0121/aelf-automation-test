@@ -258,7 +258,6 @@ namespace AElf.Automation.TokenSwapTest
                 Decimals = 8,
                 Issuer = InitAccount.ConvertAddress(),
                 IsBurnable = true,
-                IsProfitable = true,
                 TokenName = "LOT"
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);

@@ -161,7 +161,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Decimals = 3,
                 IsBurnable = true,
                 Issuer = InitAccount.ConvertAddress(),
-                IsProfitable = true,
                 TokenName = "TEST",
                 TotalSupply = long.MaxValue,
                 LockWhiteList =

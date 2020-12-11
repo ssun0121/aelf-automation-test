@@ -7,17 +7,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\AElfChain.Common\AElfChain.Common.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
         <None Update="lottery.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="log4net" Version="2.0.8" />
       <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.3.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\AElfChain.Common\AElfChain.Common.csproj" />
     </ItemGroup>
 
 </Project>

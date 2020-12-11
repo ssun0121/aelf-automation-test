@@ -75,7 +75,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public async Task CreateTest()
         {
            await CreateToken(Symbol,1000000000_00000000);
-           await IssueToken(Symbol,1000000000_00000000);
+           await IssueToken(InitAccount,Symbol,1000000000_00000000);
         }
 
         [TestMethod]

@@ -424,7 +424,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Decimals = 8,
                 Issuer = InitAccount.ConvertAddress(),
                 IsBurnable = true,
-                IsProfitable = true,
                 TokenName = "LOT Token"
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);

@@ -1499,7 +1499,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Decimals = 5,
                 Issuer = InitAccount.ConvertAddress(),
                 IsBurnable = true,
-                IsProfitable = true,
                 TokenName = $"{Symbol} Token"
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);

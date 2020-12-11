@@ -1,12 +1,11 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Acs3;
 using AElf.Contracts.Association;
 using AElf.Contracts.DAOContract;
 using AElf.Contracts.MultiToken;
 using AElf.Contracts.Profit;
 using AElf.Contracts.TokenConverter;
+using AElf.Standards.ACS3;
 using AElf.Types;
 using AElfChain.Common;
 using AElfChain.Common.Contracts;
