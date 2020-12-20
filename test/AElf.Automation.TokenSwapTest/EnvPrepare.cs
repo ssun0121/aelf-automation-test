@@ -14,7 +14,7 @@ namespace AElf.Automation.TokenSwapTest
         }
         public Dictionary<long, TreeInfo> GetCurrentTreeInfo(long index)
         {
-            for (long i = index; i < 128; i++)
+            for (long i = index; i < 1024; i++)
             {
                 if (TreeInfos.Keys.Contains(i)) continue;
                 var swapInfo = new SwapInfo(i);
