@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -127,6 +128,30 @@ namespace AElfChain.Common.Helpers
             var cursorPosition = Console.CursorLeft;
             if (cursorPosition != 0)
                 Console.WriteLine();
+        }
+        
+        public static T RandomEnumValue<T>()
+        {
+            var v = Enum.GetValues(typeof(T));
+            return (T) v.GetValue(new Random().Next(v.Length));
+        }
+
+        public static List<int> TakeRandomNumberList(int count, int min, int max, bool isDuplicate = false)
+        {
+            var list = new List<int>();
+
+                for (int i = 0; i < count; i++)
+                {
+                    var number = GenerateRandomNumber(min, max);
+                    if (!isDuplicate)
+                    {
+                        while (list.Contains(number))
+                            number = GenerateRandomNumber(min, max);
+                    }
+                    list.Add(number);
+                }
+   
+            return list;
         }
     }
 }

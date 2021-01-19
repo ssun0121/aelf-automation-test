@@ -1,0 +1,14 @@
+{
+  "Url": "192.168.197.44:8001",
+  "InitAccount": "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK",
+  "Password": "123",
+  "LotteryContract": "RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y",
+  "SellerAccount": "eFU9Quc8BsztYpEHKzbNtUpu9hGKgwGD2tyL13MqtFkbnAoCZ",
+  "VirtualAddress":"5XPcuoT2R2C3QSY64BuHsgUCBLiWMwPo1vvMLCr3w3iKyB7Lc",
+  "Symbol": "LOT",
+  "Price": 100000000,
+  "CashDuration": 30,
+  "Bonus":10,
+  "ProfitsRate": 1000,
+  "UserCount": 20
+}

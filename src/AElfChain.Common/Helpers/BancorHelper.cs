@@ -136,6 +136,27 @@ public static class BancorHelper
 
             return A;
         }
+        
+        public static int Pow(int x, uint y)
+        {
+            if (y == 1)
+                return x;
+            int a = 1;
+            if (y == 0)
+                return a;
+            var e = new BitArray(y.ToBytes(false));
+            var t = e.Count;
+            for (var i = t - 1; i >= 0; --i)
+            {
+                a *= a;
+                if (e[i])
+                {
+                    a *= x;
+                }
+            }
+
+            return a;
+        }
 
         // http://stackoverflow.com/questions/429165/raising-a-decimal-to-a-power-of-decimal
         // natural logarithm series

@@ -5,11 +5,15 @@ import "aelf/options.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
+import "acs1.proto";
+import "acs9.proto";
 
 option csharp_namespace = "AElf.Contracts.LotteryContract";
 
 service LotteryContract {
     option (aelf.csharp_state) = "AElf.Contracts.LotteryContract.LotteryContractState";
+    option (aelf.base) = "acs1.proto";
+    option (aelf.base) = "acs9.proto";
 
     rpc Initialize (InitializeInput) returns (google.protobuf.Empty) {
     }
@@ -23,7 +27,13 @@ service LotteryContract {
     }
     rpc SetBonusRate (google.protobuf.Int32Value) returns (google.protobuf.Empty) {
     }
+    rpc SetProfitsRate (google.protobuf.Int32Value) returns (google.protobuf.Empty) {
+    }
     rpc SetAdmin (aelf.Address) returns (google.protobuf.Empty) {
+    }
+    rpc SetCashDuration (google.protobuf.Int32Value) returns (google.protobuf.Empty) {
+    }
+    rpc SetPrice(google.protobuf.Int64Value) returns (google.protobuf.Empty) {
     }
 
     //View
@@ -59,17 +69,36 @@ service LotteryContract {
     }
     rpc GetTokenSymbol (google.protobuf.Empty) returns (google.protobuf.StringValue) {
         option (aelf.is_view) = true;
-    }    
+    }
     rpc GetCashDuration (google.protobuf.Empty) returns (google.protobuf.Int32Value) {
         option (aelf.is_view) = true;
     }
     rpc GetBonusRate (google.protobuf.Empty) returns (GetRateOutput) {
         option (aelf.is_view) = true;
     }
+    rpc GetProfitsRate (google.protobuf.Empty) returns (GetRateOutput) {
+        option (aelf.is_view) = true;
+    }
     rpc GetAdmin (google.protobuf.Empty) returns (aelf.Address) {
         option (aelf.is_view) = true;
     }
     rpc GetRewards (google.protobuf.Empty) returns (GetRewardsOutput) {
+        option (aelf.is_view) = true;
+    }
+
+    rpc GetRewardAmountsBoard (google.protobuf.Empty) returns (GetRewardAmountsBoardOutput) {
+        option (aelf.is_view) = true;
+    }
+
+    rpc GetPeriodCountBoard (google.protobuf.Empty) returns (GetPeriodCountBoardOutput) {
+        option (aelf.is_view) = true;
+    }
+
+    rpc GetTotalRewardAmount (aelf.Address) returns (google.protobuf.Int64Value) {
+        option (aelf.is_view) = true;
+    }
+
+    rpc GetTotalPeriodCount (aelf.Address) returns (google.protobuf.Int64Value) {
         option (aelf.is_view) = true;
     }
 }
@@ -79,15 +108,16 @@ message InitializeInput {
     int64 price = 2;
     int32 bonus_rate = 3;
     int32 cash_duration = 4;
+    int32 profits_rate = 5;
 }
 
-message BuyInput{
+message BuyInput {
     int32 type = 1;
     repeated BetBody bet_infos = 2;
     aelf.Address seller = 3;
 }
 
-enum LotteryType{
+enum LotteryType {
     SIMPLE = 0;
     ONE_BIT = 10;
     TWO_BIT = 20;
@@ -113,8 +143,8 @@ message GetPeriodsOutput {
 }
 
 message GetLotteriesInput {
-     int32 offset = 1;
-     int32 limit = 2;
+    int32 offset = 1;
+    int32 limit = 2;
 }
 
 message GetLotteriesOutput {
@@ -129,47 +159,47 @@ message GetLotteryOutput {
     LotteryDetail lottery = 1;
 }
 
-message GetRateOutput{
+message GetRateOutput {
     int32 rate = 1;
     int32 decimals = 2;
 }
 
-message GetRewardsOutput{
+message GetRewardsOutput {
     repeated RewardDetail rewards = 1;
 }
 
-message Reward{
+message Reward {
     LotteryType type = 1;
     int64 amount = 2;
 }
 
-message RewardDetail{
+message RewardDetail {
     int32 type = 1;
     int64 amount = 2;
 }
 
 message PeriodBody {
-     int64 period_number = 1;
-     int64 block_number = 2;
-     int64 draw_block_number = 3;
-     aelf.Hash random_hash =4;
-     int32 lucky_number = 5;
-     google.protobuf.Timestamp create_time = 6;
-     google.protobuf.Timestamp draw_time = 7;
+    int64 period_number = 1;
+    int64 block_number = 2;
+    int64 draw_block_number = 3;
+    aelf.Hash random_hash = 4;
+    int32 lucky_number = 5;
+    google.protobuf.Timestamp create_time = 6;
+    google.protobuf.Timestamp draw_time = 7;
 }
 
 message PeriodDetail {
     int64 period_number = 1;
     int64 block_number = 2;
     int64 draw_block_number = 3;
-    aelf.Hash random_hash =4;
+    aelf.Hash random_hash = 4;
     int32 lucky_number = 5;
     google.protobuf.Timestamp create_time = 6;
     google.protobuf.Timestamp draw_time = 7;
     int64 start_period_number_of_day = 8;
 }
 
-message Lottery {              
+message Lottery {
     int64 id = 1;
     aelf.Address owner = 2;
     int64 period_number = 3;
@@ -185,7 +215,7 @@ message Lottery {
     bool expired = 13;
 }
 
-message LotteryDetail{
+message LotteryDetail {
     int64 id = 1;
     int64 period_number = 2;
     int32 type = 3;
@@ -199,7 +229,7 @@ message LotteryDetail{
     int64 start_period_number_of_day = 11;
 }
 
-message GetLatestCashedLotteryOutput{
+message GetLatestCashedLotteryOutput {
     aelf.Address address = 1;
     int64 period_number = 2;
     int32 type = 3;
@@ -208,4 +238,32 @@ message GetLatestCashedLotteryOutput{
 
 message LotteryList {
     repeated int64 ids = 1;
+}
+
+message UnDrawnLotteries {
+    int64 period_number = 1;
+    repeated int64 ids = 2;
+}
+
+message RewardsAmountBoard {
+    int64 maximal_count = 1;
+    repeated aelf.Address board = 2;
+}
+
+message RewardAmount {
+    aelf.Address address = 1;
+    int64 amount = 2;
+}
+
+message GetRewardAmountsBoardOutput {
+    repeated RewardAmount reward_amount_list = 1;
+}
+
+message PeriodCount {
+    aelf.Address address = 1;
+    int64 count = 2;
+}
+
+message GetPeriodCountBoardOutput {
+    repeated PeriodCount period_count_list = 1;
 }
