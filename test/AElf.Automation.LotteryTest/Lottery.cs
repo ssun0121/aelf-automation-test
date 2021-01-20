@@ -130,11 +130,18 @@ namespace AElf.Automation.LotteryTest
             return randomList;
         }
 
-        public void DrawJob(List<string> tester)
+        public void DrawJob()
         {
             ExecuteStandaloneTask(new Action[]
             {
-                () => AsyncHelper.RunSync(Draw),
+                () => AsyncHelper.RunSync(Draw)
+            });
+        }
+        
+        public void TakeRewardJob(List<string> tester)
+        {
+            ExecuteStandaloneTask(new Action[]
+            {
                 () => AsyncHelper.RunSync(() => TakeReward(tester))
             });
         }

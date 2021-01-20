@@ -40,7 +40,15 @@ namespace AElf.Automation.LotteryTest
                     while (true)
                     {
                         Thread.Sleep(600000);
-                        lottery.DrawJob(_tester);
+                        lottery.DrawJob();
+                    }
+                },token),
+                Task.Run(() =>
+                {
+                    while (true)
+                    {
+                        Thread.Sleep(900000);
+                        lottery.TakeRewardJob(_tester);
                         lottery.CheckBoard();
                     }
                 },token),
