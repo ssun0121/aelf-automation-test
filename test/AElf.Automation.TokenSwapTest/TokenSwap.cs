@@ -45,7 +45,7 @@ namespace AElf.Automation.TokenSwapTest
         {
             var config = NodeInfoHelper.Config;
             var firstNode = config.Nodes.First();
-            var contractService = new ContractServices("192.168.197.44:8001", firstNode.Account, firstNode.Password,
+            var contractService = new ContractServices(firstNode.Endpoint, firstNode.Account, firstNode.Password,
                 tokenSwapContract);
             return contractService;
         }

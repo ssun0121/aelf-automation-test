@@ -1,9 +1,4 @@
-/* This files is part of the Hello World smart contract example that is included in Boilerplate.
- * It is only the definition of the contract, implementation is located in the "contract" folder
- * and tests are located in the "test" folder.
- *
- * You can use this as a basic template for new contracts.
- * 
+/* 
  * When building Boilerplate or the contract project located in the "../contract/AElf.Contracts.CentreAssetManagement/" 
  * protoc (the protobuf compiler) will be invoked and this file will produce a .c.cs file and .g.cs file, in the 
  * "../contract/AElf.Contracts.CentreAssetManagement/Protobuf/Generated/" folder. 
@@ -20,6 +15,8 @@ import "aelf/options.proto";
 import "google/protobuf/empty.proto";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "acs1.proto";
 
 // the name of the C# namespace in which the contract code will be,
 // generated code will also be in this namespace.
@@ -30,12 +27,7 @@ service CentreAssetManagement {
 
     // the full name of the C# class that will contain the state (here <namespace>.<state-class-name> format).
     option (aelf.csharp_state) = "AElf.Contracts.CentreAssetManagement.CentreAssetManagementState";
-
-    // an action defined as a gRPC service method.
-    // this action take a google.protobuf.Empty (placeholder for void) as input
-    // and returns a custom defined type: HelloReturn.
-    rpc Hello (google.protobuf.Empty) returns (HelloReturn) {
-    }
+    option (aelf.base) = "acs1.proto";
 
     rpc CreateHolder (HolderCreateDto) returns (HolderCreateReturnDto) {
     }
@@ -53,7 +45,7 @@ service CentreAssetManagement {
     rpc RebootHolder (HolderRebootDto) returns (google.protobuf.Empty) {
 
     }
-    
+
     //the owner of holder, or the shutdown address of holder, can shutdown, but cannot reboot
     rpc ShutdownHolder (HolderShutdownDto) returns  (google.protobuf.Empty) { }
 
@@ -61,10 +53,6 @@ service CentreAssetManagement {
     }
 
     rpc MoveAssetFromMainAddress (AssetMoveDto) returns (AssetMoveReturnDto) {
-    }
-
-    rpc GetCategoryContractCallAllowance (CategoryDto) returns (CategoryContractCallAllowanceDto) {
-        option (aelf.is_view) = true;
     }
 
     rpc Initialize (InitializeDto) returns (google.protobuf.Empty) {
@@ -82,16 +70,40 @@ service CentreAssetManagement {
     rpc CancelWithdraws (CancelWithdrawsDto) returns (google.protobuf.Empty) {
 
     }
-
-    rpc GetVirtualAddress (AssetMoveDto) returns (aelf.Address) {
-        option (aelf.is_view) = true;
+    
+    rpc ChangeContractOwner(aelf.Address) returns (google.protobuf.Empty){
+        
     }
 
+    // only the owner of contract can add new categories
+    rpc AddCategoryToContractCallWhiteLists (CategoryToContractCallWhiteListsDto) returns (google.protobuf.Empty) {
+    }
+    
     rpc SendTransactionByUserVirtualAddress (SendTransactionByUserVirtualAddressDto) returns (google.protobuf.Empty) {
 
     }
 
-    rpc GetHolderInfo (aelf.Hash) returns (HolderInfo) {
+    rpc GetVirtualAddress (VirtualAddressCalculationDto) returns (aelf.Address) {
+        option (aelf.is_view) = true;
+    }
+
+    rpc GetCategoryToContractCall (google.protobuf.Empty) returns(CategoryToContractCallWhiteListsDto) {
+        option (aelf.is_view) = true;
+    }
+    
+    rpc GetCategoryHash(google.protobuf.StringValue) returns (aelf.Hash) {
+        option (aelf.is_view) = true;
+    }
+    
+    rpc GetHolderInfo(aelf.Hash) returns (HolderInfo) {
+        option (aelf.is_view) = true;
+    }
+    
+    rpc GetCentreAssetManagementInfo (google.protobuf.Empty) returns(CentreAssetManagementInfo) {
+        option (aelf.is_view) = true;
+    }
+    
+    rpc GetCategoryContractCallAllowance (CategoryDto) returns (CategoryContractCallAllowanceDto) {
         option (aelf.is_view) = true;
     }
 }
@@ -105,7 +117,6 @@ message WithdrawInfo {
     repeated aelf.Address approved_addresses = 5;
     int64 management_addresses_limit_amount = 6;
     google.protobuf.Timestamp added_time = 7;
-
 }
 
 message ContractCallWhiteList {
@@ -118,13 +129,8 @@ message ContractCallWhiteLists {
 }
 
 message CentreAssetManagementInfo {
-    //for example, {"vote","address_of_vote_contract_1,address_of_vote_contract_2"}
-    //address_of_vote_contract can be ELF_xxx_YYY
-    //or address_of_vote_contract can be a system contract name
-    //map<string,string> category_contract_white_lists = 1;
-
-
     aelf.Address owner = 1;
+    repeated string categories = 2;
 }
 
 message ManagementAddress {
@@ -179,7 +185,7 @@ message HolderCreateDto {
     aelf.Address owner_address = 2; // the owner can change the settings
     repeated ManagementAddress management_addresses = 3; // management address can manage asset
     int32 settings_effective_time = 4;
-    aelf.Address shutdow_address = 5;
+    aelf.Address shutdown_address = 5;
 }
 
 message HolderCreateReturnDto {
@@ -215,6 +221,12 @@ message AssetMoveDto {
     aelf.Hash address_category_hash = 4;
 }
 
+message VirtualAddressCalculationDto {
+    aelf.Hash holder_id = 1;
+    string user_token = 2;
+    aelf.Hash address_category_hash = 3;
+}
+
 message AssetMoveReturnDto {
     bool success = 1;
 }
@@ -232,6 +244,7 @@ message WithdrawRequestDto {
     int64 amount = 2;
     aelf.Hash holder_id = 3;
 }
+
 message WithdrawRequestReturnDto {
     aelf.Hash id = 1;
 }
@@ -266,4 +279,64 @@ message SendTransactionByUserVirtualAddressDto {
 message CancelWithdrawsDto {
     repeated aelf.Hash ids = 1;
     aelf.Hash holder_id = 2;
+}
+
+message CategoryToContractCallWhiteListsDto {
+    map<string, ContractCallWhiteLists> category_to_contact_call_white_lists_map = 1;
+}
+
+message HolderCreated{
+    option (aelf.is_event) = true;
+    string symbol = 1;
+    aelf.Address owner_address = 2;
+    aelf.Hash holder_id = 3;
+}
+
+message WithdrawRequested{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Hash withdraw_id = 2;
+    int64 amount = 3;
+    aelf.Address request_address = 4;
+    aelf.Address withdraw_address = 5;
+}
+
+message WithdrawReleased{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Hash withdraw_id = 2 [(aelf.is_indexed) = true];
+    int64 amount = 3;
+    aelf.Address withdraw_address = 4;
+}
+
+message WithdrawCanceled{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Hash withdraw_id = 2 [(aelf.is_indexed) = true];
+    int64 amount = 3;
+    aelf.Address withdraw_address = 4;
+}
+
+message WithdrawExpired{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Hash withdraw_id = 2 [(aelf.is_indexed) = true];
+    int64 amount = 3;
+    aelf.Address withdraw_address = 4;
+}
+
+message HolderUpdateRequested{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Address owner_address = 2;
+    int32 settings_effective_time = 3;
+    aelf.Address shutdown_address = 4;
+}
+
+message HolderUpdateApproved{
+    option (aelf.is_event) = true;
+    aelf.Hash holder_id = 1 [(aelf.is_indexed) = true];
+    aelf.Address owner_address = 2;
+    int32 settings_effective_time = 3;
+    aelf.Address shutdown_address = 4;
 }

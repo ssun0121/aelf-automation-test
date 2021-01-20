@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -55,8 +54,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             "2oSMWm1tjRqVdfmrdL8dgrRvhWu1FP8wcZidjS6wPbuoVtxhEz",
             "WRy3ADLZ4bEQTn86ENi5GXi5J1YyHp9e99pPso84v2NJkfn5k",
             "2frDVeV6VxUozNqcFbgoxruyqCRAuSyXyfCaov6bYWc7Gkxkh2",
-            "2ZYyxEH6j8zAyJjef6Spa99Jx2zf5GbFktyAQEBPWLCvuSAn8D",
-            "eFU9Quc8BsztYpEHKzbNtUpu9hGKgwGD2tyL13MqtFkbnAoCZ",
+            "2ZYyxEH6j8zAyJjef6Spa99Jx2zf5GbFktyAQEBPWLCvuSAn8D", 
             "2V2UjHQGH8WT4TWnzebxnzo9uVboo67ZFbLjzJNTLrervAxnws",
             "2gfVsyYbLPehmVjZxKHZfxp9AMRUEV6KFHkZDgdU7VZf64teew",
             "2a6MGBRVLPsy6pu4SVMWdQqHS5wvmkZv8oas9srGWHJk7GSJPV",
@@ -97,7 +95,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 "RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y");
 //            InitializeLotteryContract();
 
-
             _adminLotteryStub =
                 _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(InitAccount);
             _lotteryStub =
@@ -113,6 +110,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 //                if (elfBalance < 100_00000000)
 //                    _sideTokenContract.TransferBalance(InitAccount, tester, 1000_00000000, "ELF");
 //            }
+//            _sideTokenContract.TransferBalance(InitAccount, _lotteryContract.ContractAddress, 200000_00000000, "ELF");
         }
 
         [TestMethod]
@@ -154,13 +152,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var holder = _sideGenesisContract.GetTokenHolderStub();
             var profit = _sideGenesisContract.GetProfitStub();
-            var scheme = await holder.GetScheme.CallAsync(_lotteryContract.Contract);
-            var schemeAddress = await profit.GetSchemeAddress.CallAsync(new SchemePeriod
-            {
-                Period = 0,
-                SchemeId = scheme.SchemeId
-            });
-            schemeAddress.ShouldBe(VirtualAddress.ConvertAddress());
+//            var scheme = await holder.GetScheme.CallAsync(_lotteryContract.Contract);
+//            var schemeAddress = await profit.GetSchemeAddress.CallAsync(new SchemePeriod
+//            {
+//                Period = 0,
+//                SchemeId = scheme.SchemeId
+//            });
+//            schemeAddress.ShouldBe(VirtualAddress.ConvertAddress());
         }
 
         [TestMethod]
@@ -230,8 +228,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var approve =
                 _sideTokenContract.ApproveToken(sender, _lotteryContract.ContractAddress, 2000_00000000, Symbol);
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var list1 = new List<int> {0, 1};
-            var list2 = new List<int> {0, 1};
+            var list1 = new List<int> {0, 1, 2, 3};
+            var list2 = new List<int> {0, 1, 2, 3};
             var totalAmount = list1.Count * list2.Count * Price;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
             var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
@@ -279,6 +277,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var list = new List<int> {1, 3, 5, 7, 9};
             var totalAmount = list.Count * Price;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
+            var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
             var approve = _sideTokenContract.ApproveToken(sender, _lotteryContract.ContractAddress,
                 totalAmount, Symbol);
@@ -287,6 +286,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var initBalance = _sideTokenContract.GetUserBalance(sender, Symbol);
             var contractBalance = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
             var sellerBalance = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
+            var profitBalance = _sideTokenContract.GetUserBalance(VirtualAddress, Symbol);
 
             var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(sender);
             var result = await stub.Buy.SendAsync(new BuyInput
@@ -305,8 +305,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var initBalanceAfter = _sideTokenContract.GetUserBalance(sender, Symbol);
             initBalanceAfter.ShouldBe(initBalance - totalAmount);
+            var profitBalanceAfter = _sideTokenContract.GetUserBalance(VirtualAddress, Symbol);
+            profitBalanceAfter.ShouldBe(profitBalance + profit);
             var contractBalanceAfter = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
-            contractBalanceAfter.ShouldBe(contractBalance + (totalAmount - bonus));
+            contractBalanceAfter.ShouldBe(contractBalance + (totalAmount - bonus - profit));
             var sellerBalanceAfter = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
             sellerBalanceAfter.ShouldBe(sellerBalance + bonus);
             Logger.Info($"Buy amount {totalAmount}, bonus {bonus}");
@@ -320,6 +322,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var list2 = new List<int> {1, 7, 5};
             var totalAmount = list1.Count * list2.Count * Price;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
+            var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
             _sideTokenContract.SetAccount(sender);
             var approve = _sideTokenContract.ApproveToken(sender, _lotteryContract.ContractAddress,
@@ -330,6 +333,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var initBalance = _sideTokenContract.GetUserBalance(sender, Symbol);
             var contractBalance = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
             var sellerBalance = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
+            var profitBalance = _sideTokenContract.GetUserBalance(VirtualAddress, Symbol);
 
             var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(sender);
             var result = await stub.Buy.SendAsync(new BuyInput
@@ -352,8 +356,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var initBalanceAfter = _sideTokenContract.GetUserBalance(sender, Symbol);
             initBalanceAfter.ShouldBe(initBalance - totalAmount);
+            var profitBalanceAfter = _sideTokenContract.GetUserBalance(VirtualAddress, Symbol);
+            profitBalanceAfter.ShouldBe(profitBalance + profit);
             var contractBalanceAfter = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
-            contractBalanceAfter.ShouldBe(contractBalance + (totalAmount - bonus));
+            contractBalanceAfter.ShouldBe(contractBalance + (totalAmount - bonus - profit));
             var sellerBalanceAfter = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
             sellerBalanceAfter.ShouldBe(sellerBalance + bonus);
             Logger.Info($"Buy amount {totalAmount}, bonus {bonus}");
@@ -368,6 +374,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var list3 = new List<int> {1, 5};
             var totalAmount = list1.Count * list2.Count * list3.Count * Price;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
+            var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
             _sideTokenContract.TransferBalance(InitAccount, sender, totalAmount, "LOT");
 
@@ -378,6 +385,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var initBalance = _sideTokenContract.GetUserBalance(sender, Symbol);
             var contractBalance = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
             var sellerBalance = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
+            var profitBalance = _sideTokenContract.GetUserBalance(VirtualAddress, Symbol);
 
             var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(sender);
             var result = await stub.Buy.SendAsync(new BuyInput
@@ -404,8 +412,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var initBalanceAfter = _sideTokenContract.GetUserBalance(sender, Symbol);
             initBalanceAfter.ShouldBe(initBalance - totalAmount);
+            var profitBalanceAfter = _sideTokenContract.GetUserBalance(VirtualAddress, Symbol);
+            profitBalanceAfter.ShouldBe(profitBalance + profit);
             var contractBalanceAfter = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
-            contractBalanceAfter.ShouldBe(contractBalance + (totalAmount - bonus));
+            contractBalanceAfter.ShouldBe(contractBalance + (totalAmount - bonus - profit));
             var sellerBalanceAfter = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
             sellerBalanceAfter.ShouldBe(sellerBalance + bonus);
             Logger.Info($"Buy amount {totalAmount}, bonus {bonus}");
@@ -423,6 +433,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var totalAmount = list1.Count * list2.Count * list3.Count * list4.Count * list5.Count * Price;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
+            var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
             var approve = _sideTokenContract.ApproveToken(sender, _lotteryContract.ContractAddress,
                 totalAmount, Symbol);
@@ -431,6 +442,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var initBalance = _sideTokenContract.GetUserBalance(sender, Symbol);
             var contractBalance = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
             var sellerBalance = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
+            var profitBalance = _sideTokenContract.GetUserBalance(VirtualAddress, Symbol);
 
             var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(sender);
             var result = await stub.Buy.SendAsync(new BuyInput
@@ -465,8 +477,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var initBalanceAfter = _sideTokenContract.GetUserBalance(sender, Symbol);
             initBalanceAfter.ShouldBe(initBalance - totalAmount);
+            var profitBalanceAfter = _sideTokenContract.GetUserBalance(VirtualAddress, Symbol);
+            profitBalanceAfter.ShouldBe(profitBalance + profit);
             var contractBalanceAfter = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
-            contractBalanceAfter.ShouldBe(contractBalance + (totalAmount - bonus));
+            contractBalanceAfter.ShouldBe(contractBalance + (totalAmount - bonus - profit));
             var sellerBalanceAfter = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
             sellerBalanceAfter.ShouldBe(sellerBalance + bonus);
             Logger.Info($"Buy amount {totalAmount}, bonus {bonus}");
@@ -483,6 +497,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var periodsAfter = await _adminLotteryStub.GetCurrentPeriod.CallAsync(new Empty());
             periodsAfter.PeriodNumber.ShouldBe(period.PeriodNumber + 1);
+        }
+
+        [TestMethod]
+        public async Task OnlyDraw()
+        {
+            var latest = await _adminLotteryStub.GetLatestDrawPeriod.CallAsync(new Empty());
+            var result = await _adminLotteryStub.Draw.SendAsync(new Int64Value {Value = latest.PeriodNumber+1});
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            var info = await _adminLotteryStub.GetPeriod.CallAsync(new Int64Value {Value = latest.PeriodNumber+1});
+            Logger.Info($"{latest.PeriodNumber + 1}: {info.LuckyNumber},{info.DrawBlockNumber}");
         }
 
         [TestMethod]
@@ -548,7 +572,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             afterBalance.ShouldBe(balance + rewardAmount);
             afterContractBalance.ShouldBe(contractBalance - rewardAmount);
             Logger.Info(
-                $"{sender} before reward balance: {balance}, after: {afterBalance}, reward amount: {rewardAmount}");
+                $"{sender} before reward balance: {balance}, after: {afterBalance}, reward amount: {rewardAmount}\n" +
+                $"{rewardedLotteries.Lotteries}");
         }
 
         [TestMethod]
@@ -765,15 +790,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             foreach (var id in lotteries.Lotteries.Select(i => i.Id).ToList())
             {
                 var lotteryInfo = await stub.GetLottery.CallAsync(new GetLotteryInput
-                {
-                    LotteryId = id
-                });
-                Logger.Info($"GetLottery: {lotteryInfo.Lottery}");
-            }
-            
-            foreach (var id in lotteries.Lotteries.Select(i => i.Id).ToList())
-            {
-                var lotteryInfo = await _adminLotteryStub.GetLottery.CallAsync(new GetLotteryInput
                 {
                     LotteryId = id
                 });
