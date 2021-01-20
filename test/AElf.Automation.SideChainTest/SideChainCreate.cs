@@ -411,7 +411,8 @@ namespace AElf.Automation.SideChainTests
         [DataRow("28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK")]
         public void CheckBalance(string account)
         {
-            var balance = GetBalance(SideAServices, account,
+            var service = SideServices.First();
+            var balance = GetBalance(service, account,
                 NodeOption.NativeTokenSymbol);
             Logger.Info($"side chain user balance is {balance}");
 
