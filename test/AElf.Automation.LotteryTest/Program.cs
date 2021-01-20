@@ -42,8 +42,6 @@ namespace AElf.Automation.LotteryTest
                         Thread.Sleep(600000);
                         lottery.DrawJob(_tester);
                         lottery.CheckBoard();
-                        lottery.CalculateRate();
-                        lottery.CheckUserRewardRate();
                     }
                 },token),
                 Task.Run(() =>
@@ -52,6 +50,8 @@ namespace AElf.Automation.LotteryTest
                     {
                         Thread.Sleep(300000);
                         lottery.CheckNativeSymbolBalance(_tester);
+                        lottery.CalculateRate();
+                        lottery.CheckUserRewardRate();
                     }
                 }, token)
             };

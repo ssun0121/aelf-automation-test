@@ -444,7 +444,7 @@ namespace AElf.Automation.LotteryTest
         {
             foreach (var userInfo in UserInfos)
             {
-                var rate = (decimal)userInfo.RewardAmount / userInfo.SpentAmount;
+                var rate = userInfo.SpentAmount != 0 ? (decimal)userInfo.RewardAmount / userInfo.SpentAmount: 0;
                 Logger.Info($"*** {userInfo.User} total spend {userInfo.SpentAmount}; total reward {userInfo.RewardAmount}; rate: {rate}");
             }
         }
