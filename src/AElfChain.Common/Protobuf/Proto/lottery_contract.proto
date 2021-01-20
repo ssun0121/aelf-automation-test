@@ -241,7 +241,7 @@ message LotteryList {
 }
 
 message UnDrawnLotteries {
-    int64 period_number = 1;
+    int64 latest_period_number = 1;
     repeated int64 ids = 2;
 }
 

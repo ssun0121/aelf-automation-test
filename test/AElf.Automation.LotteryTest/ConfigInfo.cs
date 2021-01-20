@@ -8,6 +8,8 @@ namespace AElf.Automation.LotteryTest
         [JsonProperty("Url")] public string Url { get; set; }
         [JsonProperty("InitAccount")] public string InitAccount { get; set; }
         [JsonProperty("Password")] public string Password { get; set; }
+        [JsonProperty("Config")] public string Config { get; set; }
+
         
         [JsonProperty("LotteryContract")] public string LotteryContract { get; set; }
         [JsonProperty("SellerAccount")] public string SellerAccount { get; set; }
@@ -20,6 +22,8 @@ namespace AElf.Automation.LotteryTest
         [JsonProperty("ProfitsRate")] public int ProfitsRate { get; set; }
         
         [JsonProperty("UserCount")] public int UserCount { get; set; }
+        [JsonProperty("TestUserCount")] public int TestUserCount { get; set; }
+
         
         public static ConfigInfo ReadInformation => ConfigHelper<ConfigInfo>.GetConfigInfo("lottery-config.json");
         

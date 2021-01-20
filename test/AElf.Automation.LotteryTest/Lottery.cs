@@ -28,6 +28,7 @@ namespace AElf.Automation.LotteryTest
 
         public string NativeSymbol;
         public string Symbol;
+        public int UserTestCount;
         public string SellerAccount;
         private long _price;
         private int _cashDuration;
@@ -39,6 +40,7 @@ namespace AElf.Automation.LotteryTest
         public Dictionary<LotteryType, long> Rewards { get; set; }
         public List<long> FiveBitId { get; set; }
         public List<long> FiveBitRewardId { get; set; }
+        public List<UserInfo> UserInfos { get; set; }
 
 
         public readonly string InitAccount;
@@ -88,23 +90,44 @@ namespace AElf.Automation.LotteryTest
             Symbol = ConfigInfo.ReadInformation.Symbol;
             _userCount = ConfigInfo.ReadInformation.UserCount;
             SellerAccount = ConfigInfo.ReadInformation.SellerAccount;
+            UserTestCount = ConfigInfo.ReadInformation.TestUserCount;
         }
 
         public List<string> GetTestAddress()
         {
+            UserInfos = new List<UserInfo>();
             var nodeManager = Manager.NodeManager;
-            NodeInfoHelper.SetConfig("nodes-env2-side1");
+            var config = ConfigInfo.ReadInformation.Config;
+            NodeInfoHelper.SetConfig(config);
             var nodesAccount = NodeInfoHelper.Config.Nodes.Select(l => l.Account).ToList();
             var testUsers = nodeManager.ListAccounts().FindAll(a =>
                 !a.Equals(SellerAccount) && !a.Equals(InitAccount) && !nodesAccount.Contains(a));
 
-            if (testUsers.Count >= _userCount) return testUsers.Take(_userCount).ToList();
-
+            if (testUsers.Count >= _userCount)
+            {
+                var users = testUsers.Take(_userCount).ToList();
+                foreach (var user in users)
+                    UserInfos.Add(new UserInfo(user));
+                return users;
+            }
+            
             var newAccounts = GenerateTestUsers(nodeManager, _userCount - testUsers.Count);
             testUsers.AddRange(newAccounts);
             foreach (var account in testUsers)
+            {
                 nodeManager.UnlockAccount(account);
+                UserInfos.Add(new UserInfo(account));
+            }
             return testUsers;
+        }
+
+        public List<string> TakeRandomUserAddress(int count, List<string> allUser)
+        {
+            if (allUser.Count <=count)
+                return allUser;
+            var numberList = CommonHelper.TakeRandomNumberList(count, 0, allUser.Count-1);
+            var randomList = numberList.Select(num => allUser[num]).ToList();
+            return randomList;
         }
 
         public void DrawJob(List<string> tester)
@@ -282,6 +305,9 @@ namespace AElf.Automation.LotteryTest
                 var sellerBalanceAfter = TokenService.GetUserBalance(SellerAccount, Symbol);
                 sellerBalanceAfter.ShouldBe(sellerBalance + bonus);
                 Logger.Info($"*** User {sender} spent {totalAmount} on lottery, bonus {bonus}, profit {profit}");
+                var userInfo = UserInfos.First(u => u.User.Equals(sender));
+                userInfo.Balance = initBalanceAfter;
+                userInfo.SpentAmount = userInfo.SpentAmount + totalAmount;
             }
         }
 
@@ -363,8 +389,13 @@ namespace AElf.Automation.LotteryTest
 //                afterContractBalance.ShouldBe(contractBalance - rewardAmount);
 
                 Logger.Info(
-                    $"*** {sender} before reward balance: {balance}, after: {afterBalance}, reward amount: {rewardAmount}\n" +
-                    $"{rewardedLotteries.Lotteries}");
+                    $"*** {sender} before reward balance: {balance}, after: {afterBalance}, reward amount: {rewardAmount}\n");
+
+                foreach (var lottery in rewardedLotteries.Lotteries)
+                    Logger.Info($"{lottery.Id}: bet infos=>{lottery.BetInfos} reward=>{lottery.Reward}\n");
+                var userInfo = UserInfos.First(u => u.User.Equals(sender));
+                userInfo.Balance = afterBalance;
+                userInfo.RewardAmount = userInfo.RewardAmount + rewardAmount;
             }
         }
 
@@ -407,6 +438,15 @@ namespace AElf.Automation.LotteryTest
             var rate = FiveBitRewardId.Count / FiveBitId.Count;
             Logger.Info(
                 $"*** Top prize rate: {rate}, FiveBitCount: {FiveBitId.Count}, RewardIdCount: {FiveBitRewardId.Count}");
+        }
+
+        public void CheckUserRewardRate()
+        {
+            foreach (var userInfo in UserInfos)
+            {
+                var rate = (decimal)userInfo.RewardAmount / userInfo.SpentAmount;
+                Logger.Info($"*** {userInfo.User} total spend {userInfo.SpentAmount}; total reward {userInfo.RewardAmount}; rate: {rate}");
+            }
         }
 
         private int GetRateDenominator()

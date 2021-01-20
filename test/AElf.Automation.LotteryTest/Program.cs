@@ -13,7 +13,7 @@ namespace AElf.Automation.LotteryTest
     {
         private static void Main(string[] args)
         {
-            Log4NetHelper.LogInit("LotteryTest_");
+            Log4NetHelper.LogInit("LotteryTest");
             var lottery = new Lottery();
             _tester = lottery.GetTestAddress();
             lottery.CheckNativeSymbolBalance(_tester);
@@ -29,9 +29,11 @@ namespace AElf.Automation.LotteryTest
                 {
                     while (true)
                     {
-                        lottery.BuyJob(_tester);
-                        Thread.Sleep(120000);
+                        Logger.Info($"Take {lottery.UserTestCount} tester: ");
+                        var testers = lottery.TakeRandomUserAddress(lottery.UserTestCount, _tester);
+                        lottery.BuyJob(testers);
                     }
+
                 }, token),
                 Task.Run(() => 
                 {
@@ -40,6 +42,8 @@ namespace AElf.Automation.LotteryTest
                         Thread.Sleep(600000);
                         lottery.DrawJob(_tester);
                         lottery.CheckBoard();
+                        lottery.CalculateRate();
+                        lottery.CheckUserRewardRate();
                     }
                 },token),
                 Task.Run(() =>
@@ -48,7 +52,6 @@ namespace AElf.Automation.LotteryTest
                     {
                         Thread.Sleep(300000);
                         lottery.CheckNativeSymbolBalance(_tester);
-                        lottery.CalculateRate();
                     }
                 }, token)
             };
