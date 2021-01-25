@@ -35,7 +35,9 @@ service LotteryContract {
     }
     rpc SetPrice(google.protobuf.Int64Value) returns (google.protobuf.Empty) {
     }
-
+    rpc TakeBackToken(TakeBackTokenInput) returns (google.protobuf.Empty) {
+    }
+    
     //View
     rpc GetPeriods (GetPeriodsInput) returns (GetPeriodsOutput) {
         option (aelf.is_view) = true;
@@ -266,4 +268,9 @@ message PeriodCount {
 
 message GetPeriodCountBoardOutput {
     repeated PeriodCount period_count_list = 1;
+}
+
+message TakeBackTokenInput{
+    string symbol = 1;
+    int64 amount = 2;
 }

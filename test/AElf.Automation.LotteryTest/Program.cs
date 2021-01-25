@@ -23,46 +23,70 @@ namespace AElf.Automation.LotteryTest
             
             var cts = new CancellationTokenSource();
             var token = cts.Token;
-            var taskList = new List<Task>
+            var taskList = new List<Task>();
+            if (lottery.OnlyDraw)
             {
-                Task.Run(() =>
+                taskList = new List<Task>
                 {
-                    while (true)
+                    Task.Run(() => 
                     {
-                        Logger.Info($"Take {lottery.UserTestCount} tester: ");
-                        var testers = lottery.TakeRandomUserAddress(lottery.UserTestCount, _tester);
-                        lottery.BuyJob(testers);
-                    }
+                        while (true)
+                        {
+                            var second = DateTime.Now.Second;
+                            var minute = DateTime.Now.Minute;
+                            if (minute % 10 == 0 && second == 0)
+                            {
+                                lottery.DrawJob();
+                            }
+                        }
+                    },token)
+                };
+            }
+            else
+            {
+                taskList = new List<Task>
+                {
+                    Task.Run(() =>
+                    {
+                        while (true)
+                        {
+                            Logger.Info($"Take {lottery.UserTestCount} tester: ");
+                            var testers = lottery.TakeRandomUserAddress(lottery.UserTestCount, _tester);
+                            lottery.BuyJob(testers);
+                        }
 
-                }, token),
-                Task.Run(() => 
-                {
-                    while (true)
+                    }, token),
+                    Task.Run(() => 
                     {
-                        Thread.Sleep(600000);
-                        lottery.DrawJob();
-                    }
-                },token),
-                Task.Run(() =>
-                {
-                    while (true)
+                        while (true)
+                        {
+                            var dateNow = DateTime.Now;
+
+                            lottery.DrawJob();
+                        }
+                    },token),
+                    Task.Run(() =>
                     {
-                        Thread.Sleep(900000);
-                        lottery.TakeRewardJob(_tester);
-                        lottery.CheckBoard();
-                    }
-                },token),
-                Task.Run(() =>
-                {
-                    while (true)
+                        while (true)
+                        {
+                            Thread.Sleep(900000);
+                            lottery.TakeRewardJob(_tester);
+                            lottery.CheckBoard();
+                        }
+                    },token),
+                    Task.Run(() =>
                     {
-                        Thread.Sleep(300000);
-                        lottery.CheckNativeSymbolBalance(_tester);
-                        lottery.CalculateRate();
-                        lottery.CheckUserRewardRate();
-                    }
-                }, token)
-            };
+                        while (true)
+                        {
+                            Thread.Sleep(300000);
+                            lottery.CheckNativeSymbolBalance(_tester);
+                            lottery.CalculateRate();
+                            lottery.CheckUserRewardRate();
+                        }
+                    }, token)
+                };
+            }
+           
 
             Task.WaitAll(taskList.ToArray<Task>());
         }

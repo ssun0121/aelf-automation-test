@@ -41,8 +41,8 @@ namespace AElf.Automation.LotteryTest
         public List<long> FiveBitId { get; set; }
         public List<long> FiveBitRewardId { get; set; }
         public List<UserInfo> UserInfos { get; set; }
-
-
+        public bool OnlyDraw { get; set; }
+        
         public readonly string InitAccount;
         public readonly ContractManager Manager;
         public readonly LotteryContract LotteryService;
@@ -53,7 +53,8 @@ namespace AElf.Automation.LotteryTest
 
         public Lottery()
         {
-            var lotteryContract = ConfigInfo.ReadInformation.LotteryContract;
+            var contractInfo = ConfigInfo.ReadInformation.ContractInfo;
+            var lotteryContract = contractInfo.LotteryContract;
             var contractServices = GetContractServices(lotteryContract);
             Manager = contractServices.ContractManager;
             TokenService = Manager.Token;
@@ -65,15 +66,17 @@ namespace AElf.Automation.LotteryTest
             LotteryContractStub =
                 LotteryService.GetTestStub<LotteryContractContainer.LotteryContractStub>(InitAccount);
             GetContractConfig();
+            OnlyDraw = ConfigInfo.ReadInformation.OnlyDraw;
             FiveBitId = new List<long>();
             FiveBitRewardId = new List<long>();
         }
 
         private ContractServices GetContractServices(string lotteryContract)
         {
-            var url = ConfigInfo.ReadInformation.Url;
-            var initAccount = ConfigInfo.ReadInformation.InitAccount;
-            var password = ConfigInfo.ReadInformation.Password;
+            var env = ConfigInfo.ReadInformation.Environment;
+            var url = env.Url;
+            var initAccount = env.InitAccount;
+            var password = env.Password;
 
             var contractService = new ContractServices(url, initAccount, password,
                 lotteryContract);
@@ -83,13 +86,14 @@ namespace AElf.Automation.LotteryTest
         private void GetContractConfig()
         {
             Logger.Info("*** Get test config: ");
-            _price = ConfigInfo.ReadInformation.Price;
-            _cashDuration = ConfigInfo.ReadInformation.CashDuration;
-            _bonus = ConfigInfo.ReadInformation.Bonus;
-            _profitsRate = ConfigInfo.ReadInformation.ProfitsRate;
-            Symbol = ConfigInfo.ReadInformation.Symbol;
+            var contractInfo = ConfigInfo.ReadInformation.ContractInfo;
+            _price = contractInfo.Price;
+            _cashDuration = contractInfo.CashDuration;
+            _bonus = contractInfo.Bonus;
+            _profitsRate = contractInfo.ProfitsRate;
+            Symbol = contractInfo.Symbol;
             _userCount = ConfigInfo.ReadInformation.UserCount;
-            SellerAccount = ConfigInfo.ReadInformation.SellerAccount;
+            SellerAccount =contractInfo.SellerAccount;
             UserTestCount = ConfigInfo.ReadInformation.TestUserCount;
         }
 
@@ -97,7 +101,7 @@ namespace AElf.Automation.LotteryTest
         {
             UserInfos = new List<UserInfo>();
             var nodeManager = Manager.NodeManager;
-            var config = ConfigInfo.ReadInformation.Config;
+            var config = ConfigInfo.ReadInformation.Environment.Config;
             NodeInfoHelper.SetConfig(config);
             var nodesAccount = NodeInfoHelper.Config.Nodes.Select(l => l.Account).ToList();
             var testUsers = nodeManager.ListAccounts().FindAll(a =>
@@ -165,7 +169,7 @@ namespace AElf.Automation.LotteryTest
 
         public async Task GetLotteryContractInfo()
         {
-            var lotteryContract = ConfigInfo.ReadInformation.LotteryContract;
+            var lotteryContract = ConfigInfo.ReadInformation.ContractInfo.LotteryContract;
             if (lotteryContract == "")
             {
                 GetContractConfig();
@@ -201,7 +205,7 @@ namespace AElf.Automation.LotteryTest
                 var schemeInfo = await TokenHolderContractStub.GetScheme.CallAsync(LotteryService.Contract);
 //                var virtualAddress = await profit.GetSchemeAddress.CallAsync(new SchemePeriod
 //                    {Period = 0, SchemeId = schemeInfo.SchemeId});
-                var virtualAddress = ConfigInfo.ReadInformation.VirtualAddress;
+                var virtualAddress = ConfigInfo.ReadInformation.ContractInfo.VirtualAddress;
 
                 Symbol = token.Value;
                 _cashDuration = cash.Value;
