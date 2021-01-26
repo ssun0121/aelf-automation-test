@@ -60,9 +60,12 @@ namespace AElf.Automation.LotteryTest
                     {
                         while (true)
                         {
-                            var dateNow = DateTime.Now;
-
-                            lottery.DrawJob();
+                            var second = DateTime.Now.Second;
+                            var minute = DateTime.Now.Minute;
+                            if (minute % 10 == 0 && second == 0)
+                            {
+                                lottery.DrawJob();
+                            }
                         }
                     },token),
                     Task.Run(() =>
