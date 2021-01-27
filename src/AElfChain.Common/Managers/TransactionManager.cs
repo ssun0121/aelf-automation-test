@@ -50,6 +50,13 @@ namespace AElfChain.Common.Managers
             tx.Signature = Sign(tx.From.ToBase58(), txData);
             return tx;
         }
+        
+        public Transaction SignTransactionFromPrivate(Transaction tx, string privateKey)
+        {
+            var txData = tx.GetHash().ToByteArray();
+            tx.Signature = SignFromPrivate(privateKey, txData);
+            return tx;
+        }
 
         public ByteString Sign(string addr, byte[] txData)
         {
@@ -60,6 +67,15 @@ namespace AElfChain.Common.Managers
                 Logger.Error($"The following account is locked: {addr}");
                 return null;
             }
+
+            // Sign the hash
+            var signature = CryptoHelper.SignWithPrivateKey(kp.PrivateKey, txData);
+            return ByteString.CopyFrom(signature);
+        }
+        
+        public ByteString SignFromPrivate(string privateKey, byte[] txData)
+        {
+            var kp = _keyStore.GetAccountKeyPairFromPrivate(privateKey);
 
             // Sign the hash
             var signature = CryptoHelper.SignWithPrivateKey(kp.PrivateKey, txData);

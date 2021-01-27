@@ -12,6 +12,7 @@ using AElfChain.Common.Managers;
 using Google.Protobuf;
 using log4net;
 using Newtonsoft.Json;
+using Virgil.Crypto;
 using Volo.Abp.Threading;
 
 namespace AElfChain.Common.Contracts
@@ -55,12 +56,12 @@ namespace AElfChain.Common.Contracts
         /// <param name="password"></param>
         /// <typeparam name="TStub"></typeparam>
         /// <returns></returns>
-        public TStub GetTestStub<TStub>(string account, string password = "")
+        public TStub GetTestStub<TStub>(string account, string password = "",string privateKey = "")
             where TStub : ContractStubBase, new()
         {
             var stub = new ContractTesterFactory(NodeManager);
             var testStub =
-                stub.Create<TStub>(Contract, account, password);
+                stub.Create<TStub>(Contract, account, password, privateKey);
 
             return testStub;
         }

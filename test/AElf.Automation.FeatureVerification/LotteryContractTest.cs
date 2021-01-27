@@ -47,7 +47,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
         private string SellerAccount { get; } = "eFU9Quc8BsztYpEHKzbNtUpu9hGKgwGD2tyL13MqtFkbnAoCZ";
-        private string VirtualAddress { get; } = "5XPcuoT2R2C3QSY64BuHsgUCBLiWMwPo1vvMLCr3w3iKyB7Lc";
+        private string VirtualAddress { get; } = "2oVzgBANynRrhTuFheb7uyoKrbzFnUGobhmSe2cTgFkXgzEfKj";
 
         private List<string> Tester = new List<string>
         {
@@ -67,9 +67,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private static string SideRpcUrl { get; } = "192.168.197.44:8001";
 
         private string Symbol { get; } = "LOT";
-        private const long Price = 1_00000000;
+        private const long Price = 2_00000000;
         private const int Bonus = 10;
-        private const int CashDuration = 30;
+        private const int CashDuration = 1;
         private const int ProfitsRate = 1000;
 
         [TestInitialize]
@@ -91,8 +91,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
 //            Logger.Info($"Lottery contract : {_lotteryContract}");
 //            if (!_tokenContract.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
 //                CreateTokenAndIssue();
+//            _lotteryContract = new LotteryContract(SideNodeManager, InitAccount,
+//                "buePNjhmHckfZn9D8GTL1wq6JgA8K24SeTWnjCNcrz6Sf1FDh");
             _lotteryContract = new LotteryContract(SideNodeManager, InitAccount,
-                "RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y");
+                "2AsEepqiFCRDnepVheYYN5LK7nvM2kUoXgk2zLKu1Zneh8fwmF");
+            
 //            InitializeLotteryContract();
 
             _adminLotteryStub =
@@ -660,6 +663,24 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     $"{sender} before reward balance: {balance}, after: {afterBalance}, reward amount: {rewardAmount}");
             }
         }
+        
+        [TestMethod]
+        public async Task TakeBackToken()
+        {
+            var amount = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
+            var admin = await _adminLotteryStub.GetAdmin.CallAsync(new Empty());
+            var adminBalance = _sideTokenContract.GetUserBalance(admin.ToBase58(), Symbol);
+            var result = await _adminLotteryStub.TakeBackToken.SendAsync(new TakeBackTokenInput
+            {
+                Symbol = Symbol,
+                Amount = amount
+            });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            var afterBalance = _sideTokenContract.GetUserBalance(admin.ToBase58(), Symbol);
+            afterBalance.ShouldBe(adminBalance + amount);
+            var afterContractBalance = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
+            afterContractBalance.ShouldBe(amount - amount);
+        }
 
         [TestMethod]
         public async Task GetPeriods()
@@ -715,7 +736,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task CheckRewardedLotteries_OneUser()
         {
-            var tester = Tester[4];
+            var tester = Tester[2];
             var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(tester);
             var lotteries = await stub.GetRewardedLotteries.CallAsync(new GetLotteriesInput
             {
@@ -802,6 +823,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var latestCashedLottery = await _adminLotteryStub.GetLatestCashedLottery.CallAsync(new Empty());
             Logger.Info($"{latestCashedLottery}");
+            var period = await _adminLotteryStub.GetPeriod.CallAsync(new Int64Value {Value = latestCashedLottery.PeriodNumber});
+            Logger.Info(period);
         }
 
         [TestMethod]

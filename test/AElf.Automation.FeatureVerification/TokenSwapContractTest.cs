@@ -27,13 +27,23 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private TokenContract _tokenContract;
         private GenesisContract _genesisContract;
         private TokenSwapContract _tokenSwapContract;
+
         private TokenSwapContractContainer.TokenSwapContractStub _tokenSwapContractStub;
+
+//        private string InitAccount { get; } = "sCdEBrmnc1uCxbyeHWK9n7Y6CxfWxwDK1Bs43PUY3BYUFJQ5M";
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
+
         private string TestAccount { get; } = "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6";
+
+//        private static string RpcUrl { get; } = "13.211.28.67:8000";
         private static string RpcUrl { get; } = "192.168.197.44:8001";
         private string Symbol { get; } = "LOT";
+
         private string[] targetAddress;
-        private string PairId { get; } = "ac3ed0dac2986b4ffadb0e96648329c8aed7fadb33b4a55e4068a17fea2c51d7";
+
+//        private string PairId { get; } = "2b3974ae54e76015fb5f33304eeb8224dde028e7f115f2037e5d0dda5a4b4070";
+        private string PairId { get; } = "2f9b59be3eec1e4494f7321099f0892b718ca4f5257a6d3af9dd124afcb867c4";
+
         //1471937c1b0db1ea952b4f37392003b8edacf6c57b4f6bd3b9403c6ac3514dfa -195
         //ac3ed0dac2986b4ffadb0e96648329c8aed7fadb33b4a55e4068a17fea2c51d7
 
@@ -86,15 +96,19 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             Log4NetHelper.LogInit("TokenSwap_");
             Logger = Log4NetHelper.GetLogger();
-            NodeInfoHelper.SetConfig("nodes-env2-main");
-
+//            NodeInfoHelper.SetConfig("nodes-online-stage-main");
+            NodeInfoHelper.SetConfig("nodes-env2-side1");
             NodeManager = new NodeManager(RpcUrl);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
 //            _tokenSwapContract = new TokenSwapContract(NodeManager, InitAccount);
 //            Logger.Info($"TokenSwap contract : {_tokenSwapContract}");
+
+//            _tokenSwapContract = new TokenSwapContract(NodeManager, InitAccount,
+//                "2onFLTnPEiZrXGomzJ8g74cBre2cJuHrn1yBJF3P6Xu9K5Gbth");
+
             _tokenSwapContract = new TokenSwapContract(NodeManager, InitAccount,
-                "2wRDbyVF28VBQoSPgdSEFaL4x7CaXz8TCBujYhgWc9qTMxBE3n");
+                "RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y");
             _tokenSwapContractStub =
                 _tokenSwapContract.GetTestStub<TokenSwapContractContainer.TokenSwapContractStub>(InitAccount);
 //            _tokenContract.TransferBalance(InitAccount, TestAccount, 1000000000000);
@@ -241,12 +255,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _tokenContract.ApproveToken(InitAccount, _tokenSwapContract.ContractAddress, depositAmount, "ELF");
             _tokenContract.ApproveToken(InitAccount, _tokenSwapContract.ContractAddress, depositAmount, Symbol);
 
-            var beforeBalance = _tokenContract.GetUserBalance(_tokenSwapContract.ContractAddress);
             var swapPairInfo = await _tokenSwapContractStub.GetSwapInfo.CallAsync(pairId);
             swapPairInfo.Controller.ShouldBe(InitAccount.ConvertAddress());
             var swapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
-                {SwapId = pairId, TargetTokenSymbol = "ELF"});
-            swapPair.DepositAmount.ShouldBe(beforeBalance);
+                {SwapId = pairId, TargetTokenSymbol = Symbol});
 
             var result = await _tokenSwapContractStub.Deposit.SendAsync(new DepositInput
             {
@@ -264,12 +276,38 @@ namespace AElf.Automation.Contracts.ScenarioTest
             });
             elfResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            var afterBalance = _tokenContract.GetUserBalance(_tokenSwapContract.ContractAddress, Symbol);
-            swapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
+            var afterSwapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
                 {SwapId = pairId, TargetTokenSymbol = Symbol});
-            swapPair.DepositAmount.ShouldBe(afterBalance);
-            afterBalance.ShouldBe(beforeBalance + depositAmount);
+            afterSwapPair.DepositAmount.ShouldBe(swapPair.DepositAmount + depositAmount);
         }
+
+        [TestMethod]
+        public async Task Withdraw()
+        {
+            var pairId = Hash.LoadFromHex(PairId);
+
+            var swapPairInfo = await _tokenSwapContractStub.GetSwapInfo.CallAsync(pairId);
+            swapPairInfo.Controller.ShouldBe(InitAccount.ConvertAddress());
+            var swapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
+                {SwapId = pairId, TargetTokenSymbol = Symbol});
+
+            var controllerBalance = _tokenContract.GetUserBalance(swapPairInfo.Controller.ToBase58(),Symbol);
+            var result = await _tokenSwapContractStub.Withdraw.SendAsync(new WithdrawInput
+            {
+                SwapId = pairId,
+                Amount = swapPair.DepositAmount,
+                TargetTokenSymbol = Symbol
+            });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            
+            var afterSwapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
+                {SwapId = pairId, TargetTokenSymbol = Symbol});
+            afterSwapPair.DepositAmount.ShouldBe(0);
+
+            var afterControllerBalance = _tokenContract.GetUserBalance(swapPairInfo.Controller.ToBase58(), Symbol);
+            afterControllerBalance.ShouldBe(controllerBalance + swapPair.DepositAmount);
+        }
+
 
         [TestMethod]
         public async Task ChangeSwapRatio()
@@ -297,17 +335,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var pairId = Hash.LoadFromHex(PairId);
             var uniqueId = Hash.LoadFromHex(sUniqueId);
             var receiveAccount = "2ZYyxEH6j8zAyJjef6Spa99Jx2zf5GbFktyAQEBPWLCvuSAn8D";
-            
-            var userbalanceMap = new Dictionary<string,long>();
-            var swapBalanceMap = new Dictionary<string,long>();
+
+            var userBalanceMap = new Dictionary<string, long>();
+            var swapBalanceMap = new Dictionary<string, long>();
             var swapInfo = await _tokenSwapContractStub.GetSwapInfo.CallAsync(pairId);
             foreach (var map in swapInfo.SwapTargetTokenMap)
             {
                 var balance = _tokenContract.GetUserBalance(receiveAccount, map.Key);
-                userbalanceMap.Add(map.Key,balance);
+                userBalanceMap.Add(map.Key, balance);
                 var swapBalance = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
                     {SwapId = pairId, TargetTokenSymbol = map.Key});
-                swapBalanceMap.Add(map.Key,swapBalance.DepositAmount);
+                swapBalanceMap.Add(map.Key, swapBalance.DepositAmount);
             }
 
             var stringInfo = "0x73cd1c1253ddf1e0149a1d3398ef0bf57471b3ef6017169476d26f651438b245";
@@ -359,16 +397,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     expectedAmountMap.Add(symbol, expectedElfAmount);
                 }
             }
-            
+
             foreach (var map in swapInfo.SwapTargetTokenMap)
             {
                 var balance = _tokenContract.GetUserBalance(receiveAccount, map.Key);
-                balance.ShouldBe(userbalanceMap[map.Key] + expectedAmountMap[map.Key]);
+                balance.ShouldBe(userBalanceMap[map.Key] + expectedAmountMap[map.Key]);
                 var swapBalance = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
                     {SwapId = pairId, TargetTokenSymbol = map.Key});
                 swapBalance.DepositAmount.ShouldBe(swapBalanceMap[map.Key] - expectedAmountMap[map.Key]);
             }
-            
+
             //check
             var checkAmount = await stub.GetSwapAmounts.CallAsync(new GetSwapAmountsInput
             {
@@ -381,7 +419,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public async Task  CheckAmount_noSwap()
+        public async Task CheckAmount_noSwap()
         {
             var uniqueId = Hash.LoadFromHex("0xe38990d0c7fc009880a9c07c23842e886c6bbdc964ce6bdd5817ad357335ee6f");
             var pairId = Hash.LoadFromHex(PairId);
@@ -410,24 +448,24 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var pairId = Hash.LoadFromHex(PairId);
             var swapPairInfo = await _tokenSwapContractStub.GetSwapInfo.CallAsync(pairId);
-//            var swapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
-//                {SwapId = pairId, TargetTokenSymbol = Symbol});
-//            var swapRound = await _tokenSwapContractStub.GetSwapRound.CallAsync(new GetSwapRoundInput
-//                {SwapId = pairId, TargetTokenSymbol = Symbol, RoundId = 1});
+            var swapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
+                {SwapId = pairId, TargetTokenSymbol = Symbol});
+            var swapRound = await _tokenSwapContractStub.GetSwapRound.CallAsync(new GetSwapRoundInput
+                {SwapId = pairId, TargetTokenSymbol = Symbol, RoundId = 3});
             var elfSwapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
                 {SwapId = pairId, TargetTokenSymbol = "ELF"});
             var elfSwapRound = await _tokenSwapContractStub.GetSwapRound.CallAsync(new GetSwapRoundInput
-                {SwapId = pairId, TargetTokenSymbol = "ELF", RoundId = 1});
+                {SwapId = pairId, TargetTokenSymbol = "ELF", RoundId = 3});
             swapPairInfo.Controller.ShouldBe(InitAccount.ConvertAddress());
-//            swapPair.SwapRatio.OriginShare.ShouldBe(100_00000000);
-//            swapPair.RoundCount.ShouldBe(elfSwapPair.RoundCount);
-//            swapPair.SwapId.ShouldBe(elfSwapPair.SwapId);
-//            swapPair.OriginTokenNumericBigEndian.ShouldBe(elfSwapPair.OriginTokenNumericBigEndian);
-//            swapPair.SwappedTimes.ShouldBe(elfSwapPair.SwappedTimes);
-//
-//            swapRound.StartTime.ShouldBe(elfSwapRound.StartTime);
-//            swapRound.SwappedTimes.ShouldBe(elfSwapRound.SwappedTimes);
-//            swapRound.MerkleTreeRoot.ShouldBe(elfSwapRound.MerkleTreeRoot);
+            swapPair.RoundCount.ShouldBe(elfSwapPair.RoundCount);
+            swapPair.SwapId.ShouldBe(elfSwapPair.SwapId);
+            swapPair.OriginTokenNumericBigEndian.ShouldBe(elfSwapPair.OriginTokenNumericBigEndian);
+            swapPair.SwappedTimes.ShouldBe(elfSwapPair.SwappedTimes);
+            swapRound.StartTime.ShouldBe(elfSwapRound.StartTime);
+            swapRound.SwappedTimes.ShouldBe(elfSwapRound.SwappedTimes);
+            swapRound.MerkleTreeRoot.ShouldBe(elfSwapRound.MerkleTreeRoot);
+
+            Logger.Info($"{swapPair.DepositAmount}");
             Logger.Info($"{elfSwapPair.DepositAmount}");
             Logger.Info($"{elfSwapPair.RoundCount}");
             Logger.Info($"All the amount is {elfSwapPair.SwappedAmount}");
