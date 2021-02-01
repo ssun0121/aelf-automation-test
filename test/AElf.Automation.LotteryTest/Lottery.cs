@@ -42,6 +42,8 @@ namespace AElf.Automation.LotteryTest
         public List<long> FiveBitRewardId { get; set; }
         public List<UserInfo> UserInfos { get; set; }
         public bool OnlyDraw { get; set; }
+        public bool OnlyBuy { get; set; }
+
         
         public readonly string InitAccount;
         public readonly ContractManager Manager;
@@ -67,6 +69,7 @@ namespace AElf.Automation.LotteryTest
                 LotteryService.GetTestStub<LotteryContractContainer.LotteryContractStub>(InitAccount);
             GetContractConfig();
             OnlyDraw = ConfigInfo.ReadInformation.OnlyDraw;
+            OnlyBuy = ConfigInfo.ReadInformation.OnlyBuy;
             FiveBitId = new List<long>();
             FiveBitRewardId = new List<long>();
         }
@@ -77,6 +80,8 @@ namespace AElf.Automation.LotteryTest
             var url = env.Url;
             var initAccount = env.InitAccount;
             var password = env.Password;
+            var config = env.Config;
+            NodeInfoHelper.SetConfig(config);
 
             var contractService = new ContractServices(url, initAccount, password,
                 lotteryContract);
@@ -155,6 +160,15 @@ namespace AElf.Automation.LotteryTest
             ExecuteStandaloneTask(new Action[]
             {
                 () => AsyncHelper.RunSync(() => Buy(tester))
+            });
+        }
+        
+        public void OnlyBuyJob(List<string> tester)
+        {
+            ExecuteStandaloneTask(new Action[]
+            {
+                () => ApproveFirst(tester),
+                () => Buy_More(tester)
             });
         }
 
@@ -320,6 +334,89 @@ namespace AElf.Automation.LotteryTest
                 userInfo.Balance = initBalanceAfter;
                 userInfo.SpentAmount = userInfo.SpentAmount + totalAmount;
             }
+        }
+
+        private void ApproveFirst(IEnumerable<string> testers)
+        {
+            foreach (var sender in testers)
+            {
+                TokenService.SetAccount(sender);
+                var allowance = TokenService.GetAllowance(sender, LotteryService.ContractAddress, Symbol);
+                if (allowance < 10000_0000000)
+                {
+                    var approve = TokenService.ApproveToken(sender, LotteryService.ContractAddress,
+                        long.MaxValue - 10000_0000000, Symbol);
+                    approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                }
+                CheckBalance(2000_00000000, sender, Symbol);
+            }
+        }
+
+        private void Buy_More(IEnumerable<string> testers)
+        {
+            var txId = new List<string>();
+            foreach (var sender in testers)
+            {
+                var betInfos = new List<BetBody>();
+                var countList = new List<int>();
+                var type = CommonHelper.RandomEnumValue<LotteryType>();
+                switch (type)
+                {
+                    case LotteryType.Simple:
+                        countList = CommonHelper.TakeRandomNumberList(2, 1, 4, true);
+                        betInfos = new List<BetBody>
+                        {
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList.First(), 0, 3)}},
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList.Last(), 0, 3)}}
+                        };
+                        break;
+                    case LotteryType.OneBit:
+                        countList = CommonHelper.TakeRandomNumberList(1, 1, 10, true);
+                        betInfos = new List<BetBody>
+                        {
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList.First(), 0, 9)}}
+                        };
+                        break;
+                    case LotteryType.TwoBit:
+                        countList = CommonHelper.TakeRandomNumberList(2, 1, 10, true);
+                        betInfos = new List<BetBody>
+                        {
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList.First(), 0, 9)}},
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList.Last(), 0, 9)}}
+                        };
+                        break;
+                    case LotteryType.ThreeBit:
+                        countList = CommonHelper.TakeRandomNumberList(3, 1, 10, true);
+                        betInfos = new List<BetBody>
+                        {
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList[0], 0, 9)}},
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList[1], 0, 9)}},
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList[2], 0, 9)}}
+                        };
+                        break;
+                    case LotteryType.FiveBit:
+                        countList = CommonHelper.TakeRandomNumberList(5, 1, 4, true);
+                        betInfos = new List<BetBody>
+                        {
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList[0], 0, 9)}},
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList[1], 0, 9)}},
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList[2], 0, 9)}},
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList[3], 0, 9)}},
+                            new BetBody {Bets = {CommonHelper.TakeRandomNumberList(countList[4], 0, 9)}}
+                        };
+                        break;
+                }
+
+                LotteryService.SetAccount(sender);
+                var result = LotteryService.ExecuteMethodWithTxId(LotteryMethod.Buy, new BuyInput
+                {
+                    Type = (int) type,
+                    Seller = SellerAccount.ConvertAddress(),
+                    BetInfos = {betInfos}
+                });
+                txId.Add(result);
+            }
+            LotteryService.NodeManager.CheckTransactionListResult(txId);
         }
 
         private async Task Draw()

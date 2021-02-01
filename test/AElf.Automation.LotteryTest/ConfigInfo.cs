@@ -10,6 +10,8 @@ namespace AElf.Automation.LotteryTest
         [JsonProperty("UserCount")] public int UserCount { get; set; }
         [JsonProperty("TestUserCount")] public int TestUserCount { get; set; }
         [JsonProperty("OnlyDraw")] public bool OnlyDraw { get; set; }
+        [JsonProperty("OnlyBuy")] public bool OnlyBuy { get; set; }
+
         public static ConfigInfo ReadInformation => ConfigHelper<ConfigInfo>.GetConfigInfo("lottery-config.json");
     }
 

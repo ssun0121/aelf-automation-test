@@ -5,13 +5,13 @@ import "aelf/options.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
-import "acs1.proto";
+import "acs9.proto";
 
 option csharp_namespace = "AElf.Contracts.LotteryDemoContract";
 
 service LotteryDemoContract {
     option (aelf.csharp_state) = "AElf.Contracts.LotteryDemoContract.LotteryDemoContractState";
-    option (aelf.base) = "acs1.proto";
+    option (aelf.base) = "acs9.proto";
 
     // Basic Actions
     rpc Initialize (InitializeInput) returns (google.protobuf.Empty) {
@@ -47,6 +47,8 @@ service LotteryDemoContract {
     rpc RegisterDividend (RegisterDividendDto) returns (google.protobuf.Empty) {
     }
     rpc TakeBackToken(TakeBackTokenInput) returns (google.protobuf.Empty) {
+    }
+    rpc SetProfitsRate (google.protobuf.Int64Value) returns (google.protobuf.Empty) {
     }
 
     rpc GetRewardResult (google.protobuf.Int64Value) returns (GetRewardResultOutput) {
@@ -106,6 +108,9 @@ service LotteryDemoContract {
     rpc GetStakingTimestamp(google.protobuf.Empty) returns (GetStakingTimestampOutput) {
         option (aelf.is_view) = true;
     }
+    rpc GetProfitsRate (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
+        option (aelf.is_view) = true;
+    }
 }
 
 message InitializeInput {
@@ -115,6 +120,7 @@ message InitializeInput {
     int64 drawing_lag = 4;
     google.protobuf.Timestamp start_timestamp = 5;
     google.protobuf.Timestamp shutdown_timestamp = 6;
+    int64 profits_rate = 7;
 }
 
 message BoughtLotteriesInformation {

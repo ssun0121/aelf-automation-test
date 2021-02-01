@@ -49,13 +49,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info(RpcUrl);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
-            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount);
-            Logger.Info($"Lottery contract : {_lotteryDemoContract}");
+            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount,"RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y");
+            Logger.Info($"Lottery contract : {_lotteryDemoContract.ContractAddress}");
 //            if (!_tokenContract.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
 //                CreateTokenAndIssue();
 //            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount,
 //                "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG");
-            InitializeLotteryDemoContract();
+//            InitializeLotteryDemoContract();
 
             _adminLotteryDemoStub =
                 _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(InitAccount);
@@ -526,7 +526,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                         TokenSymbol = Symbol,
                         Price = Price,
                         DrawingLag = 40,
-                        MaximumAmount = 100,
+                        MaximumAmount = 50,
+                        ProfitsRate = 50,
                         StartTimestamp = DateTime.UtcNow.Add(TimeSpan.FromMinutes(10)).ToTimestamp(),
                         ShutdownTimestamp = DateTime.UtcNow.Add(TimeSpan.FromDays(7)).ToTimestamp()
                     });

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AElf;
 using AElf.Cryptography;
 using AElf.Cryptography.ECDSA;
 using AElf.Cryptography.Exceptions;
@@ -81,6 +82,12 @@ namespace AElfChain.Common.Managers
                 kp = _unlockedAccounts.FirstOrDefault(oa => oa.AccountName == address)?.KeyPair;
             }
 
+            return kp;
+        }
+        
+        public ECKeyPair GetAccountKeyPairFromPrivate(string priKey)
+        {
+            var kp = CryptoHelper.FromPrivateKey(ByteArrayHelper.HexStringToByteArray(priKey));
             return kp;
         }
 

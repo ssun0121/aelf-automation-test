@@ -68,9 +68,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private string Symbol { get; } = "LOT";
         private const long Price = 2_00000000;
-        private const int Bonus = 10;
+        private const int Bonus = 100;
         private const int CashDuration = 1;
-        private const int ProfitsRate = 1000;
+        private const int ProfitsRate = 50;
 
         [TestInitialize]
         public void Initialize()

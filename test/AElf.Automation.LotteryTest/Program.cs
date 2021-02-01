@@ -42,6 +42,30 @@ namespace AElf.Automation.LotteryTest
                     },token)
                 };
             }
+            else if (lottery.OnlyBuy)
+            {
+                Logger.Info($"Take {lottery.UserTestCount} tester: ");
+                var accountLists = new List<List<string>>();
+                for (var i = 0; i < 4; i++)
+                {
+                    var testers = lottery.TakeRandomUserAddress(lottery.UserTestCount, _tester);
+                    accountLists.Add(testers);
+                }
+                
+                while (true)
+                {
+                    for (var i = 0; i < 4; i++)
+                    {
+                        var i1 = i;
+                        taskList.Add(Task.Run(() =>  
+                        { 
+                            lottery.OnlyBuyJob(accountLists[i1]);
+                            lottery.CheckNativeSymbolBalance(_tester);
+                        }, token));
+                    }
+                    Task.WaitAll(taskList.ToArray<Task>());
+                }
+            }
             else
             {
                 taskList = new List<Task>
