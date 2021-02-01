@@ -52,14 +52,14 @@ namespace AElf.Automation.TokenSwapTest
 
         public async Task AddSwapRound(string root, long i)
         {
-            var result = await SwapContractStub.CreateSwapRound.SendAsync(new CreateSwapRoundInput()
-            {
-                SwapId = PairId,
-                MerkleTreeRoot =
-                    Hash.LoadFromHex(root),
-                RoundId = i
-            });
-            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+//            var result = await SwapContractStub.CreateSwapRound.SendAsync(new CreateSwapRoundInput()
+//            {
+//                SwapId = PairId,
+//                MerkleTreeRoot =
+//                    Hash.LoadFromHex(root),
+//                RoundId = i
+//            });
+//            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
         }
 
         public async Task SwapToken(ReceiptInfo receiptInfo, long id)
@@ -118,7 +118,6 @@ namespace AElf.Automation.TokenSwapTest
                     UniqueId = uniqueId,
                     ReceiverAddress = receiveAccount.ConvertAddress(),
                     MerklePath = merklePath,
-                    RoundId = id
                 });
                 if (result.TransactionResult.Status.Equals(TransactionResultStatus.Mined))
                 {
@@ -192,7 +191,7 @@ namespace AElf.Automation.TokenSwapTest
         {
             var swapInfo = await SwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
                 {SwapId = PairId, TargetTokenSymbol = NativeSymbol});
-            return swapInfo.RoundCount;
+            return swapInfo.DepositAmount;
         }
 
         private async Task<Hash> CreateSwap()
@@ -238,7 +237,6 @@ namespace AElf.Automation.TokenSwapTest
                 SwapId = pairId,
                 TargetTokenSymbol = NativeSymbol
             });
-            swapPair.RoundCount.ShouldBe(0);
             swapPair.SwappedAmount.ShouldBe(0);
             swapPair.SwappedTimes.ShouldBe(0);
             swapPair.SwapRatio.ShouldBe(swapRatio);

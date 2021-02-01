@@ -12,6 +12,7 @@ using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using MTRecorder;
 using Newtonsoft.Json;
 using Shouldly;
 using Tokenswap;
@@ -27,8 +28,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private TokenContract _tokenContract;
         private GenesisContract _genesisContract;
         private TokenSwapContract _tokenSwapContract;
+        private MerkleTreeRecorder _merkleTreeRecorderContract;
 
         private TokenSwapContractContainer.TokenSwapContractStub _tokenSwapContractStub;
+        private MerkleTreeRecorderContractContainer.MerkleTreeRecorderContractStub _merkleTreeStub;
 
 //        private string InitAccount { get; } = "sCdEBrmnc1uCxbyeHWK9n7Y6CxfWxwDK1Bs43PUY3BYUFJQ5M";
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
@@ -102,15 +105,21 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
 //            _tokenSwapContract = new TokenSwapContract(NodeManager, InitAccount);
-//            Logger.Info($"TokenSwap contract : {_tokenSwapContract}");
+//            Logger.Info($"TokenSwap contract : {_tokenSwapContract.ContractAddress}");
 
 //            _tokenSwapContract = new TokenSwapContract(NodeManager, InitAccount,
 //                "2onFLTnPEiZrXGomzJ8g74cBre2cJuHrn1yBJF3P6Xu9K5Gbth");
 
             _tokenSwapContract = new TokenSwapContract(NodeManager, InitAccount,
+                "2wRDbyVF28VBQoSPgdSEFaL4x7CaXz8TCBujYhgWc9qTMxBE3n");
+            _merkleTreeRecorderContract = new MerkleTreeRecorder(NodeManager, InitAccount,
                 "RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y");
+
             _tokenSwapContractStub =
                 _tokenSwapContract.GetTestStub<TokenSwapContractContainer.TokenSwapContractStub>(InitAccount);
+            _merkleTreeStub =
+                _merkleTreeRecorderContract
+                    .GetTestStub<MerkleTreeRecorderContractContainer.MerkleTreeRecorderContractStub>(InitAccount);
 //            _tokenContract.TransferBalance(InitAccount, TestAccount, 1000000000000);
 //            if (!_tokenContract.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
 //                CreateTokenAndIssue();
@@ -136,6 +145,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 "2cv45MBBUHjZqHva2JMfrGWiByyScNbEBjgwKoudWQzp6vX8QX",
                 "7BSmhiLtVqHSUVGuYdYbsfaZUGpkL2ingvCmVPx66UR5L5Lbs"
             };
+        }
+
+        [TestMethod]
+        public async Task InitializeContract()
+        {
+            var result = await _tokenSwapContractStub.Initialize.SendAsync(new InitializeInput
+            {
+                MerkleTreeRecorderAddress = _merkleTreeRecorderContract.Contract
+            });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
         }
 
         [TestMethod]
@@ -177,19 +196,21 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 OriginShare = 100_00000000,
                 TargetShare = 1
             };
-            var depositAmount = 100000_00000000;
+            var depositAmount = 10000000_00000000;
+            var elfDepositAmount = 25000_00000000;
             _tokenContract.ApproveToken(InitAccount, _tokenSwapContract.ContractAddress, depositAmount, Symbol);
-            _tokenContract.ApproveToken(InitAccount, _tokenSwapContract.ContractAddress, depositAmount, "ELF");
+            _tokenContract.ApproveToken(InitAccount, _tokenSwapContract.ContractAddress, elfDepositAmount, "ELF");
 
             var result = await _tokenSwapContractStub.CreateSwap.SendAsync(new CreateSwapInput
             {
                 OriginTokenSizeInByte = originTokenSizeInByte,
                 OriginTokenNumericBigEndian = true,
+                RecorderId = 0,
                 SwapTargetTokenList =
                 {
                     new SwapTargetToken
                     {
-                        DepositAmount = depositAmount,
+                        DepositAmount = elfDepositAmount,
                         SwapRatio = elfSwapRatio,
                         TargetTokenSymbol = "ELF"
                     },
@@ -213,38 +234,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 SwapId = pairId,
                 TargetTokenSymbol = "ELF"
             });
-            swapPair.RoundCount.ShouldBe(0);
             swapPair.SwappedAmount.ShouldBe(0);
             swapPair.SwappedTimes.ShouldBe(0);
             swapPair.SwapRatio.ShouldBe(elfSwapRatio);
+            swapPair.DepositAmount.ShouldBe(elfDepositAmount);
             swapPair.TargetTokenSymbol.ShouldBe("ELF");
             swapPair.OriginTokenSizeInByte.ShouldBe(originTokenSizeInByte);
-        }
-
-        [TestMethod]
-        public async Task AddManyRound()
-        {
-            var swapInfo = new SwapInfo();
-            var treeInfo = swapInfo.TreeInfo;
-            foreach (var tree in treeInfo.Trees)
-            {
-                await AddSwapRound(tree.root, tree.index);
-            }
-        }
-
-        [TestMethod]
-        [DataRow("0x72fd2306d145cbdcc7a295ee2cf36be8da6cb6e3532123a360f994be14abd76d", 0)]
-        public async Task AddSwapRound(string root, int id)
-        {
-            var pId = Hash.LoadFromHex(PairId);
-            var result = await _tokenSwapContractStub.CreateSwapRound.SendAsync(new CreateSwapRoundInput()
-            {
-                SwapId = pId,
-                MerkleTreeRoot =
-                    Hash.LoadFromHex(root),
-                RoundId = id
-            });
-            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
         }
 
         [TestMethod]
@@ -285,27 +280,28 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public async Task Withdraw()
         {
             var pairId = Hash.LoadFromHex(PairId);
-
+            var symbol = "ELF";
             var swapPairInfo = await _tokenSwapContractStub.GetSwapInfo.CallAsync(pairId);
             swapPairInfo.Controller.ShouldBe(InitAccount.ConvertAddress());
             var swapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
-                {SwapId = pairId, TargetTokenSymbol = Symbol});
-
-            var controllerBalance = _tokenContract.GetUserBalance(swapPairInfo.Controller.ToBase58(),Symbol);
+                {SwapId = pairId, TargetTokenSymbol = symbol});
+            var withdrawAmount = swapPair.DepositAmount;
+            var controllerBalance = _tokenContract.GetUserBalance(swapPairInfo.Controller.ToBase58(), symbol);
             var result = await _tokenSwapContractStub.Withdraw.SendAsync(new WithdrawInput
             {
                 SwapId = pairId,
-                Amount = swapPair.DepositAmount,
-                TargetTokenSymbol = Symbol
+                Amount = withdrawAmount,
+                TargetTokenSymbol = symbol
             });
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
-            
-            var afterSwapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
-                {SwapId = pairId, TargetTokenSymbol = Symbol});
-            afterSwapPair.DepositAmount.ShouldBe(0);
 
-            var afterControllerBalance = _tokenContract.GetUserBalance(swapPairInfo.Controller.ToBase58(), Symbol);
-            afterControllerBalance.ShouldBe(controllerBalance + swapPair.DepositAmount);
+            var afterSwapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
+                {SwapId = pairId, TargetTokenSymbol = symbol});
+            afterSwapPair.DepositAmount.ShouldBe(swapPair.DepositAmount - withdrawAmount);
+
+            var afterControllerBalance = _tokenContract.GetUserBalance(swapPairInfo.Controller.ToBase58(), symbol);
+//            afterControllerBalance.ShouldBe(controllerBalance + withdrawAmount);
+            Logger.Info(afterControllerBalance);
         }
 
 
@@ -328,13 +324,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
 
         [TestMethod]
-        [DataRow("0xf22e7c3926caee87e086e23ddaeecb282b2c702c9b38e0e24c844df3fd67ea49")]
-        public async Task SwapToken(string sUniqueId)
+        [DataRow("0x5b6582e464ce90b26701184710aa516ab7bcf4e12f30ee8278c5edb96221dea9", 180)]
+        public async Task SwapToken(string sUniqueId, long receiptId)
         {
-            var originAmount = "491976960390152585216";
+            var originAmount = "3633389800297591734272";
             var pairId = Hash.LoadFromHex(PairId);
             var uniqueId = Hash.LoadFromHex(sUniqueId);
             var receiveAccount = "2ZYyxEH6j8zAyJjef6Spa99Jx2zf5GbFktyAQEBPWLCvuSAn8D";
+            var lastLeafIndex = await _merkleTreeStub.GetLeafLocatedMerkleTree.CallAsync(
+                new GetLeafLocatedMerkleTreeInput {RecorderId = 0, LeafIndex = receiptId});
 
             var userBalanceMap = new Dictionary<string, long>();
             var swapBalanceMap = new Dictionary<string, long>();
@@ -374,7 +372,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 UniqueId = uniqueId,
                 ReceiverAddress = receiveAccount.ConvertAddress(),
                 MerklePath = merklePath,
-                RoundId = 1
+                LastLeafIndex = lastLeafIndex.LastLeafIndex
             });
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
             var tokenTransferredEvent = result.TransactionResult.Logs
@@ -449,30 +447,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var pairId = Hash.LoadFromHex(PairId);
             var swapPairInfo = await _tokenSwapContractStub.GetSwapInfo.CallAsync(pairId);
             var swapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
-                {SwapId = pairId, TargetTokenSymbol = Symbol});
-            var swapRound = await _tokenSwapContractStub.GetSwapRound.CallAsync(new GetSwapRoundInput
-                {SwapId = pairId, TargetTokenSymbol = Symbol, RoundId = 3});
-            var elfSwapPair = await _tokenSwapContractStub.GetSwapPair.CallAsync(new GetSwapPairInput
                 {SwapId = pairId, TargetTokenSymbol = "ELF"});
-            var elfSwapRound = await _tokenSwapContractStub.GetSwapRound.CallAsync(new GetSwapRoundInput
-                {SwapId = pairId, TargetTokenSymbol = "ELF", RoundId = 3});
-            swapPairInfo.Controller.ShouldBe(InitAccount.ConvertAddress());
-            swapPair.RoundCount.ShouldBe(elfSwapPair.RoundCount);
-            swapPair.SwapId.ShouldBe(elfSwapPair.SwapId);
-            swapPair.OriginTokenNumericBigEndian.ShouldBe(elfSwapPair.OriginTokenNumericBigEndian);
-            swapPair.SwappedTimes.ShouldBe(elfSwapPair.SwappedTimes);
-            swapRound.StartTime.ShouldBe(elfSwapRound.StartTime);
-            swapRound.SwappedTimes.ShouldBe(elfSwapRound.SwappedTimes);
-            swapRound.MerkleTreeRoot.ShouldBe(elfSwapRound.MerkleTreeRoot);
-
-            Logger.Info($"{swapPair.DepositAmount}");
-            Logger.Info($"{elfSwapPair.DepositAmount}");
-            Logger.Info($"{elfSwapPair.RoundCount}");
-            Logger.Info($"All the amount is {elfSwapPair.SwappedAmount}");
-            Logger.Info($"times is {elfSwapPair.SwappedTimes}");
-            Logger.Info($"Current amount is {elfSwapPair.SwappedAmount}");
-            Logger.Info($"Current times is {elfSwapPair.SwappedTimes}");
-            Logger.Info($"Merkle root is {elfSwapRound.MerkleTreeRoot}");
+            Logger.Info(swapPair.DepositAmount);
         }
 
         [TestMethod]

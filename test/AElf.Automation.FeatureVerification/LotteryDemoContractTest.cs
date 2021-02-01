@@ -5,17 +5,24 @@ using System.Threading;
 using System.Threading.Tasks;
 using AElf.Contracts.LotteryDemoContract;
 using AElf.Contracts.MultiToken;
+using AElf.Contracts.Profit;
+using AElf.Contracts.TokenHolder;
+using AElf.CSharp.Core;
+using AElf.Standards.ACS9;
 using AElf.Types;
 using AElfChain.Common;
 using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 using Shouldly;
 using Volo.Abp.Threading;
+using ClaimProfitsInput = AElf.Contracts.TokenHolder.ClaimProfitsInput;
 
 namespace AElf.Automation.Contracts.ScenarioTest
 {
@@ -26,17 +33,21 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private INodeManager NodeManager { get; set; }
 
         private TokenContract _tokenContract;
+        private TokenHolderContract _tokenHolderContract;
         private GenesisContract _genesisContract;
         private LotteryDemoContract _lotteryDemoContract;
         private LotteryDemoContractContainer.LotteryDemoContractStub _lotteryDemoStub;
         private LotteryDemoContractContainer.LotteryDemoContractStub _adminLotteryDemoStub;
+        private const int RateDecimals = 4;
 
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
         private string TestAccount { get; } = "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6";
+        private string VirtualAccount { get; } = "";
         private List<string> Tester = new List<string>();
         private static string RpcUrl { get; } = "192.168.197.44:8001";
         private string Symbol { get; } = "LOT";
         private const long Price = 100_00000000;
+        private const int ProfitsRate = 50;
 
         [TestInitialize]
         public void Initialize()
@@ -49,13 +60,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info(RpcUrl);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
+            _tokenHolderContract = _genesisContract.GetTokenHolderContract(InitAccount);
             _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount);
-            Logger.Info($"Lottery contract : {_lotteryDemoContract}");
+            Logger.Info($"Lottery contract : {_lotteryDemoContract.ContractAddress}");
 //            if (!_tokenContract.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
 //                CreateTokenAndIssue();
 //            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount,
 //                "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG");
-            InitializeLotteryDemoContract();
+//            InitializeLotteryDemoContract();
 
             _adminLotteryDemoStub =
                 _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(InitAccount);
@@ -65,13 +77,36 @@ namespace AElf.Automation.Contracts.ScenarioTest
 //            foreach (var tester in Tester)
 //            {
 //                var balance = _tokenContract.GetUserBalance(tester, "ELF");
-//                if (balance < 100_00000000)
+//                if (balance < 10_00000000)
 //                {
-//                    _tokenContract.TransferBalance(InitAccount, tester, 1000_00000000, "ELF");
+//                    _tokenContract.TransferBalance(InitAccount, tester, 20_00000000, "ELF");
 //                }
 //            }
         }
-        
+
+        [TestMethod]
+        public void InitializeLotteryDemoContract()
+        {
+            var result =
+                _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.Initialize,
+                    new InitializeInput
+                    {
+                        TokenSymbol = Symbol,
+                        Price = Price,
+                        DrawingLag = 40,
+                        MaximumAmount = 50,
+                        ProfitsRate = ProfitsRate,
+                        StartTimestamp = 
+                            Timestamp.FromDateTime(new DateTime(2021, 3, 3, 18, 00, 00).ToUniversalTime()),
+                        ShutdownTimestamp =
+                            Timestamp.FromDateTime(new DateTime(2021, 3, 5, 18, 00, 00).ToUniversalTime())
+                    });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var schemeLog = result.Logs.First(l => l.Name.Contains(nameof(SchemeCreated))).NonIndexed;
+            var schemeInfo = SchemeCreated.Parser.ParseFrom(ByteString.FromBase64(schemeLog));
+            Logger.Info(schemeInfo);
+        }
+
         [TestMethod]
         public async Task AddRewardList()
         {
@@ -116,6 +151,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 if (userBeforeBalance < 10000_00000000)
                     _tokenContract.TransferBalance(InitAccount, tester, 20000_00000000, Symbol);
                 userBeforeBalance = _tokenContract.GetUserBalance(tester, Symbol);
+                var profitBalance = _tokenContract.GetUserBalance(VirtualAccount, Symbol);
+                var totalAmount = amount * Price;
+                var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
                 _tokenContract.SetAccount(tester);
                 var approveResult = _tokenContract.ApproveToken(tester, _lotteryDemoContract.ContractAddress,
@@ -134,24 +172,69 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     BoughtLotteriesInformation.Parser.ParseFrom(
                         ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
                 resultValue.Amount.ShouldBe(amount);
-                Logger.Info($"start id is: {resultValue.StartId}, amount: {amount}");
+                Logger.Info($"start id is: {resultValue.StartId}, amount: {amount}, profit {profit}");
                 var userBalance = _tokenContract.GetUserBalance(tester, Symbol);
                 userBalance.ShouldBe(userBeforeBalance - amount * Price);
                 var contractBalance = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, Symbol);
-                contractBalance.ShouldBe(balance + amount * Price);
+                contractBalance.ShouldBe(balance + amount * Price - profit);
+                var afterProfitBalance = _tokenContract.GetUserBalance(VirtualAccount, Symbol);
+                afterProfitBalance.ShouldBe(profitBalance + profit);
             }
         }
+
+        [TestMethod]
+        public void Buy_More()
+        {
+            var txList = new List<string>();
+            foreach (var tester in Tester)
+            {
+                var amount = 50;
+                var userBeforeBalance = _tokenContract.GetUserBalance(tester, Symbol);
+                if (userBeforeBalance < amount * Price * 10)
+                    _tokenContract.TransferBalance(InitAccount, tester, amount * Price * 10, Symbol);
+
+//                _tokenContract.SetAccount(tester);
+//                var approveResult = _tokenContract.ApproveToken(tester, _lotteryDemoContract.ContractAddress,
+//                    long.MaxValue, Symbol);
+//                approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                var allowance = _tokenContract.GetAllowance(tester, _lotteryDemoContract.ContractAddress, Symbol);
+                allowance.ShouldBeGreaterThanOrEqualTo(amount * Price);
+            }
+
+            for (int i = 0; i < 10; i++)
+            {
+                foreach (var tester in Tester)
+                {
+                    var amount = CommonHelper.GenerateRandomNumber(25, 50);
+                    _lotteryDemoContract.SetAccount(tester);
+                    var txId = _lotteryDemoContract.ExecuteMethodWithTxId(LotteryDemoMethod.Buy, new Int64Value
+                    {
+                        Value = amount
+                    });
+                    txList.Add(txId);
+                }
+
+                Thread.Sleep(1000);
+            }
+
+//            NodeManager.CheckTransactionListResult(txList);
+        }
+
 
         [TestMethod]
         public void Buy_Once()
         {
 //            var amount = CommonHelper.GenerateRandomNumber(1, 10);
-            var amount = 30;
+            var amount = 50;
             var balance = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, Symbol);
             var userBeforeBalance = _tokenContract.GetUserBalance(TestAccount, Symbol);
             if (userBeforeBalance < 10000_00000000)
                 _tokenContract.TransferBalance(InitAccount, TestAccount, 10000_00000000, Symbol);
             userBeforeBalance = _tokenContract.GetUserBalance(TestAccount, Symbol);
+
+            var profitBalance = _tokenContract.GetUserBalance(VirtualAccount, Symbol);
+            var totalAmount = amount * Price;
+            var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
             _tokenContract.SetAccount(TestAccount);
             var approveResult = _tokenContract.ApproveToken(TestAccount, _lotteryDemoContract.ContractAddress,
@@ -170,11 +253,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var resultValue =
                 BoughtLotteriesInformation.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
             resultValue.Amount.ShouldBe(amount);
-            Logger.Info($"start id is: {resultValue.StartId}");
+            Logger.Info($"start id is: {resultValue.StartId}, amount: {amount}, profit {profit}");
             var userBalance = _tokenContract.GetUserBalance(TestAccount, Symbol);
             userBalance.ShouldBe(userBeforeBalance - amount * Price);
             var contractBalance = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, Symbol);
-            contractBalance.ShouldBe(balance + amount * Price);
+            contractBalance.ShouldBe(balance + amount * Price - profit);
+            var afterProfitBalance = _tokenContract.GetUserBalance(VirtualAccount, Symbol);
+            afterProfitBalance.ShouldBe(profitBalance + profit);
         }
 
         [TestMethod]
@@ -186,7 +271,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Period = currentPeriod.Value,
                 Rewards =
                 {
-                    {"iphone12", 1}
+                    {"iphone12", 1},
+                    {"elf500", 2},
+                    {"PS5", 1}
                 },
 //                SupposedDrawDate = DateTime.UtcNow.Add(TimeSpan.FromMinutes(10)).ToTimestamp()
             });
@@ -200,7 +287,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.PrepareDraw, new Empty());
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
-        
+
         [TestMethod]
         public async Task OnlyDraw()
         {
@@ -208,7 +295,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _lotteryDemoContract.SetAccount(InitAccount);
             var drawResult = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.Draw, new Int64Value
             {
-                Value = period.Value -1
+                Value = period.Value - 1
             });
             drawResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
@@ -290,7 +377,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var totalAmount = await _lotteryDemoStub.GetStakingTotal.CallAsync(new Empty());
             Logger.Info(totalAmount.Value);
-            
+
             var account = Tester.Last();
             var balance = _tokenContract.GetUserBalance(account, Symbol);
             var amount = balance / 10;
@@ -299,11 +386,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var approve =
                 _tokenContract.ApproveToken(account, _lotteryDemoContract.ContractAddress, amount, Symbol);
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var result = await stub.Stake.SendAsync(new Int64Value{Value = amount});
+            var result = await stub.Stake.SendAsync(new Int64Value {Value = amount});
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
             var afterGetInfo = await stub.GetStakingAmount.CallAsync(account.ConvertAddress());
             afterGetInfo.Value.ShouldBe(getInfo.Value + amount);
-            
+
             var afterTotalAmount = await _lotteryDemoStub.GetStakingTotal.CallAsync(new Empty());
             afterTotalAmount.Value.ShouldBe(totalAmount.Value + amount);
             Logger.Info($"{balance} {amount} {afterGetInfo.Value} {afterTotalAmount.Value}");
@@ -319,7 +406,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task RegisterDividend()
         {
-            var account = TestAccount;
+            var account = Tester.Last();
+            ;
             var receiver = "0x4Bb4916673D7C638D9F8A309100770e45631C240";
             var stub = _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(account);
             var result = await stub.RegisterDividend.SendAsync
@@ -394,9 +482,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var resetTime = await _adminLotteryDemoStub.SetStakingTimestamp.SendAsync(new SetStakingTimestampInput
             {
-                IsStartTimestamp = false,
-                Timestamp = DateTime.UtcNow.Add(TimeSpan.FromMinutes(10)).ToTimestamp()
+                IsStartTimestamp = true,
+                Timestamp = DateTime.UtcNow.Add(TimeSpan.FromMinutes(3)).ToTimestamp()
             });
+            resetTime.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            timestamp = await _adminLotteryDemoStub.GetStakingTimestamp.CallAsync(new Empty());
+            Logger.Info(timestamp);
         }
 
         [TestMethod]
@@ -441,13 +532,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             foreach (var tester in Tester)
             {
-                var result = await _lotteryDemoStub.GetBoughtLotteries.CallAsync(new GetBoughtLotteriesInput
+                var result = await _adminLotteryDemoStub.GetBoughtLotteries.CallAsync(new GetBoughtLotteriesInput
                 {
                     Period = 0,
                     StartId = 0,
                     Owner = tester.ConvertAddress()
                 });
-                var count = await _lotteryDemoStub.GetBoughtLotteriesCount.CallAsync(tester.ConvertAddress());
+                var count = await _adminLotteryDemoStub.GetBoughtLotteriesCount.CallAsync(tester.ConvertAddress());
                 result.Lotteries.Count.ShouldBe((int) count.Value);
                 Logger.Info($"{tester} lotteries: {result.Lotteries}");
             }
@@ -459,7 +550,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             long sum = 0;
             foreach (var tester in Tester)
             {
-                var result = await _lotteryDemoStub.GetBoughtLotteriesCount.CallAsync(tester.ConvertAddress());
+                var result = await _adminLotteryDemoStub.GetBoughtLotteriesCount.CallAsync(tester.ConvertAddress());
                 sum = sum + result.Value;
                 Logger.Info($"{tester} has {result.Value} lotteries");
             }
@@ -508,30 +599,107 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Logger.Info(
                     $"{i}: Start id is: {periodInfo.StartId}; BlockNumber :{periodInfo.BlockNumber}; Rewards: {periodInfo.Rewards}; RewardsId :{periodInfo.RewardIds}");
             }
-            var currentPeriodInfo = await _adminLotteryDemoStub.GetPeriod.CallAsync(new Int64Value {Value = period.Value});
+
+            var currentPeriodInfo =
+                await _adminLotteryDemoStub.GetPeriod.CallAsync(new Int64Value {Value = period.Value});
             var currentPeriod = await _adminLotteryDemoStub.GetCurrentPeriod.CallAsync(new Empty());
             currentPeriod.BlockNumber.ShouldBe(currentPeriodInfo.BlockNumber);
-            var result = await _adminLotteryDemoStub.GetSales.CallAsync(new Int64Value {Value = period.Value - 1});
+            var result = await _adminLotteryDemoStub.GetSales.CallAsync(new Int64Value {Value = period.Value});
             Logger.Info($"Sales: {result.Value}");
         }
 
+        #region acs9 
 
         [TestMethod]
-        public void InitializeLotteryDemoContract()
+        public async Task GetProfitConfig()
         {
-            var result =
-                _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.Initialize,
-                    new InitializeInput
-                    {
-                        TokenSymbol = Symbol,
-                        Price = Price,
-                        DrawingLag = 40,
-                        MaximumAmount = 100,
-                        StartTimestamp = DateTime.UtcNow.Add(TimeSpan.FromMinutes(10)).ToTimestamp(),
-                        ShutdownTimestamp = DateTime.UtcNow.Add(TimeSpan.FromDays(7)).ToTimestamp()
-                    });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var config = await _adminLotteryDemoStub.GetProfitConfig.CallAsync(new Empty());
+            Logger.Info(config);
         }
+
+        [TestMethod]
+        public async Task GetProfitsAmount()
+        {
+            var profitAmount = await _adminLotteryDemoStub.GetProfitsAmount.CallAsync(new Empty());
+            Logger.Info(profitAmount);
+        }
+
+        [TestMethod]
+        public async Task RegisterForLotteryProfits()
+        {
+            var account = InitAccount;
+            var amount = 200;
+            var approveResult =
+                _tokenContract.ApproveToken(account, _tokenHolderContract.ContractAddress, amount, Symbol);
+            approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var holder = _genesisContract.GetTokenHolderStub(account);
+            var registerResult =
+                await holder.RegisterForProfits.SendAsync(new RegisterForProfitsInput
+                {
+                    SchemeManager = _lotteryDemoContract.Contract,
+                    Amount = amount
+                });
+            registerResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined,
+                registerResult.TransactionResult.Error);
+        }
+
+        [TestMethod]
+        public async Task TakeContractProfits()
+        {
+            await GetProfitsAmount();
+            var result = await _adminLotteryDemoStub.TakeContractProfits.SendAsync(new TakeContractProfitsInput
+            {
+                Amount = 0,
+                Symbol = Symbol
+            });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
+        public async Task CheckProfit()
+        {
+            var accountList = new List<string>();
+            accountList.Add(Tester[0]);
+            accountList.Add(InitAccount);
+            foreach (var sender in accountList)
+            {
+                var holder = _genesisContract.GetTokenHolderStub(sender);
+                var profitMap = await holder.GetProfitsMap.CallAsync(new ClaimProfitsInput
+                {
+                    SchemeManager = _lotteryDemoContract.Contract,
+                    Beneficiary = sender.ConvertAddress()
+                });
+                Logger.Info($"{sender}:{JsonConvert.SerializeObject(profitMap)}");
+            }
+        }
+
+        [TestMethod]
+        public async Task ClaimProfits()
+        {
+            var sender = InitAccount;
+            var holder = _genesisContract.GetTokenHolderStub(sender);
+
+            var profitMap = await holder.GetProfitsMap.CallAsync(new ClaimProfitsInput
+            {
+                SchemeManager = _lotteryDemoContract.Contract,
+                Beneficiary = sender.ConvertAddress()
+            });
+            var amount = (profitMap.Value)[Symbol];
+
+            var senderBalance = _tokenContract.GetUserBalance(sender, Symbol);
+            var claimResult = await holder.ClaimProfits.SendAsync(new ClaimProfitsInput
+            {
+                SchemeManager = _lotteryDemoContract.Contract,
+                Beneficiary = sender.ConvertAddress()
+            });
+            claimResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+
+            var afterClaim = _tokenContract.GetUserBalance(sender, Symbol);
+            afterClaim.ShouldBe(senderBalance + amount);
+        }
+
+        #endregion
 
         private void CreateTokenAndIssue()
         {
@@ -547,6 +715,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             _tokenContract.IssueBalance(InitAccount, InitAccount, 100000000_00000000, Symbol);
             _tokenContract.IssueBalance(InitAccount, TestAccount, 10000_00000000, Symbol);
+        }
+
+        private int GetRateDenominator()
+        {
+            var result = BancorHelper.Pow(10, RateDecimals);
+            return result;
         }
     }
 }

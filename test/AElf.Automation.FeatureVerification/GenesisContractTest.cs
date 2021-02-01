@@ -34,9 +34,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public static string Member { get; } = "2frDVeV6VxUozNqcFbgoxruyqCRAuSyXyfCaov6bYWc7Gkxkh2";
         public static string OtherAccount { get; } = "W4xEKTZcvPKXRAmdu9xEpM69ArF7gUxDh9MDgtsKnu7JfePXo";
         public List<string> Members;
-        private static string MainRpcUrl { get; } = "http://192.168.197.21:8000";
-        private static string SideRpcUrl { get; } = "http://192.168.197.21:8001";
-        private static string SideRpcUrl2 { get; } = "http://192.168.197.21:8002";
+        private static string MainRpcUrl { get; } = "http://192.168.197.60:8000";
+        private static string SideRpcUrl { get; } = "http://192.168.197.60:8001";
+        private static string SideRpcUrl2 { get; } = "http://192.168.197.60:8002";
         private string Type { get; } = "Main";
 
         [TestInitialize]
@@ -50,7 +50,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             #endregion
 
-            NM = new NodeManager(MainRpcUrl);
+            NM = new NodeManager(SideRpcUrl);
             var services = new ContractServices(NM, InitAccount, Type);
             MainManager = new ContractManager(NM, InitAccount);
             Members = new List<string>{InitAccount,Member,OtherAccount};
@@ -75,7 +75,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Tester.TransferTokenToMiner(InitAccount);
                 Tester.TransferToken(OtherAccount);
             }
-            Members = new List<string>{InitAccount,Member,OtherAccount};
         }
 
         // SideChain:  IsAuthoiryRequired == true; IsPrivilegePreserved == true;
