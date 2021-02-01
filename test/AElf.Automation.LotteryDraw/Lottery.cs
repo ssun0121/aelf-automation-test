@@ -204,8 +204,8 @@ namespace AElf.Automation.LotteryTest
                 
                 var amount = 50;
                 var userBeforeBalance = TokenService.GetUserBalance(sender, Symbol);
-                if (userBeforeBalance < amount * Price * 10)
-                    TokenService.TransferBalance(Owner, sender, amount * Price * 10, Symbol);
+                if (userBeforeBalance < amount * Price * 15)
+                    TokenService.TransferBalance(Owner, sender, amount * Price * 15, Symbol);
             }
         }
 
@@ -222,10 +222,9 @@ namespace AElf.Automation.LotteryTest
 
         private void Buy_More(IEnumerable<string> testers)
         {
-            var txList = new List<string>();
-
             for (int i = 0; i < 10; i++)
             {
+                var txList = new List<string>();
                 foreach (var tester in testers)
                 {
                     var amount = CommonHelper.GenerateRandomNumber(25, 50);
@@ -236,8 +235,8 @@ namespace AElf.Automation.LotteryTest
                     });
                     txList.Add(txId);
                 }
+                LotteryService.NodeManager.CheckTransactionListResult(txList);
             }
-            LotteryService.NodeManager.CheckTransactionListResult(txList);
         }
 
 
