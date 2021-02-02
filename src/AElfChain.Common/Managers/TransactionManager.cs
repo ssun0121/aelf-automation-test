@@ -50,7 +50,7 @@ namespace AElfChain.Common.Managers
             tx.Signature = Sign(tx.From.ToBase58(), txData);
             return tx;
         }
-        
+
         public Transaction SignTransactionFromPrivate(Transaction tx, string privateKey)
         {
             var txData = tx.GetHash().ToByteArray();
@@ -72,7 +72,7 @@ namespace AElfChain.Common.Managers
             var signature = CryptoHelper.SignWithPrivateKey(kp.PrivateKey, txData);
             return ByteString.CopyFrom(signature);
         }
-        
+
         public ByteString SignFromPrivate(string privateKey, byte[] txData)
         {
             var kp = _keyStore.GetAccountKeyPairFromPrivate(privateKey);
@@ -98,8 +98,9 @@ namespace AElfChain.Common.Managers
 
         public static Transaction AddBlockReference(this Transaction transaction, string rpcAddress,
             string chainId = "AELF")
-        {if (_cachedHeight == default || (DateTime.Now - _refBlockTime).TotalSeconds > 60 ||
-                !_chainId.Equals(chainId)||_baseUrl !=rpcAddress)
+        {
+            if (_cachedHeight == default || (DateTime.Now - _refBlockTime).TotalSeconds > 10 ||
+                !_chainId.Equals(chainId) || _baseUrl != rpcAddress)
             {
                 _chainId = chainId;
                 (_cachedHeight, _cachedHash) = GetBlockReference(rpcAddress);

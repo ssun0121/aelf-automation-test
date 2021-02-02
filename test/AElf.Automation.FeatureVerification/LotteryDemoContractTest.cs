@@ -11,6 +11,7 @@ using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -49,7 +50,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info(RpcUrl);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
-            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount,"RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y");
+            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount,"2YkKkNZKCcsfUsGwCfJ6wyTx5NYLgpCg1stBuRT4z5ep3psXNG");
             Logger.Info($"Lottery contract : {_lotteryDemoContract.ContractAddress}");
 //            if (!_tokenContract.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
 //                CreateTokenAndIssue();
@@ -146,22 +147,23 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void Buy_Once()
         {
 //            var amount = CommonHelper.GenerateRandomNumber(1, 10);
-            var amount = 30;
+            var amount = 2;
+            var account = "2rMdK3xD8FsKbkDBwC13KDP1e2m85M6RcL1RkH37NQfiMseASt";
             var balance = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, Symbol);
-            var userBeforeBalance = _tokenContract.GetUserBalance(TestAccount, Symbol);
+            var userBeforeBalance = _tokenContract.GetUserBalance(account, Symbol);
             if (userBeforeBalance < 10000_00000000)
-                _tokenContract.TransferBalance(InitAccount, TestAccount, 10000_00000000, Symbol);
-            userBeforeBalance = _tokenContract.GetUserBalance(TestAccount, Symbol);
+                _tokenContract.TransferBalance(InitAccount, account, 10000_00000000, Symbol);
+            userBeforeBalance = _tokenContract.GetUserBalance(account, Symbol);
 
-            _tokenContract.SetAccount(TestAccount);
-            var approveResult = _tokenContract.ApproveToken(TestAccount, _lotteryDemoContract.ContractAddress,
+            _tokenContract.SetAccount(account);
+            var approveResult = _tokenContract.ApproveToken(account, _lotteryDemoContract.ContractAddress,
                 amount * Price,
                 Symbol);
             approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var allowance = _tokenContract.GetAllowance(TestAccount, _lotteryDemoContract.ContractAddress, Symbol);
+            var allowance = _tokenContract.GetAllowance(account, _lotteryDemoContract.ContractAddress, Symbol);
             allowance.ShouldBeGreaterThanOrEqualTo(amount * Price);
 
-            _lotteryDemoContract.SetAccount(TestAccount);
+            _lotteryDemoContract.SetAccount(account);
             var result = _lotteryDemoContract.ExecuteMethodWithResult(LotteryDemoMethod.Buy, new Int64Value
             {
                 Value = amount
@@ -490,11 +492,25 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task GetTestAccountBoughtLotteries()
         {
-            var result = await _lotteryDemoStub.GetBoughtLotteries.CallAsync(new GetBoughtLotteriesInput
+            var account = "2fyfYifNoFuK7xc2mNcPrG13MDhc4yqXfkWTZ5yFgxmkHHLJ6A";
+            var result = await _lotteryDemoStub.GetBoughtLotteriesCount.CallAsync(account.ConvertAddress());
+            Logger.Info(result);
+
+            var periodCount =
+                await _lotteryDemoStub.GetBoughtLotteryCountInOnePeriod.CallAsync(
+                    new GetBoughtLotteryCountInOnePeriodInput
+                    {
+                        Owner = account.ConvertAddress(),
+                        PeriodNumber = 4
+                    });
+            Logger.Info(periodCount.Value);
+
+            var lotteries = await _lotteryDemoStub.GetBoughtLotteries.CallAsync(new GetBoughtLotteriesInput
             {
-                Period = 0,
-                Owner = TestAccount.ConvertAddress()
+                Owner = account.ConvertAddress(),
+                Period = 4
             });
+            Logger.Info($"{lotteries.Lotteries.First().IsRewardTaken}");
         }
 
         [TestMethod]
@@ -502,6 +518,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var period = await _adminLotteryDemoStub.GetCurrentPeriodNumber.CallAsync(new Empty());
             Logger.Info($"Current period number is :{period.Value}");
+            
             for (var i = 1; i <= period.Value; i++)
             {
                 var periodInfo = await _adminLotteryDemoStub.GetPeriod.CallAsync(new Int64Value {Value = i});
@@ -511,7 +528,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var currentPeriodInfo = await _adminLotteryDemoStub.GetPeriod.CallAsync(new Int64Value {Value = period.Value});
             var currentPeriod = await _adminLotteryDemoStub.GetCurrentPeriod.CallAsync(new Empty());
             currentPeriod.BlockNumber.ShouldBe(currentPeriodInfo.BlockNumber);
-            var result = await _adminLotteryDemoStub.GetSales.CallAsync(new Int64Value {Value = period.Value - 1});
+            var result = await _adminLotteryDemoStub.GetSales.CallAsync(new Int64Value {Value = period.Value});
             Logger.Info($"Sales: {result.Value}");
         }
 

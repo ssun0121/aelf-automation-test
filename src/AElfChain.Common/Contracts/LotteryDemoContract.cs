@@ -17,7 +17,10 @@ namespace AElfChain.Common.Contracts
         
         //View
         GetRewardResult,
-        GetLotteries
+        GetLotteries,
+        GetCurrentPeriod,
+        GetCurrentPeriodNumber,
+        GetBoughtLotteryCountInOnePeriod
     }
 
     public class LotteryDemoContract : BaseContract<LotteryDemoMethod>

@@ -111,6 +111,9 @@ service LotteryDemoContract {
     rpc GetProfitsRate (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
         option (aelf.is_view) = true;
     }
+    rpc GetBoughtLotteryCountInOnePeriod (GetBoughtLotteryCountInOnePeriodInput) returns (google.protobuf.Int64Value){
+        option (aelf.is_view) = true;
+    }
 }
 
 message InitializeInput {
@@ -206,4 +209,9 @@ message GetStakingTimestampOutput{
 message TakeBackTokenInput{
     string symbol = 1;
     int64 amount = 2;
+}
+
+message GetBoughtLotteryCountInOnePeriodInput{
+    aelf.Address owner = 1;
+    int64 period_number = 2;
 }

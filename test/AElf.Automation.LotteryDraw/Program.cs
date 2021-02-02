@@ -24,45 +24,45 @@ namespace AElf.Automation.LotteryTest
             var cts = new CancellationTokenSource();
             var token = cts.Token;
             var taskList = new List<Task>();
-            
-            var lottery = new Lottery(Rewards,Counts);
+
+            var lottery = new Lottery(Rewards, Counts);
             _tester = lottery.GetTestAddress();
             if (lottery.OnlyDraw)
             {
                 if (lottery.LotteryContract == "")
                     lottery.Buy();
                 lottery.Draw();
-            }else if (lottery.OnlyBuy)
+            }
+            else
             {
-                Logger.Info($"Take {lottery.TestUserCount} tester: ");
-                var accountLists = new List<List<string>>();
-                for (var i = 0; i < 4; i++)
-                {
-                    var testers = lottery.TakeRandomUserAddress(lottery.TestUserCount, _tester);
-                    accountLists.Add(testers);
-                }
-                
                 while (true)
                 {
-                    for (var i = 0; i < 4; i++)
+                    Logger.Info($"Take {lottery.TestUserCount} tester: ");
+                    var testers = lottery.TakeRandomUserAddress(lottery.TestUserCount, _tester);
+
+                    for (int j = 0; j < 25; j++)
                     {
-                        var i1 = i;
-                        taskList.Add(Task.Run(() =>  
-                        { 
-                            lottery.OnlyBuyJob(accountLists[i1]);
-                        }, token));
+                        taskList.Add(Task.Run(() => { lottery.OnlyBuyJob(testers); }, token));
+                        Task.WaitAll(taskList.ToArray<Task>());
                     }
-                    Task.WaitAll(taskList.ToArray<Task>());
+
+                    if (lottery.OnlyBuy)
+                    {
+                        break;
+                    }
+                    lottery.Draw();
                 }
             }
         }
+
         private static ILog Logger { get; set; }
-        
+
         [Option("-r|--rewards", Description = "Reward lists")]
         private static string Rewards { get; set; }
 
         [Option("-c|--counts", Description = "Reward counts")]
         private static string Counts { get; set; }
+
         private static List<string> _tester;
     }
 }

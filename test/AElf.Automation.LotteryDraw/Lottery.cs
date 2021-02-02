@@ -93,7 +93,7 @@ namespace AElf.Automation.LotteryTest
             }
             catch (Exception e)
             {
-                Console.WriteLine("Please input correct reward list");
+                Console.WriteLine($"Please input correct reward list:{e.Message}");
                 throw;
             }
             
@@ -222,21 +222,28 @@ namespace AElf.Automation.LotteryTest
 
         private void Buy_More(IEnumerable<string> testers)
         {
-            for (int i = 0; i < 10; i++)
-            {
+            var period = LotteryService.CallViewMethod<Int64Value>(LotteryDemoMethod.GetCurrentPeriodNumber, new Empty());
                 var txList = new List<string>();
                 foreach (var tester in testers)
                 {
-                    var amount = CommonHelper.GenerateRandomNumber(25, 50);
+                    var testerAmount = LotteryService.CallViewMethod<Int64Value>(LotteryDemoMethod.GetBoughtLotteryCountInOnePeriod,
+                        new GetBoughtLotteryCountInOnePeriodInput
+                        {
+                            PeriodNumber = period.Value,
+                            Owner = tester.ConvertAddress()
+                        });
+                    if (testerAmount.Value >= 1000)
+                        continue;
+                    var amount = 1000 - testerAmount.Value > 50 ?  CommonHelper.GenerateRandomNumber(25, 50) : 1000 - testerAmount.Value;
                     LotteryService.SetAccount(tester);
                     var txId = LotteryService.ExecuteMethodWithTxId(LotteryDemoMethod.Buy, new Int64Value
                     {
                         Value = amount
                     });
                     txList.Add(txId);
+                    Logger.Info(tester);
                 }
                 LotteryService.NodeManager.CheckTransactionListResult(txList);
-            }
         }
 
 
@@ -245,12 +252,12 @@ namespace AElf.Automation.LotteryTest
         {
             var amount = AsyncHelper.RunSync(()=> LotteryStub.GetMaximumBuyAmount.CallAsync(new Empty()));
             var period =  AsyncHelper.RunSync(()=> LotteryStub.GetCurrentPeriodNumber.CallAsync(new Empty()));
-            Logger.Info($"Before draw period number is :{period.Value}");            
-            
+            Logger.Info($"Before draw period number is :{period.Value}"); 
             LotteryService.SetAccount(Owner, Password);
+            SetRewardListForOnePeriod(period.Value);
+
             var result = LotteryService.ExecuteMethodWithResult(LotteryDemoMethod.PrepareDraw, new Empty());
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            SetRewardListForOnePeriod(period.Value);
             var block = result.BlockNumber;
             var currentBlock = AsyncHelper.RunSync(() => ContractServices.NodeManager.ApiClient.GetBlockHeightAsync());
             while (currentBlock < block + amount.Value)
