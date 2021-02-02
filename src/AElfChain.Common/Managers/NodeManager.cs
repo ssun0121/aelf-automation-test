@@ -365,7 +365,7 @@ namespace AElfChain.Common.Managers
                         break;
                     case TransactionResultStatus.NodeValidationFailed:
                         Logger.Error(
-                            $"TransactionId: {id}, Method: {transactionResult.Transaction.MethodName}, Status: {status}. \nError: {transactionResult.Error}",
+                            $"TransactionId: {id}, Status: {status}. \nError: {transactionResult.Error}",
                             true);
                         break;
                     case TransactionResultStatus.Mined:
