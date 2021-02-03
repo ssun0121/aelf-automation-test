@@ -34,6 +34,7 @@ namespace AElf.Automation.LotteryTest
         private int _cashDuration;
         private int _bonus;
         private int _profitsRate;
+        private int _multiplied;
         private const int RateDecimals = 4;
         private string _virtualAddress;
         private int _userCount;
@@ -216,6 +217,8 @@ namespace AElf.Automation.LotteryTest
                 var price = await LotteryContractStub.GetPrice.CallAsync(new Empty());
                 var bonus = await LotteryContractStub.GetBonusRate.CallAsync(new Empty());
                 var profitRate = await LotteryContractStub.GetProfitsRate.CallAsync(new Empty());
+                var multiplied = await LotteryContractStub.GetMaxMultiplied.CallAsync(new Empty());
+
                 var schemeInfo = await TokenHolderContractStub.GetScheme.CallAsync(LotteryService.Contract);
 //                var virtualAddress = await profit.GetSchemeAddress.CallAsync(new SchemePeriod
 //                    {Period = 0, SchemeId = schemeInfo.SchemeId});
@@ -226,6 +229,7 @@ namespace AElf.Automation.LotteryTest
                 _price = price.Value;
                 _bonus = bonus.Rate;
                 _profitsRate = profitRate.Rate;
+                _multiplied = multiplied.Value;
                 _virtualAddress = virtualAddress;
             }
 
@@ -240,6 +244,7 @@ namespace AElf.Automation.LotteryTest
                 var betInfos = new List<BetBody>();
                 var countList = new List<int>();
                 var type = CommonHelper.RandomEnumValue<LotteryType>();
+                var multiplied = CommonHelper.GenerateRandomNumber(0,_multiplied);
                 switch (type)
                 {
                     case LotteryType.Simple:
@@ -288,7 +293,7 @@ namespace AElf.Automation.LotteryTest
                 }
 
                 var totalCount = countList.Aggregate<int, long>(1, (current, count) => count * current);
-                var totalAmount = totalCount * _price;
+                var totalAmount = totalCount * _price * multiplied;
                 var bonus = totalAmount.Mul(_bonus).Div(GetRateDenominator());
                 var profit = totalAmount.Mul(_profitsRate).Div(GetRateDenominator());
                 CheckBalance(totalAmount, sender, Symbol);
@@ -308,6 +313,7 @@ namespace AElf.Automation.LotteryTest
                 {
                     Type = (int) type,
                     Seller = SellerAccount.ConvertAddress(),
+                    Multiplied = multiplied,
                     BetInfos = {betInfos}
                 });
                 result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
@@ -360,6 +366,8 @@ namespace AElf.Automation.LotteryTest
                 var betInfos = new List<BetBody>();
                 var countList = new List<int>();
                 var type = CommonHelper.RandomEnumValue<LotteryType>();
+                var multiplied = CommonHelper.GenerateRandomNumber(0,_multiplied);
+
                 switch (type)
                 {
                     case LotteryType.Simple:
@@ -412,7 +420,8 @@ namespace AElf.Automation.LotteryTest
                 {
                     Type = (int) type,
                     Seller = SellerAccount.ConvertAddress(),
-                    BetInfos = {betInfos}
+                    BetInfos = {betInfos},
+                    Multiplied = multiplied
                 });
                 txId.Add(result);
             }
@@ -500,7 +509,7 @@ namespace AElf.Automation.LotteryTest
                     $"*** {sender} before reward balance: {balance}, after: {afterBalance}, reward amount: {rewardAmount}\n");
 
                 foreach (var lottery in rewardedLotteries.Lotteries)
-                    Logger.Info($"{lottery.Id}: bet infos=>{lottery.BetInfos} reward=>{lottery.Reward}\n");
+                    Logger.Info($"{lottery.Id}: bet infos=>{lottery.BetInfos} reward=>{lottery.Reward} multiplied=>{lottery.Multiplied}\n");
                 var userInfo = UserInfos.First(u => u.User.Equals(sender));
                 userInfo.Balance = afterBalance;
                 userInfo.RewardAmount = userInfo.RewardAmount + rewardAmount;

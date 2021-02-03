@@ -50,7 +50,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info(RpcUrl);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
-            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount,"2YkKkNZKCcsfUsGwCfJ6wyTx5NYLgpCg1stBuRT4z5ep3psXNG");
+            _lotteryDemoContract = new LotteryDemoContract(NodeManager, InitAccount,"RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y");
             Logger.Info($"Lottery contract : {_lotteryDemoContract.ContractAddress}");
 //            if (!_tokenContract.GetTokenInfo(Symbol).Symbol.Equals(Symbol))
 //                CreateTokenAndIssue();
@@ -510,7 +510,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Owner = account.ConvertAddress(),
                 Period = 4
             });
-            Logger.Info($"{lotteries.Lotteries.First().IsRewardTaken}");
+            Logger.Info($"{lotteries.Lotteries}");
         }
 
         [TestMethod]

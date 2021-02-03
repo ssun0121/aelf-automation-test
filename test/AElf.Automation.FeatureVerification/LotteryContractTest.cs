@@ -47,7 +47,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
         private string SellerAccount { get; } = "eFU9Quc8BsztYpEHKzbNtUpu9hGKgwGD2tyL13MqtFkbnAoCZ";
-        private string VirtualAddress { get; } = "2oVzgBANynRrhTuFheb7uyoKrbzFnUGobhmSe2cTgFkXgzEfKj";
+        private string VirtualAddress { get; } = "7uVdYRyeP2ypMHLeuk7BY8J7sN4ZoxP3QXsZH1iBy6aRXnmSN";
 
         private List<string> Tester = new List<string>
         {
@@ -94,7 +94,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 //            _lotteryContract = new LotteryContract(SideNodeManager, InitAccount,
 //                "buePNjhmHckfZn9D8GTL1wq6JgA8K24SeTWnjCNcrz6Sf1FDh");
             _lotteryContract = new LotteryContract(SideNodeManager, InitAccount,
-                "2AsEepqiFCRDnepVheYYN5LK7nvM2kUoXgk2zLKu1Zneh8fwmF");
+                "RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y");
             
 //            InitializeLotteryContract();
 
@@ -233,6 +233,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var list1 = new List<int> {0, 1, 2, 3};
             var list2 = new List<int> {0, 1, 2, 3};
+            var multiplied = 0;
+            var i = multiplied == 0 ? 1 : multiplied;
             var totalAmount = list1.Count * list2.Count * Price;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
             var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
@@ -257,7 +259,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     {
                         Bets = {list2}
                     }
-                }
+                },
+                Multiplied = multiplied
             });
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
@@ -278,7 +281,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var sender = Tester[1];
             var list = new List<int> {1, 3, 5, 7, 9};
-            var totalAmount = list.Count * Price;
+            var multiplied = 10;
+
+            var totalAmount = list.Count * Price * multiplied;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
             var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
@@ -296,6 +301,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 Type = (int) LotteryType.OneBit,
                 Seller = SellerAccount.ConvertAddress(),
+                Multiplied = multiplied,
                 BetInfos =
                 {
                     new BetBody
@@ -323,7 +329,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var sender = Tester[2];
             var list1 = new List<int> {2, 4, 8};
             var list2 = new List<int> {1, 7, 5};
-            var totalAmount = list1.Count * list2.Count * Price;
+            var multiplied = 10;
+            var totalAmount = list1.Count * list2.Count * Price * multiplied;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
             var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
@@ -343,6 +350,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 Type = (int) LotteryType.TwoBit,
                 Seller = SellerAccount.ConvertAddress(),
+                Multiplied = multiplied,
                 BetInfos =
                 {
                     new BetBody
@@ -375,7 +383,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var list1 = new List<int> {0, 6};
             var list2 = new List<int> {7, 9};
             var list3 = new List<int> {1, 5};
-            var totalAmount = list1.Count * list2.Count * list3.Count * Price;
+            var multiplied = 10;
+
+            var totalAmount = list1.Count * list2.Count * list3.Count * Price * multiplied;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
             var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
@@ -395,6 +405,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 Type = (int) LotteryType.ThreeBit,
                 Seller = SellerAccount.ConvertAddress(),
+                Multiplied = multiplied,
                 BetInfos =
                 {
                     new BetBody
@@ -433,15 +444,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var list3 = new List<int> {4, 5};
             var list4 = new List<int> {6, 7};
             var list5 = new List<int> {8, 9};
-
-            var totalAmount = list1.Count * list2.Count * list3.Count * list4.Count * list5.Count * Price;
+            
+            var multiplied = 100;
+            var totalAmount = list1.Count * list2.Count * list3.Count * list4.Count * list5.Count * Price * multiplied;
             var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
             var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
 
             var approve = _sideTokenContract.ApproveToken(sender, _lotteryContract.ContractAddress,
                 totalAmount, Symbol);
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
+            _sideTokenContract.TransferBalance(InitAccount, sender, totalAmount, Symbol);
+            
             var initBalance = _sideTokenContract.GetUserBalance(sender, Symbol);
             var contractBalance = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
             var sellerBalance = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
@@ -452,6 +465,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 Type = (int) LotteryType.FiveBit,
                 Seller = SellerAccount.ConvertAddress(),
+                Multiplied = multiplied,
                 BetInfos =
                 {
                     new BetBody
@@ -487,6 +501,45 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var sellerBalanceAfter = _sideTokenContract.GetUserBalance(SellerAccount, Symbol);
             sellerBalanceAfter.ShouldBe(sellerBalance + bonus);
             Logger.Info($"Buy amount {totalAmount}, bonus {bonus}");
+        }
+        
+        [TestMethod]
+        public async Task Buy_Error()
+        {
+            var sender = Tester[2];
+            var list1 = new List<int> {1,2,3,4,5,6,7,8,9,0};
+            var list2 = new List<int> {1,2,3,4,5,6,7,8,9,0};
+            var multiplied = 100;
+            var totalAmount = list1.Count * list2.Count * Price * multiplied;
+            var bonus = totalAmount.Mul(Bonus).Div(GetRateDenominator());
+            var profit = totalAmount.Mul(ProfitsRate).Div(GetRateDenominator());
+
+            _sideTokenContract.SetAccount(sender);
+            var approve = _sideTokenContract.ApproveToken(sender, _lotteryContract.ContractAddress,
+                totalAmount, Symbol);
+            approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            _sideTokenContract.TransferBalance(InitAccount, sender, totalAmount, "LOT");
+            
+            var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(sender);
+            var result = await stub.Buy.SendAsync(new BuyInput
+            {
+                Type = (int) LotteryType.TwoBit,
+                Seller = SellerAccount.ConvertAddress(),
+                Multiplied = multiplied,
+                BetInfos =
+                {
+                    new BetBody
+                    {
+                        Bets = {list1}
+                    },
+                    new BetBody
+                    {
+                        Bets = {list2}
+                    }
+                }
+            });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            result.TransactionResult.Error.ShouldContain("Invalid rate input.");
         }
 
         [TestMethod]
@@ -545,7 +598,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task TakeReward()
         {
-            var sender = Tester[1];
+            var sender = Tester[4];
             long rewardAmount = 0;
             var balance = _sideTokenContract.GetUserBalance(sender, Symbol);
             var contractBalance = _sideTokenContract.GetUserBalance(_lotteryContract.ContractAddress, Symbol);
@@ -736,7 +789,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task CheckRewardedLotteries_OneUser()
         {
-            var tester = Tester[2];
+            var tester = Tester[5];
             var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(tester);
             var lotteries = await stub.GetRewardedLotteries.CallAsync(new GetLotteriesInput
             {
@@ -860,6 +913,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var total = await _adminLotteryStub.GetTotalRewardAmount.CallAsync(account.ConvertAddress());
                 Logger.Info($"{account} total reward amount {total}");
             }
+        }
+
+        [TestMethod]
+        public async Task SetMaxMultiplied()
+        {
+            var multiplied = await _adminLotteryStub.GetMaxMultiplied.CallAsync(new Empty());
+            var result = await _adminLotteryStub.SetMaxMultiplied.SendAsync(new Int32Value{Value = multiplied.Value/2});
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+
+            var afterMultiplied = await _adminLotteryStub.GetMaxMultiplied.CallAsync(new Empty());
+            afterMultiplied.Value.ShouldBe(multiplied.Value/2);
+            Logger.Info(afterMultiplied);
         }
 
         [TestMethod]

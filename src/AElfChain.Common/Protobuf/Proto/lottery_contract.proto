@@ -5,14 +5,12 @@ import "aelf/options.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
-import "acs1.proto";
 import "acs9.proto";
 
 option csharp_namespace = "AElf.Contracts.LotteryContract";
 
 service LotteryContract {
     option (aelf.csharp_state) = "AElf.Contracts.LotteryContract.LotteryContractState";
-    option (aelf.base) = "acs1.proto";
     option (aelf.base) = "acs9.proto";
 
     rpc Initialize (InitializeInput) returns (google.protobuf.Empty) {
@@ -35,9 +33,11 @@ service LotteryContract {
     }
     rpc SetPrice(google.protobuf.Int64Value) returns (google.protobuf.Empty) {
     }
+    rpc SetMaxMultiplied (google.protobuf.Int32Value) returns (google.protobuf.Empty){
+    }
     rpc TakeBackToken(TakeBackTokenInput) returns (google.protobuf.Empty) {
     }
-    
+
     //View
     rpc GetPeriods (GetPeriodsInput) returns (GetPeriodsOutput) {
         option (aelf.is_view) = true;
@@ -103,6 +103,9 @@ service LotteryContract {
     rpc GetTotalPeriodCount (aelf.Address) returns (google.protobuf.Int64Value) {
         option (aelf.is_view) = true;
     }
+    rpc GetMaxMultiplied (google.protobuf.Empty) returns (google.protobuf.Int32Value) {
+        option (aelf.is_view) = true;
+    }
 }
 
 message InitializeInput {
@@ -117,6 +120,7 @@ message BuyInput {
     int32 type = 1;
     repeated BetBody bet_infos = 2;
     aelf.Address seller = 3;
+    int32 multiplied = 4;
 }
 
 enum LotteryType {
@@ -215,6 +219,7 @@ message Lottery {
     int64 block_number = 11;
     google.protobuf.Timestamp create_time = 12;
     bool expired = 13;
+    int32 multiplied = 14;
 }
 
 message LotteryDetail {
@@ -229,6 +234,7 @@ message LotteryDetail {
     google.protobuf.Timestamp create_time = 9;
     bool expired = 10;
     int64 start_period_number_of_day = 11;
+    int32 multiplied = 12;
 }
 
 message GetLatestCashedLotteryOutput {

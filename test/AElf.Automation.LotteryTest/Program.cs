@@ -80,18 +80,6 @@ namespace AElf.Automation.LotteryTest
                         }
 
                     }, token),
-                    Task.Run(() => 
-                    {
-                        while (true)
-                        {
-                            var second = DateTime.Now.Second;
-                            var minute = DateTime.Now.Minute;
-                            if (minute % 10 == 0 && second == 0)
-                            {
-                                lottery.DrawJob();
-                            }
-                        }
-                    },token),
                     Task.Run(() =>
                     {
                         while (true)
