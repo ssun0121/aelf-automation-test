@@ -484,12 +484,13 @@ namespace AElf.Automation.LotteryTest
                     var info = await stub.GetLottery.CallAsync(new GetLotteryInput {LotteryId = id});
 
                     var reward = info.Lottery.Reward;
+                    var multiplied = info.Lottery.Multiplied;
                     if (info.Lottery.Type.Equals((int) LotteryType.Simple))
                     {
                         (reward % Rewards[(LotteryType) info.Lottery.Type]).ShouldBe(0);
                     }
                     else
-                        reward.ShouldBe(Rewards[(LotteryType) info.Lottery.Type]);
+                        reward.ShouldBe(Rewards[(LotteryType) info.Lottery.Type] * multiplied);
 
                     rewardAmount = rewardAmount + reward;
                     info.Lottery.Cashed.ShouldBeTrue();
