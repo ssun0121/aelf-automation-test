@@ -297,17 +297,13 @@ namespace AElf.Automation.LotteryTest
                 var bonus = totalAmount.Mul(_bonus).Div(GetRateDenominator());
                 var profit = totalAmount.Mul(_profitsRate).Div(GetRateDenominator());
                 CheckBalance(totalAmount, sender, Symbol);
+                CheckAllowance(totalAmount, sender, Symbol);
 
                 var initBalance = TokenService.GetUserBalance(sender, Symbol);
                 var contractBalance = TokenService.GetUserBalance(LotteryService.ContractAddress, Symbol);
                 var sellerBalance = TokenService.GetUserBalance(SellerAccount, Symbol);
                 var profitBalance = TokenService.GetUserBalance(_virtualAddress, Symbol);
-
-                TokenService.SetAccount(sender);
-                var approve = TokenService.ApproveToken(sender, LotteryService.ContractAddress,
-                    totalAmount, Symbol);
-                approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
+                
                 var stub = LotteryService.GetTestStub<LotteryContractContainer.LotteryContractStub>(sender);
                 var result = await stub.Buy.SendAsync(new BuyInput
                 {
@@ -548,6 +544,13 @@ namespace AElf.Automation.LotteryTest
             var balance = TokenService.GetUserBalance(sender, symbol);
             if (balance <= needBalance)
                 TokenService.TransferBalance(InitAccount, sender, needBalance, symbol);
+        }
+        
+        public void CheckAllowance(long needAllowance, string sender, string symbol)
+        {
+            var allowance = TokenService.GetAllowance(sender, LotteryService.ContractAddress, symbol);
+            if (allowance < needAllowance)
+                TokenService.ApproveToken(sender, LotteryService.ContractAddress, needAllowance, Symbol);
         }
 
         public void CalculateRate()
