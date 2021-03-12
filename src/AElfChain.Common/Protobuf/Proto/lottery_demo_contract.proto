@@ -50,6 +50,12 @@ service LotteryDemoContract {
     }
     rpc SetProfitsRate (google.protobuf.Int64Value) returns (google.protobuf.Empty) {
     }
+    rpc TakeDividend(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    }
+    rpc SetDividendRate(google.protobuf.Int64Value) returns (google.protobuf.Empty) {
+    }
+    rpc SetDividendRateTotalShares(google.protobuf.Int64Value) returns (google.protobuf.Empty) {
+    }
 
     rpc GetRewardResult (google.protobuf.Int64Value) returns (GetRewardResultOutput) {
         option (aelf.is_view) = true;
@@ -108,10 +114,16 @@ service LotteryDemoContract {
     rpc GetStakingTimestamp(google.protobuf.Empty) returns (GetStakingTimestampOutput) {
         option (aelf.is_view) = true;
     }
+    rpc GetDividendRate (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
+        option (aelf.is_view) = true;
+    }
     rpc GetProfitsRate (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
         option (aelf.is_view) = true;
     }
     rpc GetBoughtLotteryCountInOnePeriod (GetBoughtLotteryCountInOnePeriodInput) returns (google.protobuf.Int64Value){
+        option (aelf.is_view) = true;
+    }
+    rpc GetDividendRateTotalShares (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
         option (aelf.is_view) = true;
     }
 }

@@ -5,13 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using AElf.Contracts.LotteryDemoContract;
 using AElf.Contracts.MultiToken;
+using AElf.CSharp.Core;
 using AElf.Types;
 using AElfChain.Common;
 using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
-using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -292,23 +292,26 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var totalAmount = await _lotteryDemoStub.GetStakingTotal.CallAsync(new Empty());
             Logger.Info(totalAmount.Value);
-            
-            var account = Tester.Last();
-            var balance = _tokenContract.GetUserBalance(account, Symbol);
-            var amount = balance / 10;
-            var stub = _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(account);
-            var getInfo = await stub.GetStakingAmount.CallAsync(account.ConvertAddress());
-            var approve =
-                _tokenContract.ApproveToken(account, _lotteryDemoContract.ContractAddress, amount, Symbol);
-            approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var result = await stub.Stake.SendAsync(new Int64Value{Value = amount});
-            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
-            var afterGetInfo = await stub.GetStakingAmount.CallAsync(account.ConvertAddress());
-            afterGetInfo.Value.ShouldBe(getInfo.Value + amount);
-            
+//            var account = Tester.Last();
+            var i = 1;
+            foreach (var account in Tester)
+            {
+                _tokenContract.TransferBalance(InitAccount, account, 1000_00000000,Symbol);
+                var balance = _tokenContract.GetUserBalance(account, Symbol);
+                var amount = balance / 10 * i;
+                var stub = _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(account);
+                var getInfo = await stub.GetStakingAmount.CallAsync(account.ConvertAddress());
+                var approve =
+                    _tokenContract.ApproveToken(account, _lotteryDemoContract.ContractAddress, amount, Symbol);
+                approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                var result = await stub.Stake.SendAsync(new Int64Value{Value = amount});
+                result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+                var afterGetInfo = await stub.GetStakingAmount.CallAsync(account.ConvertAddress());
+                afterGetInfo.Value.ShouldBe(getInfo.Value + amount);
+                i++;
+            }
             var afterTotalAmount = await _lotteryDemoStub.GetStakingTotal.CallAsync(new Empty());
-            afterTotalAmount.Value.ShouldBe(totalAmount.Value + amount);
-            Logger.Info($"{balance} {amount} {afterGetInfo.Value} {afterTotalAmount.Value}");
+            Logger.Info($"{afterTotalAmount.Value}");
         }
 
         [TestMethod]
@@ -343,6 +346,68 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var stub = _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(account);
             var info = await stub.GetRegisteredDividend.CallAsync(account.ConvertAddress());
             info.ShouldBe(new RegisterDividendDto());
+        }
+
+        [TestMethod]
+        public async Task TakeDividend()
+        {
+//            var account = TestAccount;
+
+            foreach (var account in Tester)
+            {
+                var getDividendRate = await _lotteryDemoStub.GetDividendRate.CallAsync(new Empty());
+                var getTotalDividendRate = await _lotteryDemoStub.GetDividendRateTotalShares.CallAsync(new Empty());
+
+                var stakingAmount = await _adminLotteryDemoStub.GetStakingAmount.CallAsync(account.ConvertAddress());
+                var exceptionGetAmount = stakingAmount.Value.Mul(getDividendRate.Value).Div(getTotalDividendRate.Value);
+                var accountBalance = _tokenContract.GetUserBalance(account);
+                if (stakingAmount.Value == 0)
+                    continue;
+                var stub = _lotteryDemoContract.GetTestStub<LotteryDemoContractContainer.LotteryDemoContractStub>(account);
+                var take = await stub.TakeDividend.SendAsync(new Empty());
+                take.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+
+                var afterBalance = _tokenContract.GetUserBalance(account);
+                afterBalance.Equals(accountBalance + exceptionGetAmount).ShouldBeTrue();
+            
+                var afterStakingAmount = await _adminLotteryDemoStub.GetStakingAmount.CallAsync(account.ConvertAddress());
+                afterStakingAmount.Value.ShouldBe(0);
+            
+                Logger.Info($"{TestAccount}: staking amount: {stakingAmount}, " +
+                            $"elf balance {accountBalance}, " +
+                            $"exception amount {exceptionGetAmount}, " +
+                            $"after elf balance {afterBalance}, " +
+                            $"after staking {afterStakingAmount}");
+            }
+
+        }
+
+        [TestMethod]
+        public async Task SetDividendRate()
+        {
+            var setDividendRate = await _adminLotteryDemoStub.SetDividendRate.SendAsync(new Int64Value{Value = 100});
+            setDividendRate.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        public async Task SetDividendRateTotalShares()
+        {
+            var setDividendRate = await _adminLotteryDemoStub.SetDividendRateTotalShares.SendAsync(new Int64Value{Value = 10000});
+            setDividendRate.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
+        public async Task GetDividendRate()
+        {
+            var getDividendRate = await _lotteryDemoStub.GetDividendRate.CallAsync(new Empty());
+            Logger.Info(getDividendRate.Value);
+        }
+        
+        [TestMethod]
+        public async Task GetDividendRateTotalShares()
+        {
+            var getTotalDividendRate = await _lotteryDemoStub.GetDividendRateTotalShares.CallAsync(new Empty());
+            Logger.Info(getTotalDividendRate.Value);
         }
 
         [TestMethod]
@@ -397,25 +462,31 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var resetTime = await _adminLotteryDemoStub.SetStakingTimestamp.SendAsync(new SetStakingTimestampInput
             {
                 IsStartTimestamp = false,
-                Timestamp = DateTime.UtcNow.Add(TimeSpan.FromMinutes(10)).ToTimestamp()
+                Timestamp = Timestamp.FromDateTime(new DateTime(2021,3,5,10,00,00).ToUniversalTime())
             });
+            resetTime.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            
+            var afterTimestamp = await _adminLotteryDemoStub.GetStakingTimestamp.CallAsync(new Empty());
+            Logger.Info(afterTimestamp);
         }
 
         [TestMethod]
         public async Task TakeBackToken()
         {
-            var amount = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, Symbol);
-            var adminBalance = _tokenContract.GetUserBalance(InitAccount, Symbol);
+            var symbol = "ELF";
+            var amount = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, symbol);
+            var backAmount = amount / 2;
+            var adminBalance = _tokenContract.GetUserBalance(InitAccount, symbol);
             var result = await _adminLotteryDemoStub.TakeBackToken.SendAsync(new TakeBackTokenInput
             {
-                Symbol = Symbol,
-                Amount = amount + 1
+                Symbol = symbol,
+                Amount = backAmount
             });
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
-            var afterBalance = _tokenContract.GetUserBalance(InitAccount, Symbol);
-            afterBalance.ShouldBe(adminBalance + amount);
-            var afterContractBalance = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, Symbol);
-            afterContractBalance.ShouldBe(amount - amount);
+            var afterBalance = _tokenContract.GetUserBalance(InitAccount, symbol);
+            afterBalance.ShouldBe(adminBalance + backAmount);
+            var afterContractBalance = _tokenContract.GetUserBalance(_lotteryDemoContract.ContractAddress, symbol);
+            afterContractBalance.ShouldBe(amount - backAmount);
         }
 
         [TestMethod]

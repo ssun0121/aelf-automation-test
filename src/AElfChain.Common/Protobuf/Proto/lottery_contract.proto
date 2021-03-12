@@ -37,6 +37,8 @@ service LotteryContract {
     }
     rpc TakeBackToken(TakeBackTokenInput) returns (google.protobuf.Empty) {
     }
+    rpc SetClearLotteryCountLimit(google.protobuf.Int32Value) returns (google.protobuf.Empty) {
+    }
 
     //View
     rpc GetPeriods (GetPeriodsInput) returns (GetPeriodsOutput) {
@@ -49,6 +51,9 @@ service LotteryContract {
         option (aelf.is_view) = true;
     }
     rpc GetRewardedLotteries (GetLotteriesInput) returns (GetLotteriesOutput) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetRewardedLotteriesInBatch (GetRewardedLotteriesInBatchInput) returns (GetRewardedLotteriesInBatchOutput) {
         option (aelf.is_view) = true;
     }
     rpc GetLatestCashedLottery (google.protobuf.Empty) returns (GetLatestCashedLotteryOutput) {
@@ -106,6 +111,12 @@ service LotteryContract {
     rpc GetMaxMultiplied (google.protobuf.Empty) returns (google.protobuf.Int32Value) {
         option (aelf.is_view) = true;
     }
+    rpc GetLotteryCount(aelf.Address) returns (GetLotteryCountOutput){
+        option (aelf.is_view) = true;
+    }
+    rpc GetClearLotteryCountLimit(google.protobuf.Empty) returns (google.protobuf.Int32Value) {
+        option (aelf.is_view) = true;
+    }
 }
 
 message InitializeInput {
@@ -151,6 +162,7 @@ message GetPeriodsOutput {
 message GetLotteriesInput {
     int32 offset = 1;
     int32 limit = 2;
+    aelf.Address address = 3;
 }
 
 message GetLotteriesOutput {
@@ -279,4 +291,20 @@ message GetPeriodCountBoardOutput {
 message TakeBackTokenInput{
     string symbol = 1;
     int64 amount = 2;
+}
+
+message GetLotteryCountOutput{
+    int32 done_count = 1;
+    int32 un_drawn_count = 2;
+    int32 to_be_claimed_count = 3;
+}
+
+message GetRewardedLotteriesInBatchInput{
+    int32 offset = 1;
+    aelf.Address address = 2;
+}
+
+message GetRewardedLotteriesInBatchOutput{
+    int32 offset = 1;
+    repeated LotteryDetail lotteries = 2;
 }

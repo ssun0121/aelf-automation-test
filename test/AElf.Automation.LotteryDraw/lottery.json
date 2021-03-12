@@ -15,14 +15,13 @@
       "Password": 123
     }
   ],
-  "LotteryContract": "RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y",
+  "LotteryContract": "2YkKkNZKCcsfUsGwCfJ6wyTx5NYLgpCg1stBuRT4z5ep3psXNG",
   "TokenInfo": 
   {      
     "Symbol":"LOT",
     "Price" : 10000000000
   },
   "OnlyDraw": false,
-  "OnlyBuy": true,
-  "UserCount": 30,
+  "UserCount": 10,
   "TestUserCount": 10
 }

@@ -756,6 +756,50 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
+        public async Task GetRewardedLotteriesInBatch()
+        {
+            var tester = "jxNeKNRkTiyPAJLVi3C83B4raSvpEAxVU4hXefYyjmJwEArxG";
+            var count = await _adminLotteryStub.GetLotteryCount.CallAsync(tester.ConvertAddress());
+            Logger.Info($"{tester} buy lottery :\n" +
+                        $"Done count: {count.DoneCount}\n" +
+                        $"Un drawn count: {count.UnDrawnCount}\n" +
+                        $"to be claimed count: {count.ToBeClaimedCount}");
+            var lotteries = await _adminLotteryStub.GetLotteries.CallAsync(new GetLotteriesInput
+            {
+                Offset = 0,
+                Limit = 10,
+                Address = tester.ConvertAddress()
+            });
+            Logger.Info($"{lotteries.Lotteries}");
+            
+            var offset = 0;
+            var totalRewardsLottery = 0;
+            while (offset != -1)
+            {
+                GetRewardedLotteriesInBatchOutput rewarded;
+                if (offset == 0)
+                    rewarded = await GetRewardedLotteriesInBatch(tester, offset);
+                else
+                    rewarded = await GetRewardedLotteriesInBatch(tester, offset + 1);
+                offset = rewarded.Offset;
+                totalRewardsLottery += rewarded.Lotteries.Count;
+                Logger.Info(rewarded.Lotteries);
+            }
+            Logger.Info($"total rewarded lotteries: {totalRewardsLottery}");
+        }
+
+        private async Task<GetRewardedLotteriesInBatchOutput> GetRewardedLotteriesInBatch(string tester, int offset)
+        {
+            var rewardedLotteries = await _adminLotteryStub.GetRewardedLotteriesInBatch.CallAsync(new GetRewardedLotteriesInBatchInput
+            {
+                Offset = offset,
+                Address = tester.ConvertAddress()
+            });
+            Logger.Info($"offset: {rewardedLotteries.Offset}, rewarded lotteries count: {rewardedLotteries.Lotteries.Count}");
+            return rewardedLotteries;
+        }
+
+        [TestMethod]
         public async Task CheckRewardedLotteries()
         {
             foreach (var tester in Tester)
@@ -790,16 +834,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public async Task CheckRewardedLotteries_OneUser()
         {
             var tester = Tester[5];
-            var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(tester);
-            var lotteries = await stub.GetRewardedLotteries.CallAsync(new GetLotteriesInput
+            var lotteries = await _adminLotteryStub.GetRewardedLotteries.CallAsync(new GetLotteriesInput
             {
                 Offset = 0,
-                Limit = 10
+                Limit = 20,
+                Address = tester.ConvertAddress()
             });
 
             foreach (var id in lotteries.Lotteries.Select(i => i.Id).ToList())
             {
-                var lotteryInfo = await stub.GetLottery.CallAsync(new GetLotteryInput
+                var lotteryInfo = await _adminLotteryStub.GetLottery.CallAsync(new GetLotteryInput
                 {
                     LotteryId = id
                 });
@@ -853,22 +897,33 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public async Task CheckLotteries_OneTester()
         {
             var tester = Tester[2];
-            var stub = _lotteryContract.GetTestStub<LotteryContractContainer.LotteryContractStub>(tester);
-            var lotteries = await stub.GetLotteries.CallAsync(new GetLotteriesInput
+            var lotteries = await _adminLotteryStub.GetLotteries.CallAsync(new GetLotteriesInput
             {
                 Offset = 0,
-                Limit = 20
+                Limit = 20,
+                Address = tester.ConvertAddress()
             });
 //                Logger.Info($"GetLotteries: {lottery.Lotteries}");
 
             foreach (var id in lotteries.Lotteries.Select(i => i.Id).ToList())
             {
-                var lotteryInfo = await stub.GetLottery.CallAsync(new GetLotteryInput
+                var lotteryInfo = await _adminLotteryStub.GetLottery.CallAsync(new GetLotteryInput
                 {
                     LotteryId = id
                 });
                 Logger.Info($"GetLottery: {lotteryInfo.Lottery}");
             }
+        }
+
+        [TestMethod]
+        public async Task GetLotteryCount()
+        {
+            var tester = "UcxapqE8a4vgdi7pgEGeykKAgC3TSRyHWiHDEMtxTYTJ2bJZZ";
+            var count = await _adminLotteryStub.GetLotteryCount.CallAsync(tester.ConvertAddress());
+            Logger.Info($"{tester} buy lottery :\n" +
+                        $"Done count: {count.DoneCount}\n" +
+                        $"Un drawn count: {count.UnDrawnCount}\n" +
+                        $"to be claimed count: {count.ToBeClaimedCount}");
         }
 
         [TestMethod]

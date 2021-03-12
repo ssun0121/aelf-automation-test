@@ -62,6 +62,7 @@ namespace AElf.Automation.LotteryTest
                             lottery.OnlyBuyJob(accountLists[i1]);
                             lottery.CheckNativeSymbolBalance(_tester);
                         }, token));
+                        Thread.Sleep(1000);
                     }
                     Task.WaitAll(taskList.ToArray<Task>());
                 }
@@ -80,6 +81,18 @@ namespace AElf.Automation.LotteryTest
                         }
 
                     }, token),
+                    Task.Run(() => 
+                    {
+                        while (true)
+                        {
+                            var second = DateTime.Now.Second;
+                            var minute = DateTime.Now.Minute;
+                            if (minute % 10 == 0 && second == 0)
+                            {
+                                lottery.DrawJob();
+                            }
+                        }
+                    },token),
                     Task.Run(() =>
                     {
                         while (true)

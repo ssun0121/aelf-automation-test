@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
-using AElf.Standards.ACS0;
 using AElf.Standards.ACS3;
 using AElf.Standards.ACS7;
 using AElf.Client.Dto;
@@ -17,6 +15,8 @@ using AElfChain.Common.Managers;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shouldly;
 using Volo.Abp.Threading;
 
@@ -61,7 +61,6 @@ namespace AElf.Automation.SideChainTests
            
                 Logger.Info($"chain {service.ChainId} balance: {balance1}\n ");
             }
-           
         }
 
         [TestMethod]
@@ -367,8 +366,8 @@ namespace AElf.Automation.SideChainTests
                 var crossChainTransferInput = new CrossChainTransferInput
                 {
                     Symbol = symbol,
-                    IssueChainId = MainServices.ChainId,
-                    Amount = 5000_00000000,
+                    IssueChainId = tokenInfo.IssueChainId,
+                    Amount = 100000_00000000,
                     Memo = "cross chain transfer",
                     To = toAccount.ConvertAddress(),
                     ToChainId = sideService.ChainId
@@ -431,6 +430,81 @@ namespace AElf.Automation.SideChainTests
                 var tokenInfo = sideService.TokenService.GetTokenInfo(symbol);
                 Logger.Info($"after receive : {tokenInfo}");
             }
+        }
+        
+        [TestMethod]
+        public void SideChainReceive()
+        {
+            var symbol = "ELF";
+            var sideService = SideServices.First();
+
+            var txId = "32c17bbed1a1fc7a0d2a2282b1c367283c7a5f15d2c243b61dc67e7c3653d74a";
+            var txResult = MainServices.NodeManager.CheckTransactionResult(txId);
+            // get transaction info            
+            var status = txResult.Status.ConvertTransactionResultStatus();
+            var rawTx = GenerateRawTransaction(txResult.Transaction.From, txResult.Transaction.To,
+                txResult.Transaction.MethodName, txResult.Transaction.RefBlockNumber,
+                txResult.Transaction.RefBlockPrefix, txResult.Transaction.Signature, txResult.Transaction.Params);
+            Logger.Info($"Transaction rawTx is: {rawTx}");
+            status.ShouldBe(TransactionResultStatus.Mined);
+            Logger.Info(
+                $"Cross chain Transaction block: {txResult.BlockNumber}, rawTx: {rawTx}, txId:{txId} to chain {sideService.ChainId}");
+
+            var merklePath = GetMerklePath(txResult.BlockNumber, txId, MainServices,
+                out var root);
+            var crossChainReceiveToken = new CrossChainReceiveTokenInput
+            {
+                FromChainId = MainServices.ChainId,
+                ParentChainHeight = txResult.BlockNumber,
+                MerklePath = merklePath
+            };
+            crossChainReceiveToken.TransferTransactionBytes =
+                ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(rawTx));
+
+            var account = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
+            var password = "123";
+            var result = CrossChainReceive(sideService, account, crossChainReceiveToken,password);
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            //verify
+            var balance = GetBalance(sideService, account, symbol);
+            Logger.Info($"balance: {balance}");
+            var tokenInfo = sideService.TokenService.GetTokenInfo(symbol);
+            Logger.Info($"after receive : {tokenInfo}");
+        }
+        
+        private string GenerateRawTransaction(string from, string to, string methodName,
+            long refBlockNumber, string refBlockPrefix, string sign, string param)
+        {
+            var tr = new Transaction
+            {
+                From = from.ConvertAddress(),
+                To = to.ConvertAddress(),
+                MethodName = methodName
+            };
+
+            if (tr.MethodName == null)
+            {
+                Logger.Error("Method not found.");
+                return string.Empty;
+            }
+            var inputParam = (JObject)JsonConvert.DeserializeObject(param);
+
+            var input = new CrossChainTransferInput
+            {
+                To = inputParam["to"].ToString().ConvertAddress(),
+                Symbol = inputParam["symbol"].ToString(),
+                Amount = long.Parse(inputParam["amount"].ToString()),
+                ToChainId = 1866392,
+                IssueChainId = 9992731
+            };
+
+            tr.Params = input.ToByteString();
+            tr.RefBlockNumber = refBlockNumber;
+            tr.RefBlockPrefix = ByteString.FromBase64(refBlockPrefix);
+            tr.Signature = ByteString.FromBase64(sign);
+
+            return tr.ToByteArray().ToHex();
         }
         
 
