@@ -31,7 +31,7 @@ namespace AElf.Automation.EconomicSystemTest
                 new GetBalanceInput
                 {
                     Owner =  account.ConvertAddress(),
-                    Symbol = "VOTE"
+                    Symbol = "SHARE"
                 }).Balance;
 
             ElectionService.SetAccount(account);
@@ -53,7 +53,7 @@ namespace AElf.Automation.EconomicSystemTest
             var afterVoteBalance = TokenService.CallViewMethod<GetBalanceOutput>(TokenMethod.GetBalance, new GetBalanceInput
             {
                 Owner =  account.ConvertAddress(),
-                Symbol = "VOTE"
+                Symbol = "SHARE"
             }).Balance;
             
             afterBalance.ShouldBe(beforeBalance - amount - fee);
@@ -76,7 +76,48 @@ namespace AElf.Automation.EconomicSystemTest
             return vote;
         }
          
-         public List<string> UserVoteWithTxIds(string account, string candidate, int lockTime, int times)
+        public TransactionResultDto UserWithdraw(string account, string voteId, long amount)
+        {
+            //check balance
+            var beforeBalance = TokenService.CallViewMethod<GetBalanceOutput>(TokenMethod.GetBalance,
+                new GetBalanceInput
+                {
+                    Owner = account.ConvertAddress(),
+                    Symbol = NodeOption.NativeTokenSymbol
+                }).Balance;
+            
+            var beforeVoteBalance = TokenService.CallViewMethod<GetBalanceOutput>(TokenMethod.GetBalance,
+                new GetBalanceInput
+                {
+                    Owner =  account.ConvertAddress(),
+                    Symbol = "SHARE"
+                }).Balance;
+
+            ElectionService.SetAccount(account);
+            var withdraw = ElectionService.ExecuteMethodWithResult(ElectionMethod.Withdraw,
+                    Hash.LoadFromHex(voteId));
+            withdraw.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var fee = withdraw.GetDefaultTransactionFee();
+            
+            var afterBalance = TokenService.CallViewMethod<GetBalanceOutput>(TokenMethod.GetBalance, new GetBalanceInput
+            {
+                Owner =  account.ConvertAddress(),
+                Symbol = NodeOption.NativeTokenSymbol
+            }).Balance;
+            
+            var afterVoteBalance = TokenService.CallViewMethod<GetBalanceOutput>(TokenMethod.GetBalance, new GetBalanceInput
+            {
+                Owner =  account.ConvertAddress(),
+                Symbol = "SHARE"
+            }).Balance;
+            
+            afterBalance.ShouldBe(beforeBalance + amount - fee);
+            afterVoteBalance.ShouldBe(beforeVoteBalance - amount);
+
+            return withdraw;
+        }
+
+                 public List<string> UserVoteWithTxIds(string account, string candidate, int lockTime, int times)
         {
             ElectionService.SetAccount(account);
             var list = new List<string>();
@@ -105,65 +146,6 @@ namespace AElf.Automation.EconomicSystemTest
 
             return result;
         }
-
-        #region TokenConverter Method
-
-        // action
-        public TransactionResultDto TokenConverterInitialize(string initAccount)
-        {
-            var ramConnector = new Connector
-            {
-                Symbol = "RAM",
-                IsPurchaseEnabled = true,
-                IsVirtualBalanceEnabled = false,
-                VirtualBalance = 0,
-                Weight = "0.5"
-            };
-            var cpuConnector = new Connector
-            {
-                Symbol = "CPU",
-                IsPurchaseEnabled = true,
-                IsVirtualBalanceEnabled = false,
-                VirtualBalance = 0,
-                Weight = "0.5"
-            };
-            var netConnector = new Connector
-            {
-                Symbol = "NET",
-                IsPurchaseEnabled = true,
-                IsVirtualBalanceEnabled = false,
-                VirtualBalance = 0,
-                Weight = "0.5"
-            };
-            var stoConnector = new Connector
-            {
-                Symbol = "DISK",
-                IsPurchaseEnabled = true,
-                IsVirtualBalanceEnabled = false,
-                VirtualBalance = 0,
-                Weight = "0.5"
-            };
-            var elfConnector = new Connector
-            {
-                Symbol = NodeOption.NativeTokenSymbol,
-                IsPurchaseEnabled = true,
-                IsVirtualBalanceEnabled = true,
-                VirtualBalance = 100_0000,
-                Weight = "0.5"
-            };
-
-            var result = TokenConverterService.ExecuteMethodWithResult(TokenConverterMethod.Initialize,
-                new InitializeInput
-                {
-                    BaseTokenSymbol = NodeOption.NativeTokenSymbol,
-                    FeeRate = "0.05",
-                    Connectors = {ramConnector, cpuConnector, netConnector, stoConnector, elfConnector}
-                });
-
-            return result;
-        }
-
-        #endregion
 
         #region Token Method
 

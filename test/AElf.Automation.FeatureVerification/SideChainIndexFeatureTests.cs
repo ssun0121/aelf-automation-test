@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Acs7;
+using AElf.Standards.ACS7;
 using AElf.Types;
 using AElfChain.Common;
 using AElfChain.Common.Contracts;
@@ -89,7 +89,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task<long> RechargeSideChain1(long amount)
         {
-            var transactionResult = await MainManager.CrossChainStub.Recharge.SendAsync(new RechargeInput
+            var transactionResult = await MainManager.CrossChainImplStub.Recharge.SendAsync(new RechargeInput
             {
                 ChainId = Side1Manager.ChainId,
                 Amount = amount
@@ -101,7 +101,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task<long> RechargeSideChain2(long amount)
         {
-            var transactionResult = await MainManager.CrossChainStub.Recharge.SendAsync(new RechargeInput
+            var transactionResult = await MainManager.CrossChainImplStub.Recharge.SendAsync(new RechargeInput
             {
                 ChainId = Side2Manager.ChainId,
                 Amount = amount

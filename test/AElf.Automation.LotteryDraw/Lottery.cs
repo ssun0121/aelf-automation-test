@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using AElf.Contracts.LotteryDemoContract;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
@@ -9,6 +10,7 @@ using AElfChain.Common;
 using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
+using AElfChain.Common.Managers;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Shouldly;
@@ -25,7 +27,11 @@ namespace AElf.Automation.LotteryTest
         public readonly string Password;
         public string LotteryContract;
         public Dictionary<string, int> RewardList;
-        
+        public bool OnlyDraw;
+        public bool OnlyBuy;
+        public int TestUserCount;
+        private int _userCount;
+
         public EnvironmentInfo EnvironmentInfo { get; set; }
         public readonly LotteryDemoContract LotteryService;
         public readonly LotteryDemoContractContainer.LotteryDemoContractStub LotteryStub;
@@ -35,8 +41,8 @@ namespace AElf.Automation.LotteryTest
 
         public Lottery(string rewards,string counts)
         {
-            GetRewardList(rewards, counts);
             GetConfig();
+            GetRewardList(rewards, counts);
             Owner = EnvironmentInfo.Owner;
             Password = EnvironmentInfo.Password;
             ContractServices = GetContractServices(LotteryContract);
@@ -64,15 +70,21 @@ namespace AElf.Automation.LotteryTest
             LotteryContract = config.LotteryContract;
             Symbol = config.TokenInfo.Symbol;
             Price = config.TokenInfo.Price;
-
+            OnlyDraw = config.OnlyDraw;
+            OnlyBuy = config.OnlyBuy;
+            TestUserCount = config.TestUserCount;
+            _userCount = config.UserCount;
+            
             var testEnvironment = config.TestEnvironment;
             EnvironmentInfo =
                 config.EnvironmentInfos.Find(o => o.Environment.Contains(testEnvironment));
             NodeInfoHelper.SetConfig(EnvironmentInfo.ConfigFile);
         }
-
+        
         private void GetRewardList(string rewards,string counts)
         {
+            if (OnlyBuy)
+                return;
             var rewardList = rewards.Split(",").ToList();
             var countList = counts.Split(",").ToList();
             try
@@ -81,7 +93,7 @@ namespace AElf.Automation.LotteryTest
             }
             catch (Exception e)
             {
-                Console.WriteLine("Please input correct reward list");
+                Console.WriteLine($"Please input correct reward list:{e.Message}");
                 throw;
             }
             
@@ -91,6 +103,44 @@ namespace AElf.Automation.LotteryTest
                 var c = int.Parse(countList[i]);
                 RewardList.Add(rewardList[i],c);
             }
+        }
+        
+        public void OnlyBuyJob(List<string> tester)
+        {
+            ExecuteStandaloneTask(new Action[]
+            {
+                () => CheckElfBalance(tester),
+                () => ApproveFirst(tester),
+                () => Buy_More(tester)
+            });
+        }
+
+        public List<string> GetTestAddress()
+        {
+            var nodeManager = ContractServices.NodeManager;
+            var nodesAccount = NodeInfoHelper.Config.Nodes.Select(l => l.Account).ToList();
+            var testUsers = nodeManager.ListAccounts().FindAll(a => !nodesAccount.Contains(a));
+
+            if (testUsers.Count >= _userCount)
+            {
+                var users = testUsers.Take(_userCount).ToList();
+                return users;
+            }
+            
+            var newAccounts = GenerateTestUsers(nodeManager, _userCount - testUsers.Count);
+            testUsers.AddRange(newAccounts);
+            foreach (var account in testUsers)
+                nodeManager.UnlockAccount(account);
+            return testUsers;
+        }
+
+        public List<string> TakeRandomUserAddress(int count, List<string> allUser)
+        {
+            if (allUser.Count <=count)
+                return allUser;
+            var numberList = CommonHelper.TakeRandomNumberList(count, 0, allUser.Count-1);
+            var randomList = numberList.Select(num => allUser[num]).ToList();
+            return randomList;
         }
 
         public void Buy()
@@ -139,16 +189,75 @@ namespace AElf.Automation.LotteryTest
             }
         }
 
+        private void ApproveFirst(IEnumerable<string> testers)
+        {
+            foreach (var sender in testers)
+            {
+                TokenService.SetAccount(sender);
+                var allowance = TokenService.GetAllowance(sender, LotteryService.ContractAddress, Symbol);
+                if (allowance < 10000_0000000)
+                {
+                    var approve = TokenService.ApproveToken(sender, LotteryService.ContractAddress,
+                        long.MaxValue - 10000_0000000, Symbol);
+                    approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                }
+                
+                var amount = 50;
+                var userBeforeBalance = TokenService.GetUserBalance(sender, Symbol);
+                if (userBeforeBalance < amount * Price * 15)
+                    TokenService.TransferBalance(Owner, sender, amount * Price * 15, Symbol);
+            }
+        }
+
+        private void CheckElfBalance(IEnumerable<string> testers)
+        {
+            foreach (var sender in testers)
+            {
+                TokenService.SetAccount(sender);
+                var userBeforeBalance = TokenService.GetUserBalance(sender);
+                if (userBeforeBalance < 10_00000000)
+                    TokenService.TransferBalance(Owner, sender, 100_00000000);
+            }
+        }
+
+        private void Buy_More(IEnumerable<string> testers)
+        {
+            var period = LotteryService.CallViewMethod<Int64Value>(LotteryDemoMethod.GetCurrentPeriodNumber, new Empty());
+                var txList = new List<string>();
+                foreach (var tester in testers)
+                {
+                    var testerAmount = LotteryService.CallViewMethod<Int64Value>(LotteryDemoMethod.GetBoughtLotteryCountInOnePeriod,
+                        new GetBoughtLotteryCountInOnePeriodInput
+                        {
+                            PeriodNumber = period.Value,
+                            Owner = tester.ConvertAddress()
+                        });
+                    if (testerAmount.Value >= 1000)
+                        continue;
+                    var amount = 1000 - testerAmount.Value > 50 ?  CommonHelper.GenerateRandomNumber(25, 50) : 1000 - testerAmount.Value;
+                    LotteryService.SetAccount(tester);
+                    var txId = LotteryService.ExecuteMethodWithTxId(LotteryDemoMethod.Buy, new Int64Value
+                    {
+                        Value = amount
+                    });
+                    txList.Add(txId);
+                    Logger.Info(tester);
+                }
+                LotteryService.NodeManager.CheckTransactionListResult(txList);
+        }
+
+
+
         public void Draw()
         {
             var amount = AsyncHelper.RunSync(()=> LotteryStub.GetMaximumBuyAmount.CallAsync(new Empty()));
             var period =  AsyncHelper.RunSync(()=> LotteryStub.GetCurrentPeriodNumber.CallAsync(new Empty()));
-            Logger.Info($"Before draw period number is :{period.Value}");            
-            
+            Logger.Info($"Before draw period number is :{period.Value}"); 
             LotteryService.SetAccount(Owner, Password);
+            SetRewardListForOnePeriod(period.Value);
+
             var result = LotteryService.ExecuteMethodWithResult(LotteryDemoMethod.PrepareDraw, new Empty());
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            SetRewardListForOnePeriod(period.Value);
             var block = result.BlockNumber;
             var currentBlock = AsyncHelper.RunSync(() => ContractServices.NodeManager.ApiClient.GetBlockHeightAsync());
             while (currentBlock < block + amount.Value)
@@ -191,7 +300,9 @@ namespace AElf.Automation.LotteryTest
                     new InitializeInput
                     {
                         TokenSymbol = Symbol,
-                        Price = Price
+                        Price = Price,
+                        StartTimestamp = DateTime.UtcNow.Add(TimeSpan.FromMinutes(10)).ToTimestamp(),
+                        ShutdownTimestamp = DateTime.UtcNow.Add(TimeSpan.FromDays(7)).ToTimestamp()
                     });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
@@ -205,11 +316,41 @@ namespace AElf.Automation.LotteryTest
                 Decimals = 8,
                 Issuer = Owner.ConvertAddress(),
                 IsBurnable = true,
-                IsProfitable = true,
                 TokenName = "LOT"
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             TokenService.IssueBalance(Owner, Owner, 10_00000000_00000000, Symbol);
+        }
+        
+        private List<string> GenerateTestUsers(INodeManager manager, int count)
+        {
+            var accounts = new List<string>();
+            Parallel.For(0, count, i =>
+            {
+                var account = manager.NewAccount();
+                accounts.Add(account);
+            });
+
+            return accounts;
+        }
+        
+        private void ExecuteStandaloneTask(IEnumerable<Action> actions, int sleepSeconds = 0,
+            bool interrupted = false)
+        {
+            foreach (var action in actions)
+                try
+                {
+                    action.Invoke();
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Execute action {action.Method.Name} got exception: {e.Message}", e);
+                    if (interrupted)
+                        break;
+                }
+
+            if (sleepSeconds != 0)
+                Thread.Sleep(1000 * sleepSeconds);
         }
     }
 }

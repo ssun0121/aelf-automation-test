@@ -1,11 +1,11 @@
 {
-  "TestEnvironment": "Offline1",
+  "TestEnvironment": "Offline2",
   "EnvironmentInfo": 
   [
     {
-      "Environment": "Offline1",
-      "ConfigFile": "nodes-env-single",
-      "Owner": "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6",
+      "Environment": "Offline2",
+      "ConfigFile": "nodes-env2-side1",
+      "Owner": "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK",
       "Password": 123
     },
     {
@@ -15,10 +15,13 @@
       "Password": 123
     }
   ],
-  "LotteryContract": "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS",
+  "LotteryContract": "2YkKkNZKCcsfUsGwCfJ6wyTx5NYLgpCg1stBuRT4z5ep3psXNG",
   "TokenInfo": 
   {      
     "Symbol":"LOT",
-    "Price" : 100000000000
-  }
+    "Price" : 10000000000
+  },
+  "OnlyDraw": false,
+  "UserCount": 10,
+  "TestUserCount": 10
 }

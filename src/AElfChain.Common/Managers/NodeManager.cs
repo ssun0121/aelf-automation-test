@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Acs0;
+using AElf.Standards.ACS0;
 using AElf;
 using AElf.Client.Dto;
 using AElf.Client.Service;
@@ -26,7 +26,14 @@ namespace AElfChain.Common.Managers
             _keyStore = AElfKeyStore.GetKeyStore(keyPath);
 
             ApiClient = AElfClientExtension.GetClient(baseUrl);
-            _chainId = GetChainId();
+            var check = AsyncHelper.RunSync(() => ApiClient.IsConnected());
+            if (!check)
+                Logger.Warn($"Url:{baseUrl} is not connected!");
+            else
+            {
+                _chainId = GetChainId();
+                Logger.Warn($"Url:{baseUrl} is connected");
+            }
         }
 
         public string GetApiUrl()
@@ -166,7 +173,7 @@ namespace AElfChain.Common.Managers
             var codeArray = contractReader.Read(filename);
             var input = new ContractDeploymentInput
             {
-                Category = KernelHelper.CodeCoverageRunnerCategory,
+                Category = KernelHelper.DefaultRunnerCategory,
                 Code = ByteString.CopyFrom(codeArray)
             };
 
@@ -263,7 +270,19 @@ namespace AElfChain.Common.Managers
             var notExist = 0;
             while (!compositeCancel.IsCancellationRequested)
             {
-                var transactionResult = AsyncHelper.RunSync(() => ApiClient.GetTransactionResultAsync(txId));
+                TransactionResultDto transactionResult;
+                try
+                {
+                    transactionResult = AsyncHelper.RunSync(() => ApiClient.GetTransactionResultAsync(txId));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    Thread.Sleep(10000);
+                    Logger.Info($"Check {txId} again:");
+                    transactionResult = AsyncHelper.RunSync(() => ApiClient.GetTransactionResultAsync(txId));
+                }
+
                 var status = transactionResult.Status.ConvertTransactionResultStatus();
                 string message;
                 string errorMsg;
@@ -272,7 +291,7 @@ namespace AElfChain.Common.Managers
                     case TransactionResultStatus.NodeValidationFailed:
                         message = $"Transaction {txId} status: {status}-[{transactionResult.GetTransactionFeeInfo()}]";
                         errorMsg = transactionResult.Error.Contains("\n")
-                            ? transactionResult.Error.Split("\n")[1]
+                            ? transactionResult.Error.Split("\n")[0]
                             : transactionResult.Error;
                         message += $"\r\nError Message: {errorMsg}";
                         Logger.Error(message, true);
@@ -293,7 +312,6 @@ namespace AElfChain.Common.Managers
                         Thread.Sleep(1000); //wait 1 second to wait set best chain
                         return transactionResult;
                     case TransactionResultStatus.Failed:
-                    case TransactionResultStatus.Unexecutable:
                         message = $"Transaction {txId} status: {status}-[{transactionResult.GetTransactionFeeInfo()}]";
                         message +=
                             $"\r\nMethodName: {transactionResult.Transaction.MethodName}, Parameter: {transactionResult.Transaction.Params}";
@@ -322,7 +340,18 @@ namespace AElfChain.Common.Managers
             while (transactionQueue.TryDequeue(out var transactionId))
             {
                 var id = transactionId;
-                var transactionResult = AsyncHelper.RunSync(() => ApiClient.GetTransactionResultAsync(id));
+                TransactionResultDto transactionResult;
+                try
+                {
+                    transactionResult = AsyncHelper.RunSync(() => ApiClient.GetTransactionResultAsync(id));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    Thread.Sleep(5000);
+                    Logger.Info($"Check {id} again:");
+                    transactionResult = AsyncHelper.RunSync(() => ApiClient.GetTransactionResultAsync(id));
+                }
                 var status = transactionResult.Status.ConvertTransactionResultStatus();
                 switch (status)
                 {
@@ -336,7 +365,7 @@ namespace AElfChain.Common.Managers
                         break;
                     case TransactionResultStatus.NodeValidationFailed:
                         Logger.Error(
-                            $"TransactionId: {id}, Method: {transactionResult.Transaction.MethodName}, Status: {status}. \nError: {transactionResult.Error}",
+                            $"TransactionId: {id}, Status: {status}. \nError: {transactionResult.Error}",
                             true);
                         break;
                     case TransactionResultStatus.Mined:
@@ -346,7 +375,7 @@ namespace AElfChain.Common.Managers
                         Thread.Sleep(500);
                         break;
                     case TransactionResultStatus.Failed:
-                    case TransactionResultStatus.Unexecutable:
+                    case TransactionResultStatus.Conflict:
                         Logger.Error(
                             $"TransactionId: {id}, Method: {transactionResult.Transaction.MethodName}, Status: {status}-[{transactionResult.GetTransactionFeeInfo()}]. \nError: {transactionResult.Error}",
                             true);

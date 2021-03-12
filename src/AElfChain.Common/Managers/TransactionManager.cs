@@ -51,6 +51,13 @@ namespace AElfChain.Common.Managers
             return tx;
         }
 
+        public Transaction SignTransactionFromPrivate(Transaction tx, string privateKey)
+        {
+            var txData = tx.GetHash().ToByteArray();
+            tx.Signature = SignFromPrivate(privateKey, txData);
+            return tx;
+        }
+
         public ByteString Sign(string addr, byte[] txData)
         {
             var kp = _keyStore.GetAccountKeyPair(addr);
@@ -60,6 +67,15 @@ namespace AElfChain.Common.Managers
                 Logger.Error($"The following account is locked: {addr}");
                 return null;
             }
+
+            // Sign the hash
+            var signature = CryptoHelper.SignWithPrivateKey(kp.PrivateKey, txData);
+            return ByteString.CopyFrom(signature);
+        }
+
+        public ByteString SignFromPrivate(string privateKey, byte[] txData)
+        {
+            var kp = _keyStore.GetAccountKeyPairFromPrivate(privateKey);
 
             // Sign the hash
             var signature = CryptoHelper.SignWithPrivateKey(kp.PrivateKey, txData);
@@ -82,8 +98,9 @@ namespace AElfChain.Common.Managers
 
         public static Transaction AddBlockReference(this Transaction transaction, string rpcAddress,
             string chainId = "AELF")
-        {if (_cachedHeight == default || (DateTime.Now - _refBlockTime).TotalSeconds > 60 ||
-                !_chainId.Equals(chainId)||_baseUrl !=rpcAddress)
+        {
+            if (_cachedHeight == default || (DateTime.Now - _refBlockTime).TotalSeconds > 10 ||
+                !_chainId.Equals(chainId) || _baseUrl != rpcAddress)
             {
                 _chainId = chainId;
                 (_cachedHeight, _cachedHash) = GetBlockReference(rpcAddress);

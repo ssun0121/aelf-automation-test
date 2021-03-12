@@ -5,7 +5,6 @@ namespace AElfChain.Common.Contracts
     public enum CentreAssertMethod
     {
         //Action
-        Hello,
         CreateHolder,
         RequestUpdateHolder,
         ApproveUpdateHolder,

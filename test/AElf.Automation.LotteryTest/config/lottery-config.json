@@ -1,0 +1,24 @@
+{
+  "Environment": 
+  {
+    "Url": "192.168.197.44:8001",
+    "InitAccount": "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK",
+    "Password": "123",
+    "Config": "nodes-env2-side1"
+  },
+  "ContractInfo": 
+  {
+    "LotteryContract": "2wRDbyVF28VBQoSPgdSEFaL4x7CaXz8TCBujYhgWc9qTMxBE3n",
+    "SellerAccount": "eFU9Quc8BsztYpEHKzbNtUpu9hGKgwGD2tyL13MqtFkbnAoCZ",
+    "VirtualAddress":"24u7ur6tDng687z9bfDx6XHziiWxQBhhgkWUW5oSzsMfrGW71w",
+    "Symbol": "LOT",
+    "Price": 200000000,
+    "CashDuration": 1,
+    "Bonus":100,
+    "ProfitsRate": 50
+  },
+  "OnlyDraw": false,
+  "OnlyBuy": true,
+  "UserCount": 30,
+  "TestUserCount": 10
+}

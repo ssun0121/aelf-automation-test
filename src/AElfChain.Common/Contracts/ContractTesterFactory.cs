@@ -7,7 +7,7 @@ namespace AElfChain.Common.Contracts
 {
     public interface IContractTesterFactory
     {
-        T Create<T>(Address contractAddress, string account, string password = "", bool notimeout = true)
+        T Create<T>(Address contractAddress, string account, string password = "",string privateKey = "", bool notimeout = true)
             where T : ContractStubBase, new();
 
         T Create<T>(Address contractAddress, ECKeyPair keyPair)
@@ -23,21 +23,35 @@ namespace AElfChain.Common.Contracts
             _nodeManager = nodeManager;
         }
 
-        public T Create<T>(Address contractAddress, string account, string password = "", bool notimeout = true)
+        public T Create<T>(Address contractAddress, string account, string password = "", string privateKey = "", bool notimeout = true)
             where T : ContractStubBase, new()
         {
             if (password == "")
                 password = NodeOption.DefaultPassword;
 
-            var factory = new MethodStubFactory(_nodeManager)
+            if (privateKey == "")
             {
-                SenderAddress = account,
-                Contract = contractAddress
-            };
+                var factory = new MethodStubFactory(_nodeManager)
+                {
+                    SenderAddress = account,
+                    Contract = contractAddress
+                };
 
-            _nodeManager.UnlockAccount(account, password);
+                _nodeManager.UnlockAccount(account, password);
 
-            return new T {__factory = factory};
+                return new T {__factory = factory};
+            }
+            else
+            {
+                var factory = new MethodStubFactory(_nodeManager,privateKey)
+                {
+                    SenderAddress = account,
+                    PrivateKeys = privateKey,
+                    Contract = contractAddress
+                };
+                
+                return new T {__factory = factory};
+            }
         }
 
         public T Create<T>(Address contractAddress, ECKeyPair keyPair)

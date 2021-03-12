@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Acs1;
-using Acs3;
+using AElf.Standards.ACS1;
+using AElf.Standards.ACS3;
 using AElf.Contracts.Association;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
@@ -23,7 +23,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
     [TestClass]
     public class AssociationAuthContractTest
     {
-        private static readonly ILog _logger = Log4NetHelper.GetLogger();
+        private static readonly ILog Logger = Log4NetHelper.GetLogger();
         private AssociationContract Association;
         private ContractManager ContractManager;
         private List<string> Miners;
@@ -33,8 +33,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public string ReviewAccount1 { get; } = "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6";
         public string ReviewAccount2 { get; } = "28qLVdGMokanMAp9GwfEqiWnzzNifh8LS9as6mzJFX1gQBB823";
         public string ReviewAccount3 { get; } = "eFU9Quc8BsztYpEHKzbNtUpu9hGKgwGD2tyL13MqtFkbnAoCZ";
+        public string NewMember { get; } = "h6CRCFAhyozJPwdFRd7i8A5zVAqy171AVty3uMQUQp1MB9AKa";
 
-        private static string RpcUrl { get; } = "http://192.168.197.14:8000";
+        private static string RpcUrl { get; } = "http://192.168.197.22:8000";
 
         [TestInitialize]
         public void Initialize()
@@ -43,7 +44,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             //Init Logger
             Log4NetHelper.LogInit("AssociationTest_");
-            NodeInfoHelper.SetConfig("nodes-env1-main");
+            NodeInfoHelper.SetConfig("nodes-env2-main");
 
             #endregion
 
@@ -51,9 +52,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
             ContractManager = new ContractManager(NodeManager, InitAccount);
             Association = ContractManager.Association;
             Miners = ContractManager.Authority.GetCurrentMiners();
-            ContractManager.Token.TransferBalance(InitAccount, ReviewAccount1, 1000_0000000, "ELF");
-            ContractManager.Token.TransferBalance(InitAccount, ReviewAccount2, 1000_0000000, "ELF");
-            ContractManager.Token.TransferBalance(InitAccount, ReviewAccount3, 1000_0000000, "ELF");
+        }
+
+        [TestMethod]
+        public void PrepareTest()
+        {
+            var token = ContractManager.Token;
+            token.TransferBalance(InitAccount, ReviewAccount1, 1000_0000000, "ELF");
+            token.TransferBalance(InitAccount, ReviewAccount2, 1000_0000000, "ELF");
+            token.TransferBalance(InitAccount, ReviewAccount3, 1000_0000000, "ELF");
+            token.TransferBalance(InitAccount, NewMember, 1000_0000000, "ELF");
         }
 
         [TestMethod]
@@ -74,19 +82,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
                         OrganizationMembers =
                         {
                             ReviewAccount1.ConvertAddress(), ReviewAccount2.ConvertAddress(),
-                            ReviewAccount3.ConvertAddress(), InitAccount.ConvertAddress()
+                            ReviewAccount3.ConvertAddress(),InitAccount.ConvertAddress()
                         }
                     },
                     ProposerWhiteList = new ProposerWhiteList
                     {
-                        Proposers = {InitAccount.ConvertAddress()}
-                    }
+                        Proposers = {InitAccount.ConvertAddress(),ReviewAccount2.ConvertAddress()}
+                    },
+                    CreationToken = HashHelper.ComputeFrom("ABC")
                 });
             var organizationAddress =
                 Address.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
-            _logger.Info($"organization address is : {organizationAddress}");
+            Logger.Info($"organization address is : {organizationAddress}");
             var fee = result.GetDefaultTransactionFee();
-            _logger.Info($"Transaction fee is {fee}");
+            Logger.Info($"Transaction fee is {fee}");
 
             var organization =
                 ContractManager.Association.CallViewMethod<Organization>(AssociationMethod.GetOrganization,
@@ -95,31 +104,33 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 .ShouldBeTrue();
             organization.ProposerWhiteList.Proposers.Contains(InitAccount.ConvertAddress()).ShouldBeTrue();
             organization.ProposalReleaseThreshold.MinimalVoteThreshold.ShouldBe(3);
-            ContractManager.Token.SetAccount(InitAccount);
-            var transfer = ContractManager.Token.ExecuteMethodWithResult(TokenMethod.Transfer, new TransferInput
-            {
-                Symbol = Symbol,
-                Amount = 1000,
-                Memo = "transfer to Organization",
-                To = organizationAddress
-            });
+            organization.CreationToken.ShouldBe(HashHelper.ComputeFrom("ABC"));
+//            ContractManager.Token.SetAccount(InitAccount);
+//            var transfer = ContractManager.Token.ExecuteMethodWithResult(TokenMethod.Transfer, new TransferInput
+//            {
+//                Symbol = Symbol,
+//                Amount = 1000,
+//                Memo = "transfer to Organization",
+//                To = organizationAddress
+//            });
         }
 
         [TestMethod]
-        [DataRow("2UicBDXQszyhSaimjj4sbqeMzEBMqLCx3vsjgR49WUyrcocZd9")]
+        [DataRow("hK7vZT8NsjLC6Jnt7Dq8urSvnaZ5SEyJK3cUZ6k8noXWav5cL")]
         public void GetOrganization(string organizationAddress)
         {
             var organization =
                 ContractManager.Association.CallViewMethod<Organization>(AssociationMethod.GetOrganization,
                     organizationAddress.ConvertAddress());
-            foreach (var member in organization.OrganizationMemberList.OrganizationMembers) _logger.Info($"{member}");
+            foreach (var member in organization.OrganizationMemberList.OrganizationMembers) Logger.Info($"{member}");
 
-            _logger.Info(
+            Logger.Info(
                 $"{organization.OrganizationAddress} maximal abstention threshold is {organization.ProposalReleaseThreshold.MaximalAbstentionThreshold}");
+            Logger.Info($"{organization}");
         }
 
         [TestMethod]
-        [DataRow("2UicBDXQszyhSaimjj4sbqeMzEBMqLCx3vsjgR49WUyrcocZd9")]
+        [DataRow("251FcF7xUDqf9Md6jdqiJA4BnQJ63M1FTX8XrtE36WpvZqmS8c")]
         public void CreateProposal(string organizationAddress)
         {
             var transferInput = new TransferInput
@@ -144,11 +155,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 ContractManager.Association.ExecuteMethodWithResult(AssociationMethod.CreateProposal,
                     createProposalInput);
             var proposal = Hash.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
-            _logger.Info($"Proposal is : {proposal}");
+            Logger.Info($"Proposal is : {proposal}");
         }
 
         [TestMethod]
-        [DataRow("913a971647aaaf121ee2e1d71c27c0f25eb8877b76e4994b9ec90600e4ae8e24")]
+        [DataRow("8b9bd67374186006aef1d4c443356865d6da6c7a5c6c5737747fe6103310e7bf")]
         public void GetProposal(string proposalId)
         {
             var result =
@@ -156,7 +167,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Hash.LoadFromHex(proposalId));
             var toBeRelease = result.ToBeReleased;
 
-            _logger.Info($"proposal is {toBeRelease}");
+            Logger.Info($"proposal is {toBeRelease}");
         }
 
         [TestMethod]
@@ -190,26 +201,26 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void GetBalance(string account)
         {
             var balance = ContractManager.Token.GetUserBalance(account, Symbol);
-            _logger.Info($"{account} balance is {balance}");
+            Logger.Info($"{account} balance is {balance}");
         }
 
         [TestMethod]
         public async Task GetMethodFeeController()
         {
-            var controller = await ContractManager.AssociationStub.GetMethodFeeController.CallAsync(new Empty());
-            _logger.Info($"{controller.ContractAddress} controller is {controller.OwnerAddress}");
+            var controller = await ContractManager.AssociationImplStub.GetMethodFeeController.CallAsync(new Empty());
+            Logger.Info($"{controller.ContractAddress} controller is {controller.OwnerAddress}");
         }
 
         [TestMethod]
         public async Task SetMethodFeeThroughDefaultController()
         {
-            var methodFee = await ContractManager.AssociationStub.GetMethodFee.CallAsync(new StringValue
+            var methodFee = await ContractManager.AssociationImplStub.GetMethodFee.CallAsync(new StringValue
             {
                 Value = nameof(AssociationMethod.CreateOrganization)
             });
             methodFee.ShouldBe(new MethodFees());
 
-            var controller = await ContractManager.AssociationStub.GetMethodFeeController.CallAsync(new Empty());
+            var controller = await ContractManager.AssociationImplStub.GetMethodFeeController.CallAsync(new Empty());
             var input = new MethodFees
             {
                 MethodName = nameof(AssociationMethod.CreateOrganization),
@@ -230,7 +241,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var release = ContractManager.Parliament.ReleaseProposal(createProposal, InitAccount);
             release.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            methodFee = await ContractManager.AssociationStub.GetMethodFee.CallAsync(new StringValue
+            methodFee = await ContractManager.AssociationImplStub.GetMethodFee.CallAsync(new StringValue
             {
                 Value = nameof(AssociationMethod.CreateOrganization)
             });
@@ -239,9 +250,57 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
+        public void ChangeMembers()
+        {
+            var organization = "hK7vZT8NsjLC6Jnt7Dq8urSvnaZ5SEyJK3cUZ6k8noXWav5cL";
+            var input = new ChangeMemberInput
+            {
+                NewMember = NewMember.ConvertAddress(),
+                OldMember = ReviewAccount1.ConvertAddress()
+            };
+            var createProposal = Association.CreateProposal(Association.ContractAddress,
+                nameof(AssociationMethod.ChangeMember), input, organization.ConvertAddress(), InitAccount);
+            
+            var reviewers = Association.GetOrganization(organization.ConvertAddress());
+            foreach (var member in reviewers.OrganizationMemberList.OrganizationMembers)
+                Association.ApproveProposal(createProposal,member.ToBase58());
+            
+            var release = Association.ReleaseProposal(createProposal, InitAccount);
+            release.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        public void AddMembers()
+        {
+            var organization = "hK7vZT8NsjLC6Jnt7Dq8urSvnaZ5SEyJK3cUZ6k8noXWav5cL";
+            var input = ReviewAccount1.ConvertAddress();
+            var createProposal = Association.CreateProposal(Association.ContractAddress,
+                nameof(AssociationMethod.AddMember), input, organization.ConvertAddress(), InitAccount);
+            var reviewers = Association.GetOrganization(organization.ConvertAddress());
+            foreach (var member in reviewers.OrganizationMemberList.OrganizationMembers)
+                Association.ApproveProposal(createProposal,member.ToBase58());
+            var release = Association.ReleaseProposal(createProposal, InitAccount);
+            release.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        public void RemoveMembers()
+        {
+            var organization = "hK7vZT8NsjLC6Jnt7Dq8urSvnaZ5SEyJK3cUZ6k8noXWav5cL";
+            var input = InitAccount.ConvertAddress();
+            var createProposal = Association.CreateProposal(Association.ContractAddress,
+                nameof(AssociationMethod.RemoveMember), input, organization.ConvertAddress(), InitAccount);
+            var reviewers = Association.GetOrganization(organization.ConvertAddress());
+            foreach (var member in reviewers.OrganizationMemberList.OrganizationMembers)
+                Association.ApproveProposal(createProposal,member.ToBase58());
+            var release = Association.ReleaseProposal(createProposal, InitAccount);
+            release.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
         public async Task ChangeMethodFeeController()
         {
-            var controller = await ContractManager.AssociationStub.GetMethodFeeController.CallAsync(new Empty());
+            var controller = await ContractManager.AssociationImplStub.GetMethodFeeController.CallAsync(new Empty());
             var input = new CreateOrganizationInput
             {
                 ProposalReleaseThreshold = new ProposalReleaseThreshold
@@ -277,7 +336,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             ContractManager.Parliament.MinersApproveProposal(createProposal, Miners);
             var release = ContractManager.Parliament.ReleaseProposal(createProposal, InitAccount);
             release.Status.ShouldBe(TransactionResultStatus.Mined);
-            controller = await ContractManager.AssociationStub.GetMethodFeeController.CallAsync(new Empty());
+            controller = await ContractManager.AssociationImplStub.GetMethodFeeController.CallAsync(new Empty());
             controller.ContractAddress.ShouldBe(associationContract.ConvertAddress());
             controller.OwnerAddress.ShouldBe(newController);
         }
@@ -285,13 +344,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task SetMethodFeeThroughNewController()
         {
-            var methodFee = await ContractManager.AssociationStub.GetMethodFee.CallAsync(new StringValue
+            var methodFee = await ContractManager.AssociationImplStub.GetMethodFee.CallAsync(new StringValue
             {
                 Value = nameof(AssociationMethod.CreateOrganization)
             });
             methodFee.Fees.Select(l => l.BasicFee).First().ShouldBe(10000000);
 
-            var controller = await ContractManager.AssociationStub.GetMethodFeeController.CallAsync(new Empty());
+            var controller = await ContractManager.AssociationImplStub.GetMethodFeeController.CallAsync(new Empty());
             var input = new MethodFees
             {
                 MethodName = nameof(AssociationMethod.CreateOrganization),
@@ -312,7 +371,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var release = ContractManager.Association.ReleaseProposal(createProposal, InitAccount);
             release.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            methodFee = await ContractManager.AssociationStub.GetMethodFee.CallAsync(new StringValue
+            methodFee = await ContractManager.AssociationImplStub.GetMethodFee.CallAsync(new StringValue
             {
                 Value = nameof(AssociationMethod.CreateOrganization)
             });
@@ -323,7 +382,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task ChangeMethodFeeControllerThroughOtherController()
         {
-            var controller = await ContractManager.AssociationStub.GetMethodFeeController.CallAsync(new Empty());
+            var controller = await ContractManager.AssociationImplStub.GetMethodFeeController.CallAsync(new Empty());
             var input = new CreateOrganizationInput
             {
                 ProposalReleaseThreshold = new ProposalReleaseThreshold
@@ -359,7 +418,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             ContractManager.Association.ApproveWithAssociation(createProposal, controller.OwnerAddress);
             var release = ContractManager.Association.ReleaseProposal(createProposal, InitAccount);
             release.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            controller = await ContractManager.AssociationStub.GetMethodFeeController.CallAsync(new Empty());
+            controller = await ContractManager.AssociationImplStub.GetMethodFeeController.CallAsync(new Empty());
             controller.ContractAddress.ShouldBe(associationContract.ConvertAddress());
             controller.OwnerAddress.ShouldBe(newController);
         }

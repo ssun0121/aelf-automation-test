@@ -35,7 +35,7 @@ namespace AElfChain.Common.Contracts
     public class LotteryContract : BaseContract<LotteryMethod>
     {
         public LotteryContract(INodeManager nodeManager, string callAddress) :
-            base(nodeManager, "AElf.Contracts.LotteryContract", callAddress)
+            base(nodeManager, "AElf.Contracts.LotteryContract-ssc", callAddress)
         {
         }
 

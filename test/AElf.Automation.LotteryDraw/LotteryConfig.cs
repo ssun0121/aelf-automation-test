@@ -25,6 +25,10 @@ namespace AElf.Automation.LotteryTest
         [JsonProperty("EnvironmentInfo")] public List<EnvironmentInfo> EnvironmentInfos { get; set; }
         [JsonProperty("LotteryContract")] public string LotteryContract { get; set; }
         [JsonProperty("TokenInfo")] public TokenInfo TokenInfo { get; set; }
+        [JsonProperty("OnlyDraw")] public bool OnlyDraw { get; set; }
+        [JsonProperty("OnlyBuy")] public bool OnlyBuy { get; set; }
+        [JsonProperty("UserCount")] public int UserCount { get; set; }
+        [JsonProperty("TestUserCount")] public int TestUserCount { get; set; }
     }
     
     public static class ConfigHelper

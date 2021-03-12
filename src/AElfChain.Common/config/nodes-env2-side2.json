@@ -3,7 +3,7 @@
     "Nodes": [
         {
             "name": "bp1",
-            "endpoint": "192.168.197.21:8002",
+            "endpoint": "192.168.197.60:8002",
             "account": "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK",
             "password": "123"
         },
@@ -27,7 +27,7 @@
         },
         {
             "name": "full1",
-            "endpoint": "192.168.197.22:8002",
+            "endpoint": "192.168.197.11:8002",
             "account": "2ZYyxEH6j8zAyJjef6Spa99Jx2zf5GbFktyAQEBPWLCvuSAn8D",
             "password": "123"
         },
@@ -39,13 +39,13 @@
         },
         {
             "name": "full3",
-            "endpoint": "192.168.197.37:8002",
+            "endpoint": "192.168.197.22:8002",
             "account": "2V2UjHQGH8WT4TWnzebxnzo9uVboo67ZFbLjzJNTLrervAxnws",
             "password": "123"
         },
         {
             "name": "full4",
-            "endpoint": "192.168.197.47:8002",
+            "endpoint": "192.168.197.13:8002",
             "account": "EKRtNn3WGvFSTDewFH81S7TisUzs9wPyP4gCwTww32waYWtLB",
             "password": "123"
         },

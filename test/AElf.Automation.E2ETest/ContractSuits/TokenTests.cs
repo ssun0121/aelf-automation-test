@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Acs1;
+using AElf.Standards.ACS1;
 using AElf.Contracts.MultiToken;
 using AElf.Contracts.TokenConverter;
 using AElf.Types;
@@ -190,13 +190,14 @@ namespace AElf.Automation.E2ETest.ContractSuits
             var afterTokenInfo = ContractManager.Token.GetTokenInfo(nativeSymbol);
 
             beforeBalance.ShouldBe(afterBalance + burnAmount + txFee);
-            afterTokenInfo.Burned.ShouldBeGreaterThanOrEqualTo(beforeTokenInfo.Burned + burnAmount);
+            afterTokenInfo.Issued.ShouldBe(beforeTokenInfo.Issued);
+            afterTokenInfo.Supply.ShouldBeLessThan(beforeTokenInfo.Supply - burnAmount);
         }
 
         [TestMethod]
         public async Task SetAndGetMethodFee_Test()
         {
-            const string method = nameof(TokenMethod.GetBalance);
+            const string method = nameof(TokenMethod.Transfer);
             var releaseResult = ContractManager.Authority.ExecuteTransactionWithAuthority(
                 ContractManager.Token.ContractAddress,
                 "SetMethodFee", new MethodFees
@@ -233,14 +234,31 @@ namespace AElf.Automation.E2ETest.ContractSuits
             });
             buyResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
             var beforeCpu = ContractManager.Token.GetUserBalance(ContractManager.CallAddress, "CPU");
-            var getBalanceResult = await ContractManager.TokenStub.GetBalance.SendAsync(new GetBalanceInput
+            var transferResult = await ContractManager.TokenStub.Transfer.SendAsync(new TransferInput
             {
-                Owner = ContractManager.CallAccount,
-                Symbol = "CPU"
+                Symbol = "ELF",
+                To = AssociationOrganization,
+                Amount = 1000
             });
-            getBalanceResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            transferResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
             var afterCpu = ContractManager.Token.GetUserBalance(ContractManager.CallAddress, "CPU");
             beforeCpu.ShouldBe(afterCpu + 5000_0000);
+            
+            var recoverReleaseResult = ContractManager.Authority.ExecuteTransactionWithAuthority(
+                ContractManager.Token.ContractAddress,
+                "SetMethodFee", new MethodFees
+                {
+                    MethodName = method,
+                    Fees = { }
+                }, ContractManager.CallAddress);
+            recoverReleaseResult.Status.ShouldBe(TransactionResultStatus.Mined);
+
+            var recoverMethodFee =
+                ContractManager.Token.CallViewMethod<MethodFees>(TokenMethod.GetMethodFee, new StringValue
+                {
+                    Value = method
+                });
+            recoverMethodFee.MethodName.ShouldBe(method);
         }
 
         [TestMethod]
@@ -250,7 +268,7 @@ namespace AElf.Automation.E2ETest.ContractSuits
             var referendum = ContractManager.Referendum;
             var authorityManager = new AuthorityManager(NodeManager);
             var defaultController =
-                await ContractManager.ParliamentAuthStub.GetMethodFeeController.CallAsync(new Empty());
+                await ContractManager.ParliamentContractImplStub.GetMethodFeeController.CallAsync(new Empty());
             defaultController.ContractAddress.ShouldBe(ContractManager.Parliament.Contract);
             var newOrganization = ReferendumOrganization;
             var proposer = referendum.GetOrganization(newOrganization).ProposerWhiteList.Proposers.First();
@@ -368,7 +386,7 @@ namespace AElf.Automation.E2ETest.ContractSuits
             resourceInfos.Value.ShouldAllBe(o => o.Decimals == 8);
 
             var economicContract =
-                await ContractManager.GenesisStub.GetContractAddressByName.CallAsync(
+                await ContractManager.GenesisImplStub.GetContractAddressByName.CallAsync(
                     HashHelper.ComputeFrom("AElf.ContractNames.Economic"));
             resourceInfos.Value.ShouldAllBe(o => o.Issuer == economicContract);
         }
@@ -378,7 +396,7 @@ namespace AElf.Automation.E2ETest.ContractSuits
         {
             var chainId = NodeManager.GetChainId();
             var hash = HashHelper.ComputeFrom("AElf.ContractNames.Economic");
-            var economicContract = await ContractManager.GenesisStub.GetContractAddressByName.CallAsync(hash);
+            var economicContract = await ContractManager.GenesisImplStub.GetContractAddressByName.CallAsync(hash);
             var resourceSymbols = new[] {"CPU", "RAM", "DISK", "NET", "WRITE", "READ", "STORAGE", "TRAFFIC"};
             foreach (var symbol in resourceSymbols)
             {
@@ -388,7 +406,6 @@ namespace AElf.Automation.E2ETest.ContractSuits
                 tokenInfo.Decimals.ShouldBe(8);
                 tokenInfo.Issuer.ShouldBe(economicContract);
                 tokenInfo.IsBurnable.ShouldBeTrue();
-                tokenInfo.IsProfitable.ShouldBeTrue();
                 tokenInfo.IssueChainId.ShouldBe(ChainHelper.ConvertBase58ToChainId(chainId));
             }
         }

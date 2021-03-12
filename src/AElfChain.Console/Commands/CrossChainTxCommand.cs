@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Acs0;
+using AElf.Standards.ACS0;
 using AElf;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
@@ -13,6 +13,8 @@ using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
+using Microsoft.VisualBasic.CompilerServices;
 using Sharprompt;
 using Shouldly;
 using Volo.Abp.Threading;
@@ -74,6 +76,12 @@ namespace AElfChain.Console.Commands
                     case "Transfer[Side-Main]":
                         AsyncHelper.RunSync(TransferSide2Main);
                         break;
+                    case "CheckIndex[Main-Side]":
+                        AsyncHelper.RunSync(CheckIndexMainToSide);
+                        break;
+                    case "CheckIndex[Side-Main]":
+                        AsyncHelper.RunSync(CheckIndexSideToMain);
+                        break;
                     case "Exit":
                         quitCommand = true;
                         break;
@@ -102,7 +110,7 @@ namespace AElfChain.Console.Commands
 
         private async Task MainChainRegisterSideChain()
         {
-            var transactionResult = await SideContract.GenesisStub.ValidateSystemContractAddress.SendAsync(
+            var transactionResult = await SideContract.GenesisImplStub.ValidateSystemContractAddress.SendAsync(
                 new ValidateSystemContractAddressInput
                 {
                     Address = SideContract.Token.Contract,
@@ -137,7 +145,7 @@ namespace AElfChain.Console.Commands
 
         private async Task SideChainRegisterMainChain()
         {
-            var transactionResult = await MainContract.GenesisStub.ValidateSystemContractAddress.SendAsync(
+            var transactionResult = await MainContract.GenesisImplStub.ValidateSystemContractAddress.SendAsync(
                 new ValidateSystemContractAddressInput
                 {
                     Address = MainContract.Token.Contract,
@@ -194,7 +202,6 @@ namespace AElfChain.Console.Commands
                     Decimals = mainToken.Decimals,
                     Issuer = mainToken.Issuer,
                     IsBurnable = mainToken.IsBurnable,
-                    IsProfitable = mainToken.IsProfitable,
                     IssueChainId = mainToken.IssueChainId,
                     Symbol = mainToken.Symbol,
                     TokenName = mainToken.TokenName,
@@ -254,7 +261,6 @@ namespace AElfChain.Console.Commands
                         Decimals = mainToken.Decimals,
                         Issuer = mainToken.Issuer,
                         IsBurnable = mainToken.IsBurnable,
-                        IsProfitable = mainToken.IsProfitable,
                         IssueChainId = mainToken.IssueChainId,
                         Symbol = mainToken.Symbol,
                         TokenName = mainToken.TokenName,
@@ -390,6 +396,20 @@ namespace AElfChain.Console.Commands
             Logger.Info($"{to} {symbol} balance: {beforeBalance} => {afterBalance}");
         }
 
+        private async Task CheckIndexMainToSide()
+        {
+            var sideChainId = SideContract.ChainId;
+            var index = await MainContract.CrossChainStub.GetSideChainHeight.CallAsync(new Int32Value{Value = sideChainId});
+            Logger.Info($"Main chain index side chain {sideChainId} {index}");
+        }
+        
+        private async Task CheckIndexSideToMain()
+        {
+            var sideChainId = SideContract.ChainId;
+            var index = await SideContract.CrossChainStub.GetParentChainHeight.CallAsync(new Empty());
+            Logger.Info($"Side chain {sideChainId} index main chain {index}");
+        }
+
         private IEnumerable<string> GetSubCommands()
         {
             return new List<string>
@@ -400,6 +420,8 @@ namespace AElfChain.Console.Commands
                 "CreateTokens[Side]",
                 "Transfer[Main-Side]",
                 "Transfer[Side-Main]",
+                "CheckIndex[Main-Side]",
+                "CheckIndex[Side-Main]",
                 "Exit"
             };
         }

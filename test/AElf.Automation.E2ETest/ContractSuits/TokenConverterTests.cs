@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
-using Acs1;
-using Acs3;
+using AElf.Standards.ACS1;
+using AElf.Standards.ACS3;
 using AElf.Contracts.MultiToken;
 using AElf.Contracts.Parliament;
 using AElf.Contracts.TokenConverter;
@@ -160,8 +160,8 @@ namespace AElf.Automation.E2ETest.ContractSuits
         public async Task GetFeeReceiverAddress_Test()
         {
             var feeReceiverAddress =
-                await ContractManager.TokenconverterStub.GetFeeReceiverAddress.CallAsync(new Empty());
-            feeReceiverAddress.ShouldBe(ContractManager.Treasury.Contract);
+                await ContractManager.TokenImplStub.GetFeeReceiver.CallAsync(new Empty());
+            feeReceiverAddress.ShouldBe(new Address());
         }
 
         [TestMethod]

@@ -10,6 +10,7 @@ using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
 using Google.Protobuf;
 using log4net;
+using Virgil.Crypto;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Threading;
 
@@ -24,8 +25,15 @@ namespace AElfChain.Common.Contracts
             NodeManager = nodeManager;
         }
 
+        public MethodStubFactory(INodeManager nodeManager, string privateKeys)
+        {
+            NodeManager = nodeManager;
+            PrivateKeys = privateKeys;
+        }
+
         public Address Contract { private get; set; }
         public string SenderAddress { private get; set; }
+        public string PrivateKeys { get; set; }
         public Address Sender => SenderAddress.ConvertAddress();
         public INodeManager NodeManager { get; }
         public AElfClient ApiClient => NodeManager.ApiClient;
@@ -43,7 +51,9 @@ namespace AElfChain.Common.Contracts
                     Params = ByteString.CopyFrom(method.RequestMarshaller.Serializer(input))
                 };
                 transaction.AddBlockReference(NodeManager.GetApiUrl(), NodeManager.GetChainId());
-                transaction = NodeManager.TransactionManager.SignTransaction(transaction);
+                transaction = PrivateKeys != null
+                    ? NodeManager.TransactionManager.SignTransactionFromPrivate(transaction, PrivateKeys)
+                    : NodeManager.TransactionManager.SignTransaction(transaction);
 
                 TransactionResultStatus status;
                 var txExist = CheckTransactionExisted(transaction, out var resultDto);

@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Acs0;
-using Acs1;
-using Acs3;
+using AElf.Standards.ACS0;
+using AElf.Standards.ACS3;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
 using AElfChain.Common.Contracts;
@@ -35,9 +34,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public static string Member { get; } = "2frDVeV6VxUozNqcFbgoxruyqCRAuSyXyfCaov6bYWc7Gkxkh2";
         public static string OtherAccount { get; } = "W4xEKTZcvPKXRAmdu9xEpM69ArF7gUxDh9MDgtsKnu7JfePXo";
         public List<string> Members;
-        private static string MainRpcUrl { get; } = "http://192.168.197.14:8000";
-        private static string SideRpcUrl { get; } = "http://192.168.197.14:8001";
-        private static string SideRpcUrl2 { get; } = "http://192.168.197.14:8002";
+        private static string MainRpcUrl { get; } = "http://192.168.197.60:8000";
+        private static string SideRpcUrl { get; } = "http://192.168.197.60:8001";
+        private static string SideRpcUrl2 { get; } = "http://192.168.197.60:8002";
         private string Type { get; } = "Main";
 
         [TestInitialize]
@@ -47,7 +46,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             //Init Logger
             Log4NetHelper.LogInit("ContractTest_");
-            NodeInfoHelper.SetConfig("nodes-env1-main");
+            NodeInfoHelper.SetConfig("nodes-env2-main");
 
             #endregion
 
@@ -152,7 +151,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public async Task ProposalDeploy_MinerProposalContract_Success_stub()
         {
-            var genesis = MainManager.GenesisStub;
+            var genesis = MainManager.GenesisImplStub;
             var input = ContractDeploymentInput("AElf.Contracts.MultiToken");
             var result = await genesis.ProposeNewContract.SendAsync(input);
             var size = result.Transaction.CalculateSize();
@@ -285,8 +284,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var byteString =
                 ByteString.FromBase64(release.Logs.First(l => l.Name.Contains(nameof(ContractDeployed))).NonIndexed);
             var deployAddress = ContractDeployed.Parser.ParseFrom(byteString).Address;
-            var author = Tester.GenesisService.GetContractAuthor(deployAddress);
-            Logger.Info($"{deployAddress};{author}");
+            var byteStringIndexed =
+                ByteString.FromBase64(release.Logs.First(l => l.Name.Contains(nameof(ContractDeployed))).Indexed.First());
+            var author = ContractDeployed.Parser.ParseFrom(byteStringIndexed).Author;
+            Logger.Info($"{deployAddress}, {author}");
         }
 
         [TestMethod]

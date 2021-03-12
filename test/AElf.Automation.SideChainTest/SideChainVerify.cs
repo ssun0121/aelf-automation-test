@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Acs1;
-using Acs3;
-using Acs7;
+using AElf.Standards.ACS3;
+using AElf.Standards.ACS7;
 using AElf.Client.Dto;
 using AElf.Contracts.Consensus.AEDPoS;
 using AElf.Contracts.MultiToken;
@@ -16,6 +15,8 @@ using AElfChain.Common.Managers;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shouldly;
 using Volo.Abp.Threading;
 
@@ -33,7 +34,7 @@ namespace AElf.Automation.SideChainTests
         [TestMethod]
         public void GetResourceTokenOnSideChain()
         {
-            var symbols = new[] {"CPU", "NET", "DISK", "RAM", "READ", "WRITE", "STORAGE", "TRAFFIC"};
+            var symbols = new[] {"CPU", "NET", "DISK", "RAM", "READ", "WRITE", "STORAGE", "TRAFFIC", "SHARE"};
             foreach (var sideService in SideServices)
             foreach (var symbol in symbols)
             {
@@ -41,41 +42,38 @@ namespace AElf.Automation.SideChainTests
                 var info = sideService.TokenService.GetTokenInfo(symbol);
                 Logger.Info($"{symbol}:");
                 info.Symbol.ShouldBe(infoOnMain.Symbol);
-                info.Burned.ShouldBe(infoOnMain.Burned);
                 info.Decimals.ShouldBe(infoOnMain.Decimals);
                 info.IssueChainId.ShouldBe(infoOnMain.IssueChainId);
                 info.Issuer.ShouldBe(infoOnMain.Issuer);
 //                    info.Supply.ShouldBe(infoOnMain.Supply);
                 info.TotalSupply.ShouldBe(infoOnMain.TotalSupply);
                 info.IsBurnable.ShouldBe(infoOnMain.IsBurnable);
-                info.IsProfitable.ShouldBe(infoOnMain.IsProfitable);
             }
         }
 
         [TestMethod]
         public void GetSideChainBalance()
         {
-            var balance1 =
-                MainServices.CrossChainService.GetSideChainBalance(ChainHelper.ConvertBase58ToChainId("tDVV"));
-            var balance2 =
-                MainServices.CrossChainService.GetSideChainBalance(ChainHelper.ConvertBase58ToChainId("tDVW"));
-            Logger.Info($"chain tDVV {balance1}\n chain tDVW {balance2}");
+            foreach (var service in SideServices)
+            {
+                var balance1 =
+                    MainServices.CrossChainService.GetSideChainBalance(service.ChainId);
+           
+                Logger.Info($"chain {service.ChainId} balance: {balance1}\n ");
+            }
         }
 
         [TestMethod]
         public void GetSideChainIndex()
         {
-            var index1 =
-                MainServices.CrossChainService.GetSideChainHeight(ChainHelper.ConvertBase58ToChainId("tDVV"));
-            var index2 =
-                MainServices.CrossChainService.GetSideChainHeight(ChainHelper.ConvertBase58ToChainId("tDVW"));
-            Logger.Info($"chain tDVV {index1}\n chain tDVW {index2}");
-
-            var index3 =
-                SideAServices.CrossChainService.GetParentChainHeight();
-            var index4 =
-                SideBServices.CrossChainService.GetParentChainHeight();
-            Logger.Info($"chain tDVV index main chain {index3}\n chain tDVW index main chain {index4}");
+            foreach (var service in SideServices)
+            {
+                var mainIndex =
+                    MainServices.CrossChainService.GetSideChainHeight(service.ChainId);
+                var sideIndex = service.CrossChainService.GetParentChainHeight();
+                Logger.Info($"Main chain index side {service.ChainId}: {mainIndex}\n" +
+                            $"Side chain index main:{sideIndex}");
+            }
         }
 
         [TestMethod]
@@ -88,35 +86,37 @@ namespace AElf.Automation.SideChainTests
             Logger.Info($"chain tDVW index fee debt {indexingFeeDebt.Value}");
         }
 
+        [TestMethod]
+        public void CheckTokenInfo()
+        {
+            var symbol = "TEST";
+            var mainInfo = MainServices.TokenService.GetTokenInfo(symbol);
+            Logger.Info(mainInfo);
+            foreach (var sideService in SideServices)
+            {
+                var sideInfo = sideService.TokenService.GetTokenInfo(symbol);
+                Logger.Info(sideInfo);
+            }
+        }
+
         #region register
         
         [TestMethod]
         public void CheckRegister()
         {
-            var mainAddress = MainServices.TokenService.CallViewMethod<Address>(
-                TokenMethod.GetCrossChainTransferTokenContractAddress,
-                new GetCrossChainTransferTokenContractAddressInput
-                {
-                    ChainId = SideAServices.ChainId
-                });
-            var sideTokenAddress =
-                SideAServices.TokenService.Contract;
-            if (mainAddress.Equals(sideTokenAddress))
-                Logger.Info($"{MainServices.ChainId} already register {mainAddress}.");
-
-            var mainTokenAddress = MainServices.TokenService.Contract;
-            var sideAddress =
-                SideAServices.TokenService.CallViewMethod<Address>(
+            foreach (var service in SideServices)
+            {
+                var mainAddress = MainServices.TokenService.CallViewMethod<Address>(
                     TokenMethod.GetCrossChainTransferTokenContractAddress,
                     new GetCrossChainTransferTokenContractAddressInput
                     {
-                        ChainId = MainServices.ChainId
+                        ChainId = service.ChainId
                     });
-            if (sideAddress.Equals(mainTokenAddress))
-                Logger.Info($"{SideAServices.ChainId} already register {sideAddress}.");
-
-            var balance = SideAServices.TokenService.GetUserBalance(InitAccount);
-            Logger.Info($"{balance}.");
+                var sideTokenAddress =
+                    service.TokenService.Contract;
+                if (sideTokenAddress.Equals(mainAddress))
+                    Logger.Info($"{MainServices.ChainId} already register {mainAddress}.");
+            }
         }
 
         [TestMethod]
@@ -128,7 +128,6 @@ namespace AElf.Automation.SideChainTests
             }
         }
 
-        [TestMethod]
         public async Task MainChainRegisterSideChain(ContractServices services)
         {
             var rawTx = ValidateTokenAddress(services);
@@ -166,6 +165,7 @@ namespace AElf.Automation.SideChainTests
         [TestMethod]
         public void SideChainRegisterMainChain()
         {
+            var service = SideServices.First();
             var rawTx = ValidateTokenAddress(MainServices);
             var txId = ExecuteMethodWithTxId(MainServices, rawTx);
             var txResult = MainServices.NodeManager.CheckTransactionResult(txId);
@@ -177,7 +177,7 @@ namespace AElf.Automation.SideChainTests
             Logger.Info(
                 $"Validate chain {MainServices.ChainId} token address {MainServices.TokenService.ContractAddress}");
 
-            while (txResult.BlockNumber > GetIndexParentHeight(SideAServices))
+            while (txResult.BlockNumber > GetIndexParentHeight(service))
             {
                 Logger.Info("Block is not recorded ");
                 Thread.Sleep(10000);
@@ -192,38 +192,39 @@ namespace AElf.Automation.SideChainTests
                 FromChainId = MainServices.ChainId,
                 ParentChainHeight = txResult.BlockNumber,
                 TokenContractAddress =
-                    SideAServices.TokenService.Contract,
+                    service.TokenService.Contract,
                 TransactionBytes = ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(rawTx)),
                 MerklePath = merklePath
             };
 
-            Proposal(SideAServices, registerInput);
+            Proposal(service, registerInput);
             Logger.Info(
-                $"Chain {SideAServices.ChainId} register Main chain token address {MainServices.TokenService.ContractAddress}");
+                $"Chain {service.ChainId} register Main chain token address {MainServices.TokenService.ContractAddress}");
         }
 
         [TestMethod]
         public async Task ChangeCrossChainTokenContractRegistrationController()
         {
-            var tokenImplStub = SideAServices.TokenImplContractStub;
+            var service = SideServices.First();
+            var tokenImplStub = service.TokenImplContractStub;
             var controller =
                 await tokenImplStub.GetCrossChainTokenContractRegistrationController.CallAsync(new Empty());
             var newController = SideAuthorityManager.CreateAssociationOrganization(Members);
             var changeInput = new AuthorityInfo
             {
-                ContractAddress = SideAServices.AssociationService.Contract,
+                ContractAddress = service.AssociationService.Contract,
                 OwnerAddress = newController
             };
-            var authorityManager = new AuthorityManager(SideAServices.NodeManager);
+            var authorityManager = new AuthorityManager(service.NodeManager);
             var changeProposal = authorityManager.ExecuteTransactionWithAuthority(
-                SideAServices.TokenService.ContractAddress,
+                service.TokenService.ContractAddress,
                 nameof(TokenContractImplContainer.TokenContractImplStub
                     .ChangeCrossChainTokenContractRegistrationController), changeInput, InitAccount,
                 controller.OwnerAddress);
             changeProposal.Status.ShouldBe(TransactionResultStatus.Mined);
             var updateController =
                 await tokenImplStub.GetCrossChainTokenContractRegistrationController.CallAsync(new Empty());
-            updateController.ContractAddress.ShouldBe(SideAServices.AssociationService.Contract);
+            updateController.ContractAddress.ShouldBe(service.AssociationService.Contract);
             updateController.OwnerAddress.ShouldBe(newController);
 
             //register 
@@ -238,7 +239,7 @@ namespace AElf.Automation.SideChainTests
             Logger.Info(
                 $"Validate chain {MainServices.ChainId} token address {MainServices.TokenService.ContractAddress}");
 
-            while (txResult.BlockNumber > GetIndexParentHeight(SideAServices))
+            while (txResult.BlockNumber > GetIndexParentHeight(service))
             {
                 Logger.Info("Block is not recorded ");
                 Thread.Sleep(10000);
@@ -252,25 +253,25 @@ namespace AElf.Automation.SideChainTests
                 FromChainId = MainServices.ChainId,
                 ParentChainHeight = txResult.BlockNumber,
                 TokenContractAddress =
-                    SideAServices.TokenService.Contract,
+                    service.TokenService.Contract,
                 TransactionBytes = ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(rawTx)),
                 MerklePath = merklePath
             };
 
             //create proposal
-            var proposer = SideAServices.AssociationService.GetOrganization(newController).ProposerWhiteList.Proposers
+            var proposer = service.AssociationService.GetOrganization(newController).ProposerWhiteList.Proposers
                 .First();
-            SideAServices.TokenService.TransferBalance(InitAccount, proposer.ToBase58(), 5000_000000000);
+            service.TokenService.TransferBalance(InitAccount, proposer.ToBase58(), 5000_000000000);
             var createProposalResult =
-                SideAServices.AssociationService.CreateProposal(SideAServices.TokenService.ContractAddress,
+                service.AssociationService.CreateProposal(service.TokenService.ContractAddress,
                     nameof(TokenMethod.RegisterCrossChainTokenContractAddress), registerInput, newController,
                     proposer.ToBase58());
-            SideAServices.AssociationService.ApproveWithAssociation(createProposalResult, newController);
-            var release = SideAServices.AssociationService.ReleaseProposal(createProposalResult, proposer.ToBase58());
+            service.AssociationService.ApproveWithAssociation(createProposalResult, newController);
+            var release = service.AssociationService.ReleaseProposal(createProposalResult, proposer.ToBase58());
             release.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             Logger.Info(
-                $"Main chain register chain {SideAServices.ChainId} token address {SideAServices.TokenService.ContractAddress}");
+                $"Main chain register chain {service.ChainId} token address {service.TokenService.ContractAddress}");
 
             //recover
             var recoverInput = new AuthorityInfo
@@ -279,13 +280,13 @@ namespace AElf.Automation.SideChainTests
                 OwnerAddress = controller.OwnerAddress
             };
             var recoverProposalResult =
-                SideAServices.AssociationService.CreateProposal(SideAServices.TokenService.ContractAddress,
+                service.AssociationService.CreateProposal(service.TokenService.ContractAddress,
                     nameof(TokenContractImplContainer.TokenContractImplStub
                         .ChangeCrossChainTokenContractRegistrationController), recoverInput, newController,
                     proposer.ToBase58());
-            SideAServices.AssociationService.ApproveWithAssociation(recoverProposalResult, newController);
+            service.AssociationService.ApproveWithAssociation(recoverProposalResult, newController);
             var recoverRelease =
-                SideAServices.AssociationService.ReleaseProposal(recoverProposalResult, proposer.ToBase58());
+                service.AssociationService.ReleaseProposal(recoverProposalResult, proposer.ToBase58());
             recoverRelease.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             var recoverController =
@@ -297,30 +298,33 @@ namespace AElf.Automation.SideChainTests
         [TestMethod]
         public async Task SideChain1RegisterSideChain2()
         {
-            var rawTx = ValidateTokenAddress(SideAServices);
-            var txId = ExecuteMethodWithTxId(SideAServices, rawTx);
-            var txResult = SideAServices.NodeManager.CheckTransactionResult(txId);
+            var service = SideServices.First();
+            var registerService = SideServices.Last();
+            
+            var rawTx = ValidateTokenAddress(service);
+            var txId = ExecuteMethodWithTxId(service, rawTx);
+            var txResult = service.NodeManager.CheckTransactionResult(txId);
 
             if (txResult.Status.ConvertTransactionResultStatus() != TransactionResultStatus.Mined)
                 Assert.IsTrue(false,
-                    $"Validate chain {SideAServices.ChainId} token contract failed");
+                    $"Validate chain {service.ChainId} token contract failed");
             Logger.Info($"Validate Transaction block: {txResult.BlockNumber}, rawTx: {rawTx}, txId:{txId}");
             Logger.Info(
-                $"Validate chain {SideAServices.ChainId} token address {SideAServices.TokenService.ContractAddress}");
+                $"Validate chain {service.ChainId} token address {service.TokenService.ContractAddress}");
 
-            var mainHeight = await MainChainCheckSideChainBlockIndex(SideAServices, txResult.BlockNumber);
+            var mainHeight = await MainChainCheckSideChainBlockIndex(service, txResult.BlockNumber);
             var crossChainMerkleProofContextA =
-                GetBoundParentChainHeightAndMerklePathByHeight(SideAServices, InitAccount, txResult.BlockNumber);
+                GetBoundParentChainHeightAndMerklePathByHeight(service, InitAccount, txResult.BlockNumber);
             var sideChainMerklePathA =
-                GetMerklePath(txResult.BlockNumber, txId, SideAServices, out var root);
+                GetMerklePath(txResult.BlockNumber, txId, service, out var root);
             if (sideChainMerklePathA == null)
                 Assert.IsTrue(false, "Can't get the merkle path.");
             var sideChainRegisterInputA = new RegisterCrossChainTokenContractAddressInput
             {
-                FromChainId = SideAServices.ChainId,
+                FromChainId = service.ChainId,
                 ParentChainHeight = crossChainMerkleProofContextA.BoundParentChainHeight,
                 TokenContractAddress =
-                    SideAServices.TokenService.Contract,
+                    service.TokenService.Contract,
                 TransactionBytes = ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(rawTx)),
                 MerklePath = sideChainMerklePathA
             };
@@ -328,15 +332,15 @@ namespace AElf.Automation.SideChainTests
                 .MerklePathFromParentChain
                 .MerklePathNodes);
 
-            while (mainHeight > GetIndexParentHeight(SideBServices))
+            while (mainHeight > GetIndexParentHeight(registerService))
             {
                 Logger.Info("Block is not recorded ");
                 await Task.Delay(10000);
             }
 
-            Proposal(SideBServices, sideChainRegisterInputA);
+            Proposal(registerService, sideChainRegisterInputA);
             Logger.Info(
-                $"Chain {SideBServices.ChainId} register chain {SideAServices.ChainId} token address {SideAServices.TokenService.ContractAddress}");
+                $"Chain {registerService.ChainId} register chain {service.ChainId} token address {service.TokenService.ContractAddress}");
         }
 
         #endregion
@@ -346,28 +350,30 @@ namespace AElf.Automation.SideChainTests
         [TestMethod]
         public void MainChainCrossChainTransferSideChainResourceToken()
         {
-            foreach (var service in SideServices) MainChainCrossChainTransferSideChain(service);
+            foreach (var service in SideServices)
+                MainChainCrossChainTransferSideChain(service);
         }
 
         public void MainChainCrossChainTransferSideChain(ContractServices sideService)
         {
             var symbols = new[] {"ELF"};
+            var account = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
+            var toAccount = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
             var txInfos = new Dictionary<TransactionResultDto, string>();
             foreach (var symbol in symbols)
             {
-                var beforeBalance = MainServices.TokenService.GetUserBalance(InitAccount, symbol);
-                Logger.Info($"balance: {beforeBalance}");
+                var tokenInfo = MainServices.TokenService.GetTokenInfo(symbol);
                 var crossChainTransferInput = new CrossChainTransferInput
                 {
                     Symbol = symbol,
-                    IssueChainId = MainServices.ChainId,
+                    IssueChainId = tokenInfo.IssueChainId,
                     Amount = 100000_00000000,
                     Memo = "cross chain transfer",
-                    To = InitAccount.ConvertAddress(),
+                    To = toAccount.ConvertAddress(),
                     ToChainId = sideService.ChainId
                 };
                 // execute cross chain transfer
-                var rawTx = MainServices.NodeManager.GenerateRawTransaction(InitAccount,
+                var rawTx = MainServices.NodeManager.GenerateRawTransaction(account,
                     MainServices.TokenService.ContractAddress, TokenMethod.CrossChainTransfer.ToString(),
                     crossChainTransferInput);
                 Logger.Info($"Transaction rawTx is: {rawTx}");
@@ -379,12 +385,24 @@ namespace AElf.Automation.SideChainTests
                 Logger.Info(
                     $"Cross chain Transaction block: {txResult.BlockNumber}, rawTx: {rawTx}, txId:{txId} to chain {sideService.ChainId}");
                 txInfos.Add(txResult, rawTx);
+
+                var afterTokenInfo = MainServices.TokenService.GetTokenInfo(symbol);
+//                afterTokenInfo.Supply.ShouldBe(tokenInfo.Supply - amount);
+                Logger.Info($"issued : {afterTokenInfo.Issued}" +
+                            $"supply: {afterTokenInfo.Supply}" +
+                            $"{afterTokenInfo}");
             }
 
             while (txInfos.Last().Key.BlockNumber > GetIndexParentHeight(sideService))
             {
                 Logger.Info("Block is not recorded ");
                 Thread.Sleep(10000);
+            }
+
+            foreach (var symbol in symbols)
+            {
+                var tokenInfo = MainServices.TokenService.GetTokenInfo(symbol);
+                Logger.Info($"before receive : {tokenInfo}");
             }
 
             foreach (var txInfo in txInfos)
@@ -400,22 +418,100 @@ namespace AElf.Automation.SideChainTests
                 crossChainReceiveToken.TransferTransactionBytes =
                     ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(txInfo.Value));
 
-                var result = CrossChainReceive(sideService, InitAccount, crossChainReceiveToken);
+                var result = CrossChainReceive(sideService, account, crossChainReceiveToken);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }
 
             foreach (var symbol in symbols)
             {
                 //verify
-                var balance = GetBalance(sideService, InitAccount, symbol);
+                var balance = GetBalance(sideService, toAccount, symbol);
                 Logger.Info($"balance: {balance}");
+                var tokenInfo = sideService.TokenService.GetTokenInfo(symbol);
+                Logger.Info($"after receive : {tokenInfo}");
             }
         }
+        
+        [TestMethod]
+        public void SideChainReceive()
+        {
+            var symbol = "ELF";
+            var sideService = SideServices.First();
+
+            var txId = "32c17bbed1a1fc7a0d2a2282b1c367283c7a5f15d2c243b61dc67e7c3653d74a";
+            var txResult = MainServices.NodeManager.CheckTransactionResult(txId);
+            // get transaction info            
+            var status = txResult.Status.ConvertTransactionResultStatus();
+            var rawTx = GenerateRawTransaction(txResult.Transaction.From, txResult.Transaction.To,
+                txResult.Transaction.MethodName, txResult.Transaction.RefBlockNumber,
+                txResult.Transaction.RefBlockPrefix, txResult.Transaction.Signature, txResult.Transaction.Params);
+            Logger.Info($"Transaction rawTx is: {rawTx}");
+            status.ShouldBe(TransactionResultStatus.Mined);
+            Logger.Info(
+                $"Cross chain Transaction block: {txResult.BlockNumber}, rawTx: {rawTx}, txId:{txId} to chain {sideService.ChainId}");
+
+            var merklePath = GetMerklePath(txResult.BlockNumber, txId, MainServices,
+                out var root);
+            var crossChainReceiveToken = new CrossChainReceiveTokenInput
+            {
+                FromChainId = MainServices.ChainId,
+                ParentChainHeight = txResult.BlockNumber,
+                MerklePath = merklePath
+            };
+            crossChainReceiveToken.TransferTransactionBytes =
+                ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(rawTx));
+
+            var account = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
+            var password = "123";
+            var result = CrossChainReceive(sideService, account, crossChainReceiveToken,password);
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            //verify
+            var balance = GetBalance(sideService, account, symbol);
+            Logger.Info($"balance: {balance}");
+            var tokenInfo = sideService.TokenService.GetTokenInfo(symbol);
+            Logger.Info($"after receive : {tokenInfo}");
+        }
+        
+        private string GenerateRawTransaction(string from, string to, string methodName,
+            long refBlockNumber, string refBlockPrefix, string sign, string param)
+        {
+            var tr = new Transaction
+            {
+                From = from.ConvertAddress(),
+                To = to.ConvertAddress(),
+                MethodName = methodName
+            };
+
+            if (tr.MethodName == null)
+            {
+                Logger.Error("Method not found.");
+                return string.Empty;
+            }
+            var inputParam = (JObject)JsonConvert.DeserializeObject(param);
+
+            var input = new CrossChainTransferInput
+            {
+                To = inputParam["to"].ToString().ConvertAddress(),
+                Symbol = inputParam["symbol"].ToString(),
+                Amount = long.Parse(inputParam["amount"].ToString()),
+                ToChainId = 1866392,
+                IssueChainId = 9992731
+            };
+
+            tr.Params = input.ToByteString();
+            tr.RefBlockNumber = refBlockNumber;
+            tr.RefBlockPrefix = ByteString.FromBase64(refBlockPrefix);
+            tr.Signature = ByteString.FromBase64(sign);
+
+            return tr.ToByteArray().ToHex();
+        }
+        
 
         [TestMethod]
         public async Task AllSideChainTransferToMainChain()
         {
-            foreach (var service in SideServices) await SideChainCrossChainTransferMainChain(service, 1_00000000);
+            foreach (var service in SideServices) await SideChainCrossChainTransferMainChain(service, 10_00000000);
         }
 
         public async Task SideChainCrossChainTransferMainChain(ContractServices services, long amount)
@@ -445,8 +541,11 @@ namespace AElf.Automation.SideChainTests
             // get transaction info            
             var status = txResult.Status.ConvertTransactionResultStatus();
             status.ShouldBe(TransactionResultStatus.Mined);
+            var fee = txResult.GetDefaultTransactionFee();
             Logger.Info(
                 $"Cross chain Transaction block: {txResult.BlockNumber}, rawTx: {rawTx}, txId:{txId} to chain {MainServices.ChainId}");
+            var afterSymbolInfo = services.TokenService.GetTokenInfo(symbol);
+            afterSymbolInfo.Supply.ShouldBe(symbolInfo.Supply - amount - fee);
 
             await MainChainCheckSideChainBlockIndex(services, txResult.BlockNumber);
             var merklePath = GetMerklePath(txResult.BlockNumber, txId, services, out var root);
@@ -464,69 +563,75 @@ namespace AElf.Automation.SideChainTests
             crossChainReceiveToken.TransferTransactionBytes =
                 ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(rawTx));
 
+            var mainInfo = MainServices.TokenService.GetTokenInfo(symbol);
             var result = CrossChainReceive(MainServices, InitAccount, crossChainReceiveToken);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             //verify
             var balance = GetBalance(MainServices, InitAccount, symbol);
             Logger.Info($"account {InitAccount}, {symbol} balance: {balance}");
+            var afterMainInfo = MainServices.TokenService.GetTokenInfo(symbol);
+            afterMainInfo.Issued.ShouldBe(mainInfo.Issued);
+            afterMainInfo.Supply.ShouldBe(mainInfo.Supply + amount);
         }
 
         [TestMethod]
         public async Task SideChainACrossChainTransferSideChainB()
         {
+            var service = SideServices.First();
+            var toService = SideServices.Last();
             //Transfer
             var crossChainTransferInput = new CrossChainTransferInput
             {
-                Symbol = "STA",
-                IssueChainId = SideAServices.ChainId,
-                Amount = 1000,
+                Symbol = "TEST",
+                IssueChainId = MainServices.ChainId,
+                Amount = 100_00000000,
                 Memo = "cross chain transfer",
                 To = InitAccount.ConvertAddress(),
-                ToChainId = SideBServices.ChainId
+                ToChainId = toService.ChainId
             };
             // execute cross chain transfer
-            var rawTx = SideAServices.NodeManager.GenerateRawTransaction(InitAccount,
-                SideAServices.TokenService.ContractAddress,
+            var rawTx = service.NodeManager.GenerateRawTransaction(InitAccount,
+                service.TokenService.ContractAddress,
                 TokenMethod.CrossChainTransfer.ToString(),
                 crossChainTransferInput);
             Logger.Info($"Transaction rawTx is: {rawTx}");
-            var txId = ExecuteMethodWithTxId(SideAServices, rawTx);
-            var txResult = SideAServices.NodeManager.CheckTransactionResult(txId);
+            var txId = ExecuteMethodWithTxId(service, rawTx);
+            var txResult = service.NodeManager.CheckTransactionResult(txId);
             // get transaction info            
             var status = txResult.Status.ConvertTransactionResultStatus();
             status.ShouldBe(TransactionResultStatus.Mined);
 
             Logger.Info(
-                $"Cross chain Transaction block: {txResult.BlockNumber}, rawTx: {rawTx}, txId:{txId} to chain {SideAServices.ChainId}");
+                $"Cross chain Transaction block: {txResult.BlockNumber}, rawTx: {rawTx}, txId:{txId} to chain {service.ChainId}");
 
-            var mainHeight = await MainChainCheckSideChainBlockIndex(SideAServices, txResult.BlockNumber);
-            var merklePath = GetMerklePath(txResult.BlockNumber, txId, SideAServices,
+            var mainHeight = await MainChainCheckSideChainBlockIndex(service, txResult.BlockNumber);
+            var merklePath = GetMerklePath(txResult.BlockNumber, txId, service,
                 out var root);
 
             var crossChainReceiveToken = new CrossChainReceiveTokenInput
             {
-                FromChainId = SideAServices.ChainId,
+                FromChainId = service.ChainId,
                 MerklePath = merklePath
             };
             var crossChainMerkleProofContext =
-                SideAServices.CrossChainService.GetCrossChainMerkleProofContext(txResult.BlockNumber);
+                service.CrossChainService.GetCrossChainMerkleProofContext(txResult.BlockNumber);
             crossChainReceiveToken.MerklePath.MerklePathNodes.AddRange(crossChainMerkleProofContext
                 .MerklePathFromParentChain.MerklePathNodes);
             crossChainReceiveToken.ParentChainHeight = crossChainMerkleProofContext.BoundParentChainHeight;
             crossChainReceiveToken.TransferTransactionBytes =
                 ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(rawTx));
 
-            while (mainHeight > GetIndexParentHeight(SideBServices))
+            while (mainHeight > GetIndexParentHeight(toService))
             {
                 Logger.Info("Block is not recorded ");
                 await Task.Delay(10000);
             }
 
-            var result = CrossChainReceive(SideBServices, InitAccount, crossChainReceiveToken);
+            var result = CrossChainReceive(toService, InitAccount, crossChainReceiveToken);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             //verify
-            var balance = GetBalance(SideBServices, InitAccount, "STA");
+            var balance = GetBalance(toService, InitAccount, "ABC");
             Logger.Info($"balance: {balance}");
         }
 
@@ -560,7 +665,6 @@ namespace AElf.Automation.SideChainTests
                 Issuer = tokenInfo.Issuer,
                 IsBurnable = tokenInfo.IsBurnable,
                 IssueChainId = tokenInfo.IssueChainId,
-                IsProfitable = tokenInfo.IsProfitable,
                 Symbol = tokenInfo.Symbol,
                 TokenName = tokenInfo.TokenName,
                 TotalSupply = tokenInfo.TotalSupply
@@ -600,67 +704,34 @@ namespace AElf.Automation.SideChainTests
         }
 
         [TestMethod]
-        public async Task ValidatePrimaryTokenSymbol()
+        public async Task ValidTokenSymbol()
         {
-            var rawTx = await ValidateTokenSymbol(SideAServices, SideAServices.TokenService
-                .GetPrimaryTokenSymbol());
-            var txId = ExecuteMethodWithTxId(SideAServices, rawTx);
-            var txResult = SideAServices.NodeManager.CheckTransactionResult(txId);
-            if (txResult.Status.ConvertTransactionResultStatus() != TransactionResultStatus.Mined)
-                Assert.IsTrue(false,
-                    $"Validate chain {SideAServices.ChainId} token symbol failed");
-            var mainHeight = await MainChainCheckSideChainBlockIndex(SideAServices, txResult.BlockNumber);
-
-            var merklePath = GetMerklePath(txResult.BlockNumber, txResult.TransactionId, SideAServices, out var root);
-            if (merklePath == null)
-                Assert.IsTrue(false, "Can't get the merkle path.");
-            var createInput = new CrossChainCreateTokenInput
-            {
-                FromChainId = SideAServices.ChainId,
-                MerklePath = merklePath,
-                TransactionBytes = ByteString.CopyFrom(ByteArrayHelper.HexStringToByteArray(rawTx))
-            };
-
-            var crossChainMerkleProofContext =
-                SideAServices.CrossChainService.GetCrossChainMerkleProofContext(txResult.BlockNumber);
-            createInput.MerklePath.MerklePathNodes.AddRange(crossChainMerkleProofContext
-                .MerklePathFromParentChain.MerklePathNodes);
-            createInput.ParentChainHeight = crossChainMerkleProofContext.BoundParentChainHeight;
-
-            while (mainHeight > GetIndexParentHeight(SideBServices))
-            {
-                Logger.Info("Block is not recorded ");
-                await Task.Delay(10000);
-            }
-
-            var createResult =
-                SideBServices.TokenService.ExecuteMethodWithResult(TokenMethod.CrossChainCreateToken,
-                    createInput);
-            createResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var sideBTokenInfo = SideBServices.TokenService.CallViewMethod<TokenInfo>(TokenMethod.GetTokenInfo,
-                new GetTokenInfoInput {Symbol = SideAServices.TokenService.GetPrimaryTokenSymbol()});
-            sideBTokenInfo.Symbol.ShouldBe(SideAServices.TokenService.GetPrimaryTokenSymbol());
-        }
-
-        [TestMethod]
-        public async Task ValidShareToken()
-        {
+            var symbol = "SHARE";
             var stub = MainServices.TokenImplContractStub;
-            var symbols = new[] {"LOT"};
+            var tokenInfo = await stub.GetTokenInfo.CallAsync(new GetTokenInfoInput
+                {Symbol = symbol});
+            var validateService = new List<ContractServices>();
+            foreach (var side in SideServices)
+            {
+                var validateStub = side.TokenContractStub;
+                var validateTokenInfo = await validateStub.GetTokenInfo.CallAsync(new GetTokenInfoInput
+                    {Symbol = symbol});
+                if (validateTokenInfo.Equals(new TokenInfo()))
+                    validateService.Add(side);
+            }
 
             foreach (var symbol in symbols)
             {
-                var tokenInfo = await stub.GetTokenInfo.CallAsync(new GetTokenInfoInput
-                    {Symbol = symbol});
-                var validateService = new List<ContractServices>();
-                foreach (var side in SideServices)
-                {
-                    var validateStub = side.TokenContractStub;
-                    var validateTokenInfo = await validateStub.GetTokenInfo.CallAsync(new GetTokenInfoInput
-                        {Symbol = symbol});
-                    if (validateTokenInfo.Equals(new TokenInfo()))
-                        validateService.Add(side);
-                }
+                Decimals = tokenInfo.Decimals,
+                Issuer = tokenInfo.Issuer,
+                IsBurnable = tokenInfo.IsBurnable,
+                IssueChainId = tokenInfo.IssueChainId,
+                Symbol = tokenInfo.Symbol,
+                TokenName = tokenInfo.TokenName,
+                TotalSupply = tokenInfo.TotalSupply
+            });
+            result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
+            Logger.Info($"{result.TransactionResult.BlockNumber},{result.TransactionResult.TransactionId}");
 
                 var result = await stub.ValidateTokenInfoExists.SendAsync(new ValidateTokenInfoExistsInput
                 {
@@ -696,14 +767,9 @@ namespace AElf.Automation.SideChainTests
 
                     var validateStub = validate.TokenContractStub;
 
-                    var createResult =
-                        await validateStub.CrossChainCreateToken.SendAsync(crossChainCrossToken);
-                    createResult.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
-
-                    var validateTokenInfo = await validateStub.GetTokenInfo.CallAsync(new GetTokenInfoInput
-                        {Symbol = symbol});
-                    validateTokenInfo.Symbol.ShouldBe(symbol);
-                }
+                var validateTokenInfo = await validateStub.GetTokenInfo.CallAsync(new GetTokenInfoInput
+                    {Symbol = symbol});
+                validateTokenInfo.Symbol.ShouldBe(symbol);
             }
         }
 
@@ -712,18 +778,51 @@ namespace AElf.Automation.SideChainTests
         [TestMethod]
         public void SideChainVerifyMainChain()
         {
-            var block = AsyncHelper.RunSync(() => MainServices.NodeManager.ApiClient.GetBlockByHeightAsync(100));
+            var service = SideServices.First();
+            var block = AsyncHelper.RunSync(() => MainServices.NodeManager.ApiClient.GetBlockByHeightAsync(10000));
             var transaction = AsyncHelper.RunSync(() =>
                 MainServices.NodeManager.ApiClient.GetTransactionResultsAsync(block.BlockHash)).First();
             var verifyInput =
                 GetMainChainTransactionVerificationInput(transaction.BlockNumber, transaction.TransactionId);
-            var result = SideAServices.CrossChainService.CallViewMethod<BoolValue>(
+            var result = service.CrossChainService.CallViewMethod<BoolValue>(
                 CrossChainContractMethod.VerifyTransaction, verifyInput).Value;
             result.ShouldBeTrue();
         }
 
+        [TestMethod]
+        public void MainChainVerifySideChain()
+        {
+            var service = SideServices.Last();
+            var block = AsyncHelper.RunSync(() => service.NodeManager.ApiClient.GetBlockByHeightAsync(8385));
+            var transactions = AsyncHelper.RunSync(() =>
+                service.NodeManager.ApiClient.GetTransactionResultsAsync(block.BlockHash));
+
+            foreach (var transaction in transactions)
+            {
+                var merklePath = GetMerklePath(transaction.BlockNumber, transaction.TransactionId, service,
+                    out var root);
+                var verifyInput = new VerifyTransactionInput
+                {
+                    TransactionId = Hash.LoadFromHex(transaction.TransactionId),
+                    VerifiedChainId = service.ChainId,
+                    Path = merklePath
+                };
+                // verify side chain transaction
+                var crossChainMerkleProofContext =
+                    service.CrossChainService.GetCrossChainMerkleProofContext(transaction.BlockNumber);
+                verifyInput.Path.MerklePathNodes.AddRange(crossChainMerkleProofContext
+                    .MerklePathFromParentChain.MerklePathNodes);
+                verifyInput.ParentChainHeight = crossChainMerkleProofContext.BoundParentChainHeight;
+
+                var result = MainServices.CrossChainService.CallViewMethod<BoolValue>(
+                    CrossChainContractMethod.VerifyTransaction, verifyInput).Value;
+                result.ShouldBeTrue();
+            }
+        }
+
+
         #region private
-        
+
         private async Task<long> MainChainCheckSideChainBlockIndex(ContractServices servicesFrom,
             long txHeight)
         {
