@@ -76,13 +76,12 @@ namespace AElfChain.Common.Managers
         public ECKeyPair GetAccountKeyPair(string address)
         {
             var kp = _unlockedAccounts.FirstOrDefault(oa => oa.AccountName == address)?.KeyPair;
-            if (kp == null)
-            {
-                AsyncHelper.RunSync(() => UnlockAccountAsync(address, NodeOption.DefaultPassword));
-                kp = _unlockedAccounts.FirstOrDefault(oa => oa.AccountName == address)?.KeyPair;
-            }
-
-            return kp;
+                if (kp == null)
+                {
+                    AsyncHelper.RunSync(() => UnlockAccountAsync(address, NodeOption.DefaultPassword,false));
+                    kp = _unlockedAccounts.FirstOrDefault(oa => oa.AccountName == address)?.KeyPair;
+                }
+                return kp;
         }
         
         public ECKeyPair GetAccountKeyPairFromPrivate(string priKey)
@@ -140,7 +139,7 @@ namespace AElfChain.Common.Managers
                 var t = new Timer(LockAccount, unlockedAccount, timeoutToClose.Value, timeoutToClose.Value);
                 unlockedAccount.LockTimer = t;
             }
-
+            
             _unlockedAccounts.Add(unlockedAccount);
         }
 
