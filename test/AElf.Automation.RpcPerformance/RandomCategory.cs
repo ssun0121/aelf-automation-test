@@ -45,6 +45,7 @@ namespace AElf.Automation.RpcPerformance
             BaseUrl = baseUrl.Contains("http://") ? baseUrl : $"http://{baseUrl}";
             TransactionGroup = transactionGroup;
             Duration = duration;
+            txInfos = new Dictionary<long, List<long>>();
         }
 
         public void InitExecCommand()
@@ -61,8 +62,8 @@ namespace AElf.Automation.RpcPerformance
             UnlockAllAccounts();
             // Task.Run(() => UnlockAllAccounts());
             //Init other services
-            Summary = new ExecutionSummary(NodeManager);
             Monitor = new NodeStatusMonitor(NodeManager);
+            Summary = new ExecutionSummary(NodeManager);
         }
 
         public void DeployContracts()
@@ -235,8 +236,16 @@ namespace AElf.Automation.RpcPerformance
             var token = cts.Token;
             var taskList = new List<Task>
             {
-                Task.Run(() => Summary.ContinuousCheckTransactionPerformance(token), token),
                 Task.Run(() => GeneratedTransaction(useTxs, cts, token), token),
+                Task.Run(() =>
+                    {
+                        while (true)
+                        {
+                            Summary.ContinuousCheckTransactionPerformance(token, txInfos);
+                            Thread.Sleep(60000);
+                        }
+                    }
+                , token)
             };
 
             Task.WaitAll(taskList.ToArray<Task>());
@@ -287,6 +296,7 @@ namespace AElf.Automation.RpcPerformance
                     //set random tx sending each round
                     var stopwatch = new Stopwatch();
                     stopwatch.Start();
+                    var txsTasks = new List<long>();
 
                     try
                     {
@@ -294,16 +304,12 @@ namespace AElf.Automation.RpcPerformance
                         if (useTxs)
                         {
                             //multi task for SendTransactions query
-                            var txsTasks = new List<Task>();
-
                             for (var i = 0; i < ThreadCount; i++)
                             {
                                 var j = i;
-                                txsTasks.Add(Task.Run(() => ExecuteBatchTransactionTask(j, TransactionGroup), token));
+                                txsTasks.Add(Task.Run(() => ExecuteBatchTransactionTask(j, TransactionGroup), token).Result);
 //                                Task.Run(() => ExecuteBatchTransactionTask(j, exeTimes), token);
                             }
-
-                            Task.WaitAll(txsTasks.ToArray<Task>());
                         }
                     }
                     catch (AggregateException exception)
@@ -318,10 +324,10 @@ namespace AElf.Automation.RpcPerformance
                         Logger.Error(message);
                     }
 
+                    txInfos[r] = txsTasks;
                     stopwatch.Stop();
                     var createTxsTime = stopwatch.ElapsedMilliseconds;
                     TransactionSentPerSecond(ThreadCount * ExeTimes, createTxsTime);
-
                     Monitor.CheckNodeHeightStatus(); //random mode, don't check node height
                     Thread.Sleep(Duration);
                 }
@@ -342,7 +348,8 @@ namespace AElf.Automation.RpcPerformance
             var result = tx * 1000 / time;
 
             Logger.Info(
-                $"Summary analyze: Total request {transactionCount} transactions in {time / 1000:0.000} seconds, average {result:0.00} txs/second.");
+                $"Summary analyze: \n" +
+                $"Total request {transactionCount} transactions in {time / 1000:0.000} seconds, average {result:0.00} txs/second.");
         }
 
         private void UnlockAllAccounts()
@@ -363,7 +370,7 @@ namespace AElf.Automation.RpcPerformance
             }
         }
 
-        private void ExecuteBatchTransactionTask(int threadNo, int times)
+        private long ExecuteBatchTransactionTask(int threadNo, int times)
         {
             var account = ContractList[threadNo].Owner;
             var contractPath = ContractList[threadNo].ContractAddress;
@@ -403,11 +410,11 @@ namespace AElf.Automation.RpcPerformance
             var rawTransactions = string.Join(",", rawTransactionList);
             var transactions = NodeManager.SendTransactions(rawTransactions);
             stopwatch.Stop();
-
             var requestTxsTime = stopwatch.ElapsedMilliseconds;
             Logger.Info(
                 $"Thread {threadNo}-{ContractList[threadNo].Symbol} request transactions: " +
-                $"{ExeTimes}, create time: {createTxsTime}ms, request time: {requestTxsTime}ms.");
+                $"{ExeTimes}, create time: {createTxsTime}ms, request {ExeTimes} txs time: {requestTxsTime}ms.");
+            return requestTxsTime;
         }
 
         private (string, string) GetTransferPair(int times)
@@ -423,6 +430,7 @@ namespace AElf.Automation.RpcPerformance
         public INodeManager NodeManager { get; private set; }
         public AElfClient ApiClient => NodeManager.ApiClient;
         public AuthorityManager AuthorityManager { get; set; }
+        public Dictionary<long, List<long>> txInfos { get; set; }
         private ExecutionSummary Summary { get; set; }
         private NodeStatusMonitor Monitor { get; set; }
         private TesterTokenMonitor TokenMonitor { get; set; }

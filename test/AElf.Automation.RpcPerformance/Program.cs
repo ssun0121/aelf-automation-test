@@ -2,9 +2,7 @@
 using System.Threading;
 using AElfChain.Common;
 using AElfChain.Common.Helpers;
-using AElfChain.Common.Managers;
 using log4net;
-using McMaster.Extensions.CommandLineUtils;
 using Shouldly;
 
 namespace AElf.Automation.RpcPerformance
@@ -22,18 +20,17 @@ namespace AElf.Automation.RpcPerformance
             Log4NetHelper.LogInit(fileName);
             Logger = Log4NetHelper.GetLogger();
 
-            var transactionType = RpcConfig.ReadInformation.RandomSenderTransaction;
+            var transactionType = RpcConfig.ReadInformation.RandomContract;
             var performance = transactionType
-                ? (IPerformanceCategory) new RandomCategory(GroupCount, TransactionCount, RpcUrl,TransactionGroup,Duration)
-                : new ExecutionCategory(GroupCount, TransactionCount, RpcUrl,TransactionGroup, Duration);
-
+                ? (IPerformanceCategory) new ExecutionCategory(GroupCount, TransactionCount, RpcUrl, TransactionGroup,
+                    Duration) : new RandomCategory(GroupCount, TransactionCount, RpcUrl, TransactionGroup, Duration);
             //Execute transaction command
             try
             {
                 performance.InitExecCommand();
                 performance.DeployContracts();
                 performance.InitializeMainContracts(); 
-                Thread.Sleep(60000);
+                //Thread.Sleep(60000);
                 ExecuteTransactionPerformanceTask(performance);
             }
             catch (TimeoutException e)

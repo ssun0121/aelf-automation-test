@@ -17,7 +17,7 @@ namespace AElf.Automation.RpcPerformance
 
 
         [JsonProperty("RandomSenderTransaction")]
-        public bool RandomSenderTransaction { get; set; }
+        public bool RandomContract { get; set; }
 
         [JsonProperty("ContractAddress")] public string ContractAddress { get; set; }
         [JsonProperty("TokenList")] public List<string> TokenList { get; set; }

@@ -1,11 +1,11 @@
 {
-    "GroupCount": 5,
+    "GroupCount": 1,
     "TransactionGroup": 10,
     "TransactionCount":100,
     "ServiceUrl": "3.112.235.128:8000",
     "Timeout": 300,
-    "RandomSenderTransaction": true,
-    "Duration": 1000,
+    "RandomContract": true,
+    "Duration": 4000,
     "ContractAddress": "",
     "TokenList": []
 }
