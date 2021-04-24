@@ -92,9 +92,9 @@ namespace AElf.Automation.RpcPerformance
                 var responseTime = allResponseTime / txInfos.Keys.Last();
                 var rate = (double) response/response;
                 Logger.Info( $"Request Count: {totalRequest}\n" +
-                             $"{(double)response/totalRequest}");
+                             $"{(double)response/totalRequest},{responseTime}");
                 
-                foreach (var (key, value) in _blockMap)
+                foreach (var (key, value) in _blockMap.TakeLast(100))
                 {
                     Logger.Info($"block height:{key},hash:{value.BlockHash}");
                 }
@@ -103,7 +103,7 @@ namespace AElf.Automation.RpcPerformance
                             $"Time: {startBlock.Header.Time:hh:mm:ss}~{endBlockDto.Header.Time:hh:mm:ss} \n" +
                             $"Elapsed time: {(double)totalTime/3600000} hour\n" +
                             $"Response Count: {response}\n" +
-                            $"Response Time: {responseTime/_transactionCount}ms\n" +
+                            $"Response Time: {(double)responseTime/_transactionCount}ms\n" +
                             $"Success rate: {rate*100}%");
             }
         }
