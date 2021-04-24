@@ -242,7 +242,7 @@ namespace AElf.Automation.RpcPerformance
                         while (true)
                         {
                             Summary.ContinuousCheckTransactionPerformance(token, txInfos);
-                            Thread.Sleep(60000);
+                            Thread.Sleep(3000000);
                         }
                     }
                 , token)
