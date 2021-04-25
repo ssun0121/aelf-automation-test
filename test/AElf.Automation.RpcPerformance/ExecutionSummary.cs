@@ -100,7 +100,7 @@ namespace AElf.Automation.RpcPerformance
                 }
                 Logger.Info($"\nSummary Information: \n" +
                             $"Block height: {blockHeight} \n" +
-                            $"Time: {startBlock.Header.Time:hh:mm:ss}~{endBlockDto.Header.Time:hh:mm:ss} \n" +
+                            $"Time: {startBlock.Header.Time}~{endBlockDto.Header.Time} \n" +
                             $"Elapsed time: {(double)totalTime/3600000} hour\n" +
                             $"Response Count: {response}\n" +
                             $"Response Time: {(double)responseTime/_transactionCount}ms\n" +

@@ -6,6 +6,7 @@
     "Timeout": 300,
     "RandomContract": true,
     "Duration": 4000,
+    "CheckTime": 3600000,
     "ContractAddress": "",
     "TokenList": []
 }

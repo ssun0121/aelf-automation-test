@@ -242,7 +242,7 @@ namespace AElf.Automation.RpcPerformance
                         while (true)
                         {
                             Summary.ContinuousCheckTransactionPerformance(token, txInfos);
-                            Thread.Sleep(3000000);
+                            Thread.Sleep(CheckTime);
                         }
                     }
                 , token)
@@ -449,6 +449,7 @@ namespace AElf.Automation.RpcPerformance
         public int ThreadCount { get; set; }
         public int ExeTimes { get; }
         public int Duration { get; }
+        private readonly int CheckTime = RpcConfig.ReadInformation.CheckTime;
 
         private ConcurrentQueue<string> GenerateTransactionQueue { get; }
         private static readonly ILog Logger = Log4NetHelper.GetLogger();
