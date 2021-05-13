@@ -55,10 +55,10 @@ namespace AElfChain.Common.Contracts
         {
         }
 
-        public ProfitContract(INodeManager nodeManager, string callAddress, string contractAddress) :
+        public ProfitContract(INodeManager nodeManager, string callAddress, string contractAddress, string password = "") :
             base(nodeManager, contractAddress)
         {
-            SetAccount(callAddress);
+            SetAccount(callAddress, password);
         }
 
         public static Dictionary<SchemeType, Scheme> Schemes { get; set; }

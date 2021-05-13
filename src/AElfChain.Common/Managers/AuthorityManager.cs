@@ -32,13 +32,13 @@ namespace AElfChain.Common.Managers
         private readonly TokenContract _token;
         private NodesInfo _info;
 
-        public AuthorityManager(INodeManager nodeManager, string caller = "")
+        public AuthorityManager(INodeManager nodeManager, string caller = "", string password = "")
         {
             GetConfigNodeInfo();
             if (caller == "")
                 caller = _info.Nodes.First().Account;
             NodeManager = nodeManager;
-            _genesis = GenesisContract.GetGenesisContract(nodeManager, caller);
+            _genesis = GenesisContract.GetGenesisContract(nodeManager, caller,password);
             _consensus = _genesis.GetConsensusContract();
             _token = _genesis.GetTokenContract();
             _parliament = _genesis.GetParliamentContract();
@@ -289,8 +289,8 @@ namespace AElfChain.Common.Managers
                 {
                     MaximalAbstentionThreshold = 1,
                     MaximalRejectionThreshold = 1,
-                    MinimalApprovalThreshold = 2,
-                    MinimalVoteThreshold = 2
+                    MinimalApprovalThreshold = 1,
+                    MinimalVoteThreshold = 1
                 },
                 ProposerWhiteList = new ProposerWhiteList {Proposers = {addresses.First()}},
                 OrganizationMemberList = new OrganizationMemberList {OrganizationMembers = {addresses}},

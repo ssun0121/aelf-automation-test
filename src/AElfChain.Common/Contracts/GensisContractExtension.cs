@@ -13,24 +13,24 @@ namespace AElfChain.Common.Contracts
         }
 
         public static ParliamentContract GetParliamentContract(
-            this GenesisContract genesis, string caller = "")
+            this GenesisContract genesis, string caller = "", string password = "")
         {
             if (caller == "")
                 caller = genesis.CallAddress;
 
             var parliamentAuth = genesis.GetContractAddressByName(NameProvider.ParliamentAuth);
 
-            return new ParliamentContract(genesis.NodeManager, caller, parliamentAuth.ToBase58());
+            return new ParliamentContract(genesis.NodeManager, caller, parliamentAuth.ToBase58(), password);
         }
 
-        public static ProfitContract GetProfitContract(this GenesisContract genesis, string caller = "")
+        public static ProfitContract GetProfitContract(this GenesisContract genesis, string caller = "", string password = "")
         {
             if (caller == "")
                 caller = genesis.CallAddress;
 
             var profit = genesis.GetContractAddressByName(NameProvider.Profit);
 
-            return new ProfitContract(genesis.NodeManager, caller, profit.ToBase58());
+            return new ProfitContract(genesis.NodeManager, caller, profit.ToBase58(), password);
         }
 
         public static TokenContract GetTokenContract(this GenesisContract genesis, string caller = "",string password="")
@@ -105,14 +105,14 @@ namespace AElfChain.Common.Contracts
         }
 
         public static AssociationContract GetAssociationAuthContract(
-            this GenesisContract genesis, string caller = "")
+            this GenesisContract genesis, string caller = "", string password = "")
         {
             if (caller == "")
                 caller = genesis.CallAddress;
 
             var association = genesis.GetContractAddressByName(NameProvider.AssociationAuth);
 
-            return new AssociationContract(genesis.NodeManager, caller, association.ToBase58());
+            return new AssociationContract(genesis.NodeManager, caller, association.ToBase58(),password);
         }
 
         public static ReferendumContract GetReferendumAuthContract(

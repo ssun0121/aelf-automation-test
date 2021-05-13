@@ -1,0 +1,37 @@
+{
+  "TestEnvironment": "OnlineTest",
+  "EnvironmentInfo":
+  [
+    {
+      "Environment": "OnlineTest",
+      "Url": "13.212.233.221:8000",
+      "Owner": "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni",
+      "Password": 12345678
+    }
+  ],
+  "OracleContract": "2YkKkNZKCcsfUsGwCfJ6wyTx5NYLgpCg1stBuRT4z5ep3psXNG",
+  "IntegerAggregatorContract": "2AsEepqiFCRDnepVheYYN5LK7nvM2kUoXgk2zLKu1Zneh8fwmF",
+  "PayAmount": 0,
+  "QueryInfo":[
+    {
+      "Token": "aelf",
+      "UrlToQuery":"https://api.coincap.io/v2/assets/aelf",
+      "AttributesToFetch" : "data/priceUsd"
+    },
+    {
+      "Token": "bitcoin",
+      "UrlToQuery":"https://api.coincap.io/v2/assets/bitcoin",
+      "AttributesToFetch" : "data/priceUsd"
+    },
+    {
+      "Token": "ethereum",
+      "UrlToQuery":"https://api.coincap.io/v2/assets/ethereum",
+      "AttributesToFetch" : "data/priceUsd"
+    },
+    {
+      "Token": "binance-coin",
+      "UrlToQuery":"https://api.coincap.io/v2/assets/binance-coin",
+      "AttributesToFetch" : "data/priceUsd"
+    }
+  ]
+}

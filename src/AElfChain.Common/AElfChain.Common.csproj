@@ -31,11 +31,15 @@
         <ProtoContract Include="Protobuf\Proto\test_basic_update_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_performance_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_events_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\callback_input.proto" />
         <ProtoContract Include="Protobuf\Proto\test_transaction_fees_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_a_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_b_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_c_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\token_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\oracle_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\report_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\oracle_user_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\token_holder_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\token_holder_contract_impl.proto" />
         <ProtoContract Include="Protobuf\Proto\token_contract_impl.proto" />
@@ -70,7 +74,7 @@
         <ProtoContract Include="Protobuf\Proto\dao_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\centre_asset_management.proto" />
         <ProtoContract Include="Protobuf\Proto\bingo_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\finance_contract.proto"/>
+        <ProtoContract Include="Protobuf\Proto\finance_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\execution.proto" />
         <ProtoContract Include="Protobuf\Proto\random_number_provider_contract.proto" />
     </ItemGroup>
@@ -81,7 +85,7 @@
         <PackageReference Include="AElf.Types" Version="1.0.0" />
         <PackageReference Include="AElf.CSharp.Core" Version="1.0.0" />
         <PackageReference Include="AElf.Cryptography" Version="1.0.0" />
-        <PackageReference Include="AElf.Client" Version="0.1.5" />
+        <PackageReference Include="AElf.Client" Version="1.0.0" />
         <!--end packages-->
 
         <PackageReference Include="Volo.Abp.Core" Version="2.3.0" />

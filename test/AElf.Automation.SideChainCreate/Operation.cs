@@ -110,7 +110,7 @@ namespace AElf.Automation.SideChainCreate
             var miners = GetMiners();
             foreach (var miner in miners)
             {
-                ParliamentService.SetAccount(miner.ToBase58(), "123");
+                ParliamentService.SetAccount(miner.ToBase58());
                 var result = ParliamentService.ExecuteMethodWithResult(ParliamentMethod.Approve, proposalId);
             }
         }

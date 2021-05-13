@@ -43,10 +43,11 @@ namespace AElfChain.Common.Contracts
 
     public class AssociationContract : BaseContract<AssociationMethod>
     {
-        public AssociationContract(INodeManager nodeManager, string callAddress, string electionAddress)
+        public AssociationContract(INodeManager nodeManager, string callAddress, string electionAddress,
+            string password = "")
             : base(nodeManager, electionAddress)
         {
-            SetAccount(callAddress);
+            SetAccount(callAddress, password);
         }
 
         public AssociationContract(INodeManager nodeManager, string callAddress)

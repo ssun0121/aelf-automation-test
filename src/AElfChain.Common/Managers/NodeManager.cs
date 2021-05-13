@@ -27,7 +27,7 @@ namespace AElfChain.Common.Managers
             _keyStore = AElfKeyStore.GetKeyStore(keyPath);
 
             ApiClient = AElfClientExtension.GetClient(baseUrl);
-            var check = AsyncHelper.RunSync(() => ApiClient.IsConnected());
+            var check = AsyncHelper.RunSync(() => ApiClient.IsConnectedAsync());
             if (!check)
                 Logger.Warn($"Url:{baseUrl} is not connected!");
             else
@@ -46,7 +46,7 @@ namespace AElfChain.Common.Managers
         {
             _baseUrl = url;
             ApiClient = AElfClientExtension.GetClient(url);
-            var check = AsyncHelper.RunSync(() => ApiClient.IsConnected());
+            var check = AsyncHelper.RunSync(() => ApiClient.IsConnectedAsync());
             if (!check)
             {
                 Logger.Warn($"Url:{url} is not connected!");
@@ -64,7 +64,7 @@ namespace AElfChain.Common.Managers
             if (_chainId != null)
                 return _chainId;
 
-            var chainStatus = AsyncHelper.RunSync(ApiClient.GetChainStatusAsync);
+            var chainStatus = AsyncHelper.RunSync(() => ApiClient.GetChainStatusAsync());
             _chainId = chainStatus.ChainId;
 
             return _chainId;
@@ -83,10 +83,18 @@ namespace AElfChain.Common.Managers
         private string CallTransaction(Transaction tx)
         {
             var rawTransaction = TransactionManager.ConvertTransactionRawTxString(tx);
-            return AsyncHelper.RunSync(() => ApiClient.ExecuteTransactionAsync(new ExecuteTransactionDto
+            try
             {
-                RawTransaction = rawTransaction
-            }));
+                return AsyncHelper.RunSync(() => ApiClient.ExecuteTransactionAsync(new ExecuteTransactionDto
+                {
+                    RawTransaction = rawTransaction
+                }));
+            }
+            catch (AElfClientException e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
         }
 
         private TransactionManager GetTransactionManager()

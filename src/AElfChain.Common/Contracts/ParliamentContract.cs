@@ -48,11 +48,11 @@ namespace AElfChain.Common.Contracts
 
     public class ParliamentContract : BaseContract<ParliamentMethod>
     {
-        public ParliamentContract(INodeManager nm, string callAddress, string contractAddress) :
+        public ParliamentContract(INodeManager nm, string callAddress, string contractAddress, string password = "") :
             base(nm, contractAddress)
         {
             Logger = Log4NetHelper.GetLogger();
-            SetAccount(callAddress);
+            SetAccount(callAddress, password);
         }
 
         public Hash CreateProposal(string contractAddress, string method, IMessage input, Address organizationAddress,
