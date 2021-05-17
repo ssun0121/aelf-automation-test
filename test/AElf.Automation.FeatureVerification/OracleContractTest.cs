@@ -43,8 +43,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private OracleContractContainer.OracleContractStub _oracle;
 
         private string TestAccount { get; } = "2RehEQSpXeZ5DUzkjTyhAkr9csu7fWgE5DAuB2RaKQCpdhB8zC";
-        private string InitAccount { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
+        private string InitAccount { get; } = "zptx91dhHVJjJRxf5Wg5KAoMrDrWX6i1H2FAyKAiv2q8VZfbg";
         private string OtherNode { get; } = "sjzNpr5bku3ZyvMqQrXeBkXGEvG2CTLA2cuNDfcDMaPTTAqEy";
+        
+        // private string TestAccount { get; } = "2RehEQSpXeZ5DUzkjTyhAkr9csu7fWgE5DAuB2RaKQCpdhB8zC";
+        // private string InitAccount { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
+        // private string OtherNode { get; } = "sjzNpr5bku3ZyvMqQrXeBkXGEvG2CTLA2cuNDfcDMaPTTAqEy";
 
         private readonly List<string> _associationMember = new List<string>
         {
@@ -63,20 +67,22 @@ namespace AElf.Automation.Contracts.ScenarioTest
         //2AsEepqiFCRDnepVheYYN5LK7nvM2kUoXgk2zLKu1Zneh8fwmF
         
         //2F5McxHg7fAqVjDX97v79j4drsMq442rArChpBii8TWuRb8ZnK
-        private string _oracleContractAddress = "2YkKkNZKCcsfUsGwCfJ6wyTx5NYLgpCg1stBuRT4z5ep3psXNG";
-        private string _oracleUserContractAddress = "2wRDbyVF28VBQoSPgdSEFaL4x7CaXz8TCBujYhgWc9qTMxBE3n";
-        private string _integerAggregatorAddress = "2AsEepqiFCRDnepVheYYN5LK7nvM2kUoXgk2zLKu1Zneh8fwmF";
+        private string _oracleContractAddress = "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS";
+        private string _oracleUserContractAddress = "2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo";
+        private string _integerAggregatorAddress = "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ";
 
         //6Yu5KJprje1EKf78MicuoAL3VsK3DoNoGm1ah1dUR5Y7frPdE
         //7ePBoE6V98bzWGBfK7pvupAJ4sveytJsZCaq2gaFuW1PSdVBv
         //2gin3EoK8YvfeNfPjWyuKRaa3GEjF1KY1ZpBQCgPF3mHnQmDAX
         private Address _defaultParliamentOrganization;
-        private string _association1 = "";
-        private string _association2 = "";
-        private string _association3 = "";
+        private string _association1 = "6Yu5KJprje1EKf78MicuoAL3VsK3DoNoGm1ah1dUR5Y7frPdE";
+        private string _association2 = "7ePBoE6V98bzWGBfK7pvupAJ4sveytJsZCaq2gaFuW1PSdVBv";
+        private string _association3 = "2gin3EoK8YvfeNfPjWyuKRaa3GEjF1KY1ZpBQCgPF3mHnQmDAX";
         private string Password { get; } = "12345678";
-        private static string RpcUrl { get; } = "13.212.233.221:8000";
-        private static string MainRpcUrl { get; } = "18.166.154.80:8000";
+        // private static string RpcUrl { get; } = "13.212.233.221:8000";
+        private static string RpcUrl { get; } = "127.0.0.1:8000";
+
+        // private static string MainRpcUrl { get; } = "18.166.154.80:8000";
         private string Symbol { get; } = "PORT";
         private readonly bool isNeedInitialize = false;
         private readonly bool isNeedCreateAssociation = false;
@@ -87,12 +93,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Log4NetHelper.LogInit("OracleContactTest");
             Logger = Log4NetHelper.GetLogger();
             NodeManager = new NodeManager(RpcUrl);
-            MainNodeManager = new NodeManager(MainRpcUrl);
-            Logger.Info(MainRpcUrl,RpcUrl);
+            // MainNodeManager = new NodeManager(MainRpcUrl);
+            // Logger.Info(MainRpcUrl,RpcUrl);
 
             NodeInfoHelper.SetConfig("nodes-online-test-main");
-            _mainGenesisContract = GenesisContract.GetGenesisContract(MainNodeManager, InitAccount, Password);
-            _mainTokenContract = _mainGenesisContract.GetTokenContract(InitAccount, Password);
+            // _mainGenesisContract = GenesisContract.GetGenesisContract(MainNodeManager, InitAccount, Password);
+            // _mainTokenContract = _mainGenesisContract.GetTokenContract(InitAccount, Password);
             AuthorityManager = new AuthorityManager(NodeManager, InitAccount, Password);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount, Password);
             _parliamentContract = _genesisContract.GetParliamentContract(InitAccount, Password);

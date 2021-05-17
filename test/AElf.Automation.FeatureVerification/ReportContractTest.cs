@@ -73,8 +73,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private long payAmount = 100000000;
         private long _applyObserverFee = 100000000;
         private long _defaultReportFee = 100000000;
-        private string eth = "0x483cd9d0bedca44a8724f98a7915f0e04dbc1a55";
-        private string digestStr = "0x6aac9e49f09712cec6175c5335682308";
+        private string eth = "0x29482b4c70f831b1bb6a96e8d3fddb35baebaf7b";
+        private string digestStr = "0xcf8489015a2d7d3f99513d8dbde9673e";
 
         [TestInitialize]
         public void Initialize()
@@ -154,28 +154,41 @@ namespace AElf.Automation.Contracts.ScenarioTest
                         {
                             new OffChainQueryInfo
                             {
-                                UrlToQuery = "https://api.coincap.io/v2/assets/bitcoin",
+                                UrlToQuery = 
+                                    "https://api.coincap.io/v2/assets/ethereum|" +
+                                    "https://api.coincap.io/v2/assets/ethereum|" +
+                                    "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
                                 AttributesToFetch =
                                 {
-                                    "data/priceUsd"
+                                    "data/priceUsd|" +
+                                    "data/priceUsd|" +
+                                    "ethereum/usd"
                                 }
                             },
-                            new OffChainQueryInfo
-                            {
-                                UrlToQuery = "https://api.coincap.io/v2/assets/aelf",
-                                AttributesToFetch =
-                                {
-                                    "data/priceUsd"
-                                }
-                            },
-                            new OffChainQueryInfo
-                            {
-                                UrlToQuery = "https://api.coincap.io/v2/assets/ethereum",
-                                AttributesToFetch =
-                                {
-                                    "data/priceUsd"
-                                }
-                            }
+                            // new OffChainQueryInfo
+                            // {
+                            //     UrlToQuery = "https://api.coincap.io/v2/assets/bitcoin",
+                            //     AttributesToFetch =
+                            //     {
+                            //         "data/priceUsd"
+                            //     }
+                            // },
+                            // new OffChainQueryInfo
+                            // {
+                            //     UrlToQuery = "https://api.coincap.io/v2/assets/aelf",
+                            //     AttributesToFetch =
+                            //     {
+                            //         "data/priceUsd"
+                            //     }
+                            // },
+                            // new OffChainQueryInfo
+                            // {
+                            //     UrlToQuery = "https://api.coincap.io/v2/assets/ethereum",
+                            //     AttributesToFetch =
+                            //     {
+                            //         "data/priceUsd"
+                            //     }
+                            // }
                             // new OffChainQueryInfo
                             // {
                             //     UrlToQuery = "http://localhost:7080/price/elf",
@@ -212,7 +225,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 nameof(ReportMethod.AddRegisterWhiteList), InitAccount.ConvertAddress(), InitAccount);
             result.Status.ShouldBe(TransactionResultStatus.Mined);
         }
-        
+
         private void QueryOracle(int index)
         {
             var allowance = _tokenContract.GetAllowance(InitAccount, _reportContract.ContractAddress, Symbol);
@@ -220,9 +233,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             if (allowance < payAmount + _defaultReportFee)
                 _tokenContract.ApproveToken(InitAccount, _reportContract.ContractAddress, payAmount + _defaultReportFee,
                     Symbol);
+            allowance = _tokenContract.GetAllowance(InitAccount, _reportContract.ContractAddress, Symbol);
+            Logger.Info(allowance);
             _tokenContract.IssueBalance(InitAccount, InitAccount, payAmount + _defaultReportFee, Symbol);
             var senderBalance = _tokenContract.GetUserBalance(InitAccount, Symbol);
             var reportBalance = _tokenContract.GetUserBalance(_reportContract.ContractAddress, Symbol);
+            _reportContract.SetAccount(InitAccount);
             var result = _reportContract.ExecuteMethodWithResult(ReportMethod.QueryOracle, new QueryOracleInput
             {
                 AggregateThreshold = 1,
@@ -235,17 +251,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var byteString = result.Logs.First(l => l.Name.Contains(nameof(QueryCreated))).NonIndexed;
             var query = QueryCreated.Parser.ParseFrom(ByteString.FromBase64(byteString));
             Logger.Info(query.QueryId.ToHex());
-            
+
             var afterSenderBalance = _tokenContract.GetUserBalance(InitAccount, Symbol);
             var afterReportBalance = _tokenContract.GetUserBalance(_reportContract.ContractAddress, Symbol);
             afterSenderBalance.ShouldBe(senderBalance - (payAmount + _defaultReportFee));
             afterReportBalance.ShouldBe(reportBalance + _defaultReportFee);
         }
-        
+
         [TestMethod]
         public void Query()
         {
-            var indexNode = 3;
+            var indexNode = GetInfo().OffChainQueryInfoList.Value.Count;
             for (var i = 0; i < indexNode; i++)
             {
                 QueryOracle(i);
@@ -311,7 +327,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     new GetSignatureInput
                     {
                         Address = _associationMember[0].ConvertAddress(),
-                        RoundId = 3,
+                        RoundId = 1,
                         EthereumContractAddress = eth
                     });
             var r = signature.Value.Substring(0, 64);
@@ -337,7 +353,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var revertData = StringValue.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(data));
             Logger.Info(revertData);
         }
-        
+
         [TestMethod]
         public void GetData_MerkleTreeType()
         {
@@ -354,10 +370,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var count = length / 2 - 1;
             for (var i = 0; i < count; i++)
             {
-                var b= index.Substring(2*(i+1), 2);
+                var b = index.Substring(2 * (i + 1), 2);
                 digits.Add(Int32.Parse(b, System.Globalization.NumberStyles.HexNumber));
             }
-            
+
             for (var i = 0; i < data.Count; i++)
             {
                 var actualData = data[i].HexToByteArray().Take(digits[i]).ToArray();
@@ -565,14 +581,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Report = report
                 });
         }
-        
+
         private long GetCurrentRound()
         {
             var round = _reportContract.CallViewMethod<Int64Value>(ReportMethod.GetCurrentRoundId,
                 new StringValue {Value = eth});
             return round.Value;
         }
-        
+
         private Report GetReport(long roundId)
         {
             var reportInfo = _reportContract.CallViewMethod<Report>(ReportMethod.GetReport,
@@ -587,7 +603,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private OffChainAggregationInfo GetInfo()
         {
             var info = _reportContract.CallViewMethod<OffChainAggregationInfo>(ReportMethod.GetOffChainAggregationInfo,
-                new StringValue{Value = eth});
+                new StringValue {Value = eth});
             return info;
         }
 
