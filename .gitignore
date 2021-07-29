@@ -10,6 +10,9 @@
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
+# config file
+src/AElfChain.Common/config/*
+
 # Build results
 Debug
 [Dd]ebug/
