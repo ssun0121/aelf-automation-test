@@ -33,7 +33,7 @@ namespace AElf.Automation.EconomicSystemTest
         public static Dictionary<SchemeType, Scheme> Schemes { get; set; }
         public Behaviors(ContractManager contractManager,string account)
         {
-            NodeInfoHelper.SetConfig("nodes-env2-main");
+            NodeInfoHelper.SetConfig("nodes");
             NodeManager = contractManager.NodeManager;
             AuthorityManager = new AuthorityManager(NodeManager,account);
             ContractManager = contractManager;
@@ -44,7 +44,7 @@ namespace AElf.Automation.EconomicSystemTest
             TokenService = ContractManager.Token;
             Treasury = ContractManager.Treasury;
             ConsensusService = ContractManager.Consensus;
-            ProfitService.GetTreasurySchemes(Treasury.ContractAddress);
+            // ProfitService.GetTreasurySchemes(Treasury.ContractAddress);
             Schemes = ProfitContract.Schemes;
 
             ParliamentService = ContractManager.Parliament;

@@ -8,7 +8,11 @@ namespace AElfChain.Common.Contracts
         Initialize,
         // off chain aggregator
         RegisterOffChainAggregation,
+        RemoveOffChainQueryInfo,
+        AddOffChainQueryInfo,
         AddRegisterWhiteList,
+        RemoveFromRegisterWhiteList,
+        ChangeOffChainQueryInfo,
         QueryOracle,
         CancelQueryOracle,
         
@@ -32,8 +36,12 @@ namespace AElfChain.Common.Contracts
         GetMerklePath,
         GetCurrentRoundId,
         
-        GenerateEthererumReport,
-        GetEthererumReport
+        GenerateRawReport,
+        GetRawReport,
+        
+        IsInRegisterWhiteList,
+        IsObserver,
+        GetMortgagedTokenAmount
     }
 
     public class ReportContract : BaseContract<ReportMethod>

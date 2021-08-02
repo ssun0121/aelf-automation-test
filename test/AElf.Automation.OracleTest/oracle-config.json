@@ -9,29 +9,35 @@
       "Password": 12345678
     }
   ],
-  "OracleContract": "2YkKkNZKCcsfUsGwCfJ6wyTx5NYLgpCg1stBuRT4z5ep3psXNG",
-  "IntegerAggregatorContract": "2AsEepqiFCRDnepVheYYN5LK7nvM2kUoXgk2zLKu1Zneh8fwmF",
+  "OnlyOracle": false,
+  "OracleContract": "RXcxgSXuagn8RrvhQAV81Z652EEYSwR6JLnqHYJ5UVpEptW8Y",
+  "IntegerAggregatorContract": "2wRDbyVF28VBQoSPgdSEFaL4x7CaXz8TCBujYhgWc9qTMxBE3n",
   "PayAmount": 0,
+  "Organization": "zeoJa6zf3ZVJ4zkXPWBE4fEsrRHFXtHS9JjRqR6iz4VYHdRT4",
+
+  "ReportInfo": {
+    "ReportContract": "2AsEepqiFCRDnepVheYYN5LK7nvM2kUoXgk2zLKu1Zneh8fwmF",
+    "ApplyObserverFee": 0,
+    "ReportFee": 0,
+    "EthereumContractAddress": "0xc3db2d4548500446aaba5f2c8cc58138e065439e",
+    "DigestStr": "0x644ed201d5cbf63b0ddf13d5ecd0d720"
+  },
+
   "QueryInfo":[
     {
+      "Token": "eth",
+      "UrlToQuery": "https://api.coincap.io/v2/assets/ethereum|https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+      "AttributesToFetch": "data/priceUsd|ethereum/usd"
+    },
+    {
       "Token": "aelf",
-      "UrlToQuery":"https://api.coincap.io/v2/assets/aelf",
-      "AttributesToFetch" : "data/priceUsd"
+      "UrlToQuery":"https://api.coincap.io/v2/assets/aelf|https://api.coingecko.com/api/v3/simple/price?ids=aelf&vs_currencies=usd",
+      "AttributesToFetch" : "data/priceUsd|aelf/usd"
     },
     {
       "Token": "bitcoin",
-      "UrlToQuery":"https://api.coincap.io/v2/assets/bitcoin",
-      "AttributesToFetch" : "data/priceUsd"
-    },
-    {
-      "Token": "ethereum",
-      "UrlToQuery":"https://api.coincap.io/v2/assets/ethereum",
-      "AttributesToFetch" : "data/priceUsd"
-    },
-    {
-      "Token": "binance-coin",
-      "UrlToQuery":"https://api.coincap.io/v2/assets/binance-coin",
-      "AttributesToFetch" : "data/priceUsd"
+      "UrlToQuery":"https://api.coincap.io/v2/assets/bitcoin|https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+      "AttributesToFetch" : "data/priceUsd|bitcoin/usd"
     }
   ]
 }

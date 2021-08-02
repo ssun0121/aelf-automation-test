@@ -13,12 +13,9 @@ using AElf.Contracts.Election;
 using AElf.Contracts.Genesis;
 using AElf.Contracts.MultiToken;
 using AElf.Contracts.Parliament;
-using AElf.Contracts.Profit;
 using AElf.Contracts.Referendum;
 using AElf.Contracts.TokenConverter;
-using AElf.Contracts.TokenHolder;
 using AElf.Contracts.Treasury;
-using AElf.Contracts.Vote;
 using AElf.Types;
 using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
@@ -34,14 +31,14 @@ namespace AElfChain.Common.Managers
 
         public ILog Logger = Log4NetHelper.GetLogger();
 
-        public ContractManager(INodeManager nodeManager, string callAddress)
+        public ContractManager(INodeManager nodeManager, string callAddress, string password = "")
         {
             NodeManager = nodeManager;
             CallAddress = callAddress;
             CallAccount = callAddress.ConvertAddress();
             ChainIdName = NodeManager.GetChainId();
             ChainId = ChainHelper.ConvertBase58ToChainId(ChainIdName);
-            Genesis = GenesisContract.GetGenesisContract(NodeManager, CallAddress);
+            Genesis = GenesisContract.GetGenesisContract(NodeManager, CallAddress,password);
             GenesisStub = Genesis.GetGensisStub(CallAddress);
         }
 
@@ -184,9 +181,6 @@ namespace AElfChain.Common.Managers
         public TokenContract Token => Genesis.GetTokenContract();
         public TokenContractContainer.TokenContractStub TokenStub => Genesis.GetTokenStub();
         public TokenContractImplContainer.TokenContractImplStub TokenImplStub => Genesis.GetTokenImplStub();
-        public TokenHolderContract TokenHolder => Genesis.GetTokenHolderContract();
-        public TokenHolderContractContainer.TokenHolderContractStub TokenHolderStub => Genesis.GetTokenHolderStub();
-        public TokenHolderContractImplContainer.TokenHolderContractImplStub TokenHolderImplStub => Genesis.GetTokenHolderImplStub();
         public TokenConverterContract TokenConverter => Genesis.GetTokenConverterContract();
         public TokenConverterContractContainer.TokenConverterContractStub TokenconverterStub =>
             Genesis.GetTokenConverterStub();
@@ -218,11 +212,6 @@ namespace AElfChain.Common.Managers
         public ElectionContractContainer.ElectionContractStub ElectionStub => Genesis.GetElectionStub();
         public ElectionContractImplContainer.ElectionContractImplStub ElectionContractImplStub => Genesis.GetElectionImplStub();
         public VoteContract Vote => Genesis.GetVoteContract();
-        public VoteContractContainer.VoteContractStub VoteStub => Genesis.GetVoteStub();
-        public VoteContractImplContainer.VoteContractImplStub VoteImplStub => Genesis.GetVoteImplStub();
-        public ProfitContract Profit => Genesis.GetProfitContract();
-        public ProfitContractContainer.ProfitContractStub ProfitStub => Genesis.GetProfitStub();
-        public ProfitContractImplContainer.ProfitContractImplStub ProfitImplStub => Genesis.GetProfitImplStub();
         public TreasuryContract Treasury => Genesis.GetTreasuryContract();
         public TreasuryContractContainer.TreasuryContractStub TreasuryStub => Genesis.GetTreasuryStub();
         public TreasuryContractImplContainer.TreasuryContractImplStub TreasuryImplStub => Genesis.GetTreasuryImplStub();

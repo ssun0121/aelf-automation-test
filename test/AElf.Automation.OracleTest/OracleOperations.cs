@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using AElf.Contracts.MultiToken;
 using AElf.Contracts.Oracle;
+using AElf.Contracts.Report;
 using AElf.CSharp.Core;
 using AElf.Types;
-using AElfChain.Common;
 using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
@@ -13,42 +14,59 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Shouldly;
+using InitializeInput = AElf.Contracts.Oracle.InitializeInput;
 
 namespace AElf.Automation.OracleTest
 {
     public class OracleOperations
     {
         private static ILog Logger { get; set; } = Log4NetHelper.GetLogger();
-        public string Symbol = "PORT";
+        private const string Symbol = "PORT";
 
-        public readonly string Url;
-        public readonly string Owner;
-        public readonly string Password;
-        public string OracleContract;
-        public string AggregatorContract;
-        public List<Info> QueryInfos;
-        public long PayAmount;
-        public Dictionary<Hash, string> TokenQueryList;
+        private readonly string _url;
+        private readonly string _owner;
+        private readonly string _password;
+        private readonly Dictionary<Hash, string> _tokenQueryList;
+        private List<string> TokenList { get; set; }
+        private string _oracleContract;
+        private string _reportContract;
+        private string _aggregatorContract;
+        private List<Info> _queryInfos;
+        private long _payAmount;
+        private long _reportFee;
+        private long _applyObserverFee;
+        private string _organization;
+        private string _ethereumContractAddress;
+        private string _digestStr;
 
-        public EnvironmentInfo EnvironmentInfo { get; set; }
-        public readonly OracleContract OracleService;
-        public readonly TokenContract TokenService;
-        public readonly ParliamentContract ParliamentService;
-        public readonly ContractServices ContractServices;
+        private EnvironmentInfo EnvironmentInfo { get; set; }
+        private ReportInfo ReportInfo { get; set; }
+        private readonly OracleContract _oracleService;
+        private readonly ReportContract _reportService;
+        private readonly TokenContract _tokenService;
+        private readonly ParliamentContract _parliamentService;
+        private readonly ContractServices _contractServices;
+
+        public bool OnlyOracle;
 
         public OracleOperations()
         {
             GetConfig();
-            Owner = EnvironmentInfo.Owner;
-            Password = EnvironmentInfo.Password;
-            Url = EnvironmentInfo.Url;
-            ContractServices = GetContractServices();
-            TokenService = ContractServices.TokenService;
-            ParliamentService = ContractServices.ParliamentContract;
-            OracleService = ContractServices.OracleService;
-            if (OracleContract == "")
+            _owner = EnvironmentInfo.Owner;
+            _password = EnvironmentInfo.Password;
+            _url = EnvironmentInfo.Url;
+            _contractServices = GetContractServices();
+            _tokenService = _contractServices.TokenService;
+            _parliamentService = _contractServices.ParliamentContract;
+            _oracleService = _contractServices.OracleService;
+            _reportService = _contractServices.ReportService;
+            _organization =
+                _organization == "" ? _parliamentService.ContractAddress : _organization;
+            if (_oracleContract == "")
                 InitializeContract();
-            TokenQueryList = new Dictionary<Hash, string>();
+            if (_reportContract == "" && !OnlyOracle)
+                InitializeReportContract();
+            _tokenQueryList = new Dictionary<Hash, string>();
         }
 
         public void QueryJob()
@@ -56,127 +74,281 @@ namespace AElf.Automation.OracleTest
             ExecuteStandaloneTask(new Action[] {Query});
         }
 
-        public void Query()
+        public void ReportQueryJob()
         {
-            var txIds = new Dictionary<string,string>();
-            foreach (var info in QueryInfos)
+            ExecuteStandaloneTask(new Action[] {QueryIndex});
+        }
+
+        private void Query()
+        {
+            var txIds = new Dictionary<string, string>();
+            foreach (var info in _queryInfos)
             {
                 var queryInfo = new QueryInfo
                 {
-                    UrlToQuery = info.UrlToQuery,
-                    AttributesToFetch = {info.AttributesToFetch}
+                    Title = info.UrlToQuery,
+                    Options= {info.AttributesToFetch}
                 };
-                var id = QueryWithCommitAndReveal_Parliament(queryInfo);
+                var id = QueryWithCommitAndReveal(queryInfo);
                 txIds[id] = info.Token;
             }
 
-            foreach (var (key,value) in txIds)
+            foreach (var (key, value) in txIds)
             {
                 var queryId = CheckTransactionResult(key);
-                TokenQueryList[queryId] = value;
+                _tokenQueryList[queryId] = value;
             }
+
             CheckQueryList();
         }
 
-
-        private void CheckQueryList()
+        public void ApplyObserver()
         {
-            foreach (var (key, value) in TokenQueryList)
+            var memberList = new List<string>();
+            if (_organization == _parliamentService.ContractAddress)
             {
-                var check = CheckQuery(key, value);
-                if (check)
-                {
-                    TokenQueryList.Remove(key);
-                }
+                memberList = _contractServices.AuthorityManager.GetCurrentMiners();
+            }
+            else
+            {
+                var association = _contractServices.GenesisService.GetAssociationAuthContract();
+                var list = association.GetOrganization(Address.FromBase58(_organization)).OrganizationMemberList
+                    .OrganizationMembers;
+                memberList.AddRange(list.Select(a => a.ToBase58()));
+            }
+
+            IssueToken();
+            TransferToken(memberList, Symbol);
+            TransferToken(memberList, "ELF");
+            foreach (var member in memberList)
+            {
+                _reportService.SetAccount(member);
+                if (_applyObserverFee != 0)
+                    _tokenService.ApproveToken(member, _reportService.ContractAddress, _applyObserverFee, Symbol);
+                var isObserver =
+                    _reportService.CallViewMethod<BoolValue>(ReportMethod.IsObserver, Address.FromBase58(member));
+                if (isObserver.Value) continue;
+                var result = _reportService.ExecuteMethodWithResult(ReportMethod.ApplyObserver, new Empty());
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }
         }
 
-        private string QueryWithCommitAndReveal_Parliament(QueryInfo queryInfo)
+        public void RegisterOffChainAggregation()
         {
-            var allowance = TokenService.GetAllowance(Owner, OracleService.ContractAddress, Symbol);
-            if (allowance < PayAmount)
-                TokenService.ApproveToken(Owner, OracleService.ContractAddress, PayAmount, Symbol);
-            var txId = OracleService.ExecuteMethodWithTxId(OracleMethod.Query, new QueryInput
+            var offChainInfo = GetOffChainInfo();
+            var offChainInfoList = GetOffChainQueryInfoList(out var tokenList);
+            TokenList = tokenList;
+            if (!offChainInfo.Equals(new OffChainAggregationInfo()))
+                return;
+            var isInWhiteList = _reportService
+                .CallViewMethod<BoolValue>(ReportMethod.IsInRegisterWhiteList, Address.FromBase58(_owner)).Value;
+            if (!isInWhiteList)
             {
-                Payment = PayAmount,
-                AggregateThreshold = 1,
-                AggregatorContractAddress = AggregatorContract.ConvertAddress(),
-                QueryInfo = queryInfo,
-                DesignatedNodeList = new AddressList
+                var result = _contractServices.AuthorityManager.ExecuteTransactionWithAuthority(_reportContract,
+                    nameof(ReportMethod.AddRegisterWhiteList), Address.FromBase58(_owner), _owner);
+                result.Status.ShouldBe(TransactionResultStatus.Mined);
+            }
+
+            _reportService.SetAccount(_owner);
+            var setResult = _reportService.ExecuteMethodWithResult(ReportMethod.RegisterOffChainAggregation,
+                new RegisterOffChainAggregationInput
                 {
-                    Value = {ParliamentService.Contract}
-                },
-                Token = "Test"
-            });
-            return txId;
+                    OffChainQueryInfoList = offChainInfoList,
+                    Token = _ethereumContractAddress,
+                    AggregateThreshold = 1,
+                    AggregatorContractAddress = Address.FromBase58(_aggregatorContract),
+                    ConfigDigest = ByteStringHelper.FromHexString(_digestStr),
+                });
+            setResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
 
-        private Hash CheckTransactionResult(string id)
+        private Hash QueryOracle(int index)
         {
-            var result = ContractServices.NodeManager.CheckTransactionResult(id);
+            var allowance = _tokenService.GetAllowance(_owner, _reportService.ContractAddress, Symbol);
+            if (allowance < _payAmount + _reportFee)
+                _tokenService.ApproveToken(_owner, _reportService.ContractAddress, _payAmount + _reportFee,
+                    Symbol);
+            allowance = _tokenService.GetAllowance(_owner, _reportService.ContractAddress, Symbol);
+            Logger.Info($"Allowance is {allowance}");
+            IssueToken();
+            var senderBalance = _tokenService.GetUserBalance(_owner, Symbol);
+            var reportBalance = _tokenService.GetUserBalance(_reportService.ContractAddress, Symbol);
+
+            _reportService.SetAccount(_owner);
+            var result = _reportService.ExecuteMethodWithResult(ReportMethod.QueryOracle, new QueryOracleInput
+            {
+                AggregateThreshold = 1,
+                Payment = _payAmount,
+                Token = _ethereumContractAddress,
+                NodeIndex = index
+            });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var nodes = ContractServices.AuthorityManager.GetCurrentMiners().Count;
             var byteString = result.Logs.First(l => l.Name.Contains(nameof(QueryCreated))).NonIndexed;
             var query = QueryCreated.Parser.ParseFrom(ByteString.FromBase64(byteString));
-            var oracleNodeThreshold =
-                OracleService.CallViewMethod<OracleNodeThreshold>(OracleMethod.GetThreshold, new Empty());
-            var setAggregateThreshold = oracleNodeThreshold.DefaultAggregateThreshold;
-            query.Payment.ShouldBe(PayAmount);
-            query.QuerySender.ShouldBe(Owner.ConvertAddress());
-            query.AggregatorContractAddress.ShouldBe(AggregatorContract.ConvertAddress());
-            query.AggregateThreshold.ShouldBe(Math.Max(Math.Max(nodes.Div(3).Add(1), 1), setAggregateThreshold));
-            Logger.Info(query.QueryId.ToHex());
+            Logger.Info($"Index: {index} ==> Query Id : {query.QueryId.ToHex()}");
+
+            var afterSenderBalance = _tokenService.GetUserBalance(_owner, Symbol);
+            var afterReportBalance = _tokenService.GetUserBalance(_reportService.ContractAddress, Symbol);
+            afterSenderBalance.ShouldBe(senderBalance - (_payAmount + _reportFee));
+            afterReportBalance.ShouldBe(reportBalance + _reportFee);
+
             return query.QueryId;
         }
 
+        private void QueryIndex()
+        {
+            var indexNode = GetOffChainInfo().OffChainQueryInfoList.Value.Count;
+            var roundId = GetCurrentRound();
+
+            Logger.Info($"Round: {roundId}");
+            for (var i = 0; i < indexNode; i++)
+            {
+                Logger.Info($"index: {i}");
+                var id = QueryOracle(i);
+                _tokenQueryList[id] = TokenList[i];
+            }
+            
+            Thread.Sleep(10000);
+            
+            CheckQueryList();
+            if (roundId -1 < 1) return;
+            var report = GetReport(roundId - 1);
+            Logger.Info($"Round: {roundId - 1} last query: {report.QueryId.ToHex()}");
+            // GetMerklePath();
+        }
 
         #region private
+
+        private OffChainAggregationInfo GetOffChainInfo()
+        {
+            return _reportService.CallViewMethod<OffChainAggregationInfo>(ReportMethod.GetOffChainAggregationInfo,
+                new StringValue {Value = _ethereumContractAddress});
+        }
+
+        private OffChainQueryInfoList GetOffChainQueryInfoList(out List<string> tokenList)
+        {
+            var offChainQueryInfoList = new OffChainQueryInfoList();
+            tokenList = new List<string>();
+            var list = new List<OffChainQueryInfo>();
+            foreach (var query in _queryInfos)
+            {
+                var offChainQueryInfo = new OffChainQueryInfo
+                {
+                    Title = query.UrlToQuery,
+                    Options = {query.AttributesToFetch}
+                };
+                list.Add(offChainQueryInfo);
+                tokenList.Add(query.Token);
+            }
+
+            offChainQueryInfoList.Value.AddRange(list);
+            return offChainQueryInfoList;
+        }
+
+        private Report GetReport(long roundId)
+        {
+            return _reportService.CallViewMethod<Report>(ReportMethod.GetReport, new GetReportInput
+            {
+                Token = _ethereumContractAddress,
+                RoundId = roundId
+            });
+        }
+
+        private long GetCurrentRound()
+        {
+            return _reportService.CallViewMethod<Int64Value>(ReportMethod.GetCurrentRoundId,
+                new StringValue {Value = _ethereumContractAddress}).Value;
+        }
+
+        private void GetMerklePath()
+        {
+            var round = GetCurrentRound() - 1;
+            if (round < 1) return;
+            var indexNode = GetOffChainInfo().OffChainQueryInfoList.Value.Count;
+            var reportInfo = GetReport(round);
+            Hash root = null;
+            for (var i = 0; i < indexNode; i++)
+            {
+                var result =
+                    _reportService.CallViewMethod<MerklePath>(ReportMethod.GetMerklePath, new GetMerklePathInput
+                    {
+                        NodeIndex = i,
+                        RoundId = round,
+                        Token = _ethereumContractAddress
+                    });
+                var data = reportInfo.Observations.Value[i].Data;
+                // var hash = HashHelper.ComputeFrom(data.ToByteArray());
+                // if (root == null) root = result.ComputeRootWithLeafNode(hash);
+                // var oldRoot = root;
+                // root = result.ComputeRootWithLeafNode(hash);
+                // oldRoot.ShouldBe(root);
+            }
+
+            Logger.Info($"Round: {round} MerkleTreeRoot: {root.ToHex()}");
+        }
+
+        #region OracelMethod
+
+        private QueryRecord GetQueryRecord(string hash)
+        {
+            return _oracleService.CallViewMethod<QueryRecord>(OracleMethod.GetQueryRecord,
+                Hash.LoadFromHex(hash));
+        }
+
+        private void CheckQueryList()
+        {
+            foreach (var (key, value) in _tokenQueryList)
+            {
+                var check = CheckQuery(key, value);
+                if (check)
+                    _tokenQueryList.Remove(key);
+                else
+                    Logger.Info($"UnFinished query: {key}");
+            }
+        }
 
         private bool CheckQuery(Hash id, string token)
         {
             var finalRecord = GetQueryRecord(id.ToHex());
             if (finalRecord.IsSufficientDataCollected)
             {
-                var price = StringValue.Parser.ParseFrom(finalRecord.FinalResult);
+                var price = finalRecord.FinalResult;
                 Logger.Info($"QueryId:{id.ToHex()} \n" +
                             $"{token} ==> {price}");
-
                 return true;
             }
 
             return false;
         }
 
-        private QueryRecord GetQueryRecord(string hash)
+        private string QueryWithCommitAndReveal(QueryInfo queryInfo)
         {
-            return OracleService.CallViewMethod<QueryRecord>(OracleMethod.GetQueryRecord,
-                Hash.LoadFromHex(hash));
+            var allowance = _tokenService.GetAllowance(_owner, _oracleService.ContractAddress, Symbol);
+            if (allowance < _payAmount)
+                _tokenService.ApproveToken(_owner, _oracleService.ContractAddress, _payAmount, Symbol);
+            var txId = _oracleService.ExecuteMethodWithTxId(OracleMethod.Query, new QueryInput
+            {
+                Payment = _payAmount,
+                AggregateThreshold = 1,
+                AggregatorContractAddress = _aggregatorContract.ConvertAddress(),
+                QueryInfo = queryInfo,
+                DesignatedNodeList = new AddressList
+                {
+                    Value = {Address.FromBase58(_organization)}
+                },
+                Token = "Test"
+            });
+            return txId;
         }
 
-        private ContractServices GetContractServices()
-        {
-            var contractService =
-                new ContractServices(Url, Owner, Password, OracleContract, AggregatorContract);
-            return contractService;
-        }
+        #endregion
 
-        private void GetConfig()
-        {
-            var config = OracleConfig.ReadInformation;
-            OracleContract = config.OracleContract;
-            AggregatorContract = config.IntegerAggregatorContract;
-
-            var testEnvironment = config.TestEnvironment;
-            EnvironmentInfo =
-                config.EnvironmentInfos.Find(o => o.Environment.Contains(testEnvironment));
-            QueryInfos = config.QueryInfos;
-            PayAmount = config.PayAmount;
-        }
+        #region Initialize
 
         private void InitializeContract()
         {
-            OracleService.SetAccount(Owner, Password);
-            var result = OracleService.ExecuteMethodWithResult(OracleMethod.Initialize, new InitializeInput
+            _oracleService.SetAccount(_owner, _password);
+            var result = _oracleService.ExecuteMethodWithResult(OracleMethod.Initialize, new InitializeInput
             {
                 MinimumOracleNodesCount = 5,
                 DefaultAggregateThreshold = 3,
@@ -187,16 +359,109 @@ namespace AElf.Automation.OracleTest
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             var oracleNodeThreshold =
-                OracleService.CallViewMethod<OracleNodeThreshold>(OracleMethod.GetThreshold, new Empty());
+                _oracleService.CallViewMethod<OracleNodeThreshold>(OracleMethod.GetThreshold, new Empty());
             oracleNodeThreshold.DefaultAggregateThreshold.ShouldBe(3);
             oracleNodeThreshold.MinimumOracleNodesCount.ShouldBe(5);
             oracleNodeThreshold.DefaultRevealThreshold.ShouldBe(3);
 
-            var controller = OracleService.CallViewMethod<Address>(OracleMethod.GetController, new Empty());
-            controller.ShouldBe(Owner.ConvertAddress());
+            var controller = _oracleService.CallViewMethod<Address>(OracleMethod.GetController, new Empty());
+            controller.ShouldBe(_owner.ConvertAddress());
             var tokenSymbol =
-                OracleService.CallViewMethod<StringValue>(OracleMethod.GetOracleTokenSymbol, new Empty());
+                _oracleService.CallViewMethod<StringValue>(OracleMethod.GetOracleTokenSymbol, new Empty());
             tokenSymbol.Value.ShouldBe(Symbol);
+        }
+
+        private void InitializeReportContract()
+        {
+            _reportService.SetAccount(_owner, _password);
+            var result = _reportService.ExecuteMethodWithResult(ReportMethod.Initialize,
+                new AElf.Contracts.Report.InitializeInput()
+                {
+                    OracleContractAddress = _oracleService.Contract,
+                    ReportFee = _reportFee,
+                    ApplyObserverFee = _applyObserverFee
+                });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var allowance = _tokenService.GetAllowance(_reportService.ContractAddress,
+                _oracleService.ContractAddress, Symbol);
+            allowance.ShouldBe(long.MaxValue);
+            Logger.Info(allowance);
+        }
+
+        private ContractServices GetContractServices()
+        {
+            var contractService =
+                new ContractServices(_url, _owner, _password, _oracleContract, _aggregatorContract, _reportContract,
+                    OnlyOracle);
+            return contractService;
+        }
+
+        private void GetConfig()
+        {
+            var config = OracleConfig.ReadInformation;
+            OnlyOracle = config.OnlyOracle;
+            _oracleContract = config.OracleContract;
+            _aggregatorContract = config.IntegerAggregatorContract;
+
+            var testEnvironment = config.TestEnvironment;
+            EnvironmentInfo =
+                config.EnvironmentInfos.Find(o => o.Environment.Contains(testEnvironment));
+            _queryInfos = config.QueryInfos;
+            _payAmount = config.PayAmount;
+            _organization = config.Organization;
+
+            if (OnlyOracle) return;
+            ReportInfo = config.ReportInfo;
+            _digestStr = ReportInfo.DigestStr;
+            _reportContract = ReportInfo.ReportContract;
+            _applyObserverFee = ReportInfo.ApplyObserverFee;
+            _reportFee = ReportInfo.ReportFee;
+            _ethereumContractAddress = ReportInfo.EthereumContractAddress;
+        }
+
+        #endregion
+
+        private void IssueToken()
+        {
+            var balance = _tokenService.GetUserBalance(_owner, Symbol);
+            if (balance > _payAmount + _reportFee) return;
+            var result = _contractServices.AuthorityManager.ExecuteTransactionWithAuthority(
+                _tokenService.ContractAddress, nameof(TokenMethod.Issue),
+                new IssueInput
+                {
+                    Symbol = Symbol,
+                    Amount = 1000000_00000000,
+                    To = Address.FromBase58(_owner)
+                }, _owner);
+            result.Status.ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        private void TransferToken(IEnumerable<string> addressList, string symbol)
+        {
+            foreach (var address in addressList.Where(address => address != _owner))
+            {
+                var balance = _tokenService.GetUserBalance(address, symbol);
+                if (balance > _payAmount) continue;
+                _tokenService.TransferBalance(_owner, address, 1000_00000000, symbol);
+            }
+        }
+
+        private Hash CheckTransactionResult(string id)
+        {
+            var result = _contractServices.NodeManager.CheckTransactionResult(id);
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var nodes = _contractServices.AuthorityManager.GetCurrentMiners().Count;
+            var byteString = result.Logs.First(l => l.Name.Contains(nameof(QueryCreated))).NonIndexed;
+            var query = QueryCreated.Parser.ParseFrom(ByteString.FromBase64(byteString));
+            var oracleNodeThreshold =
+                _oracleService.CallViewMethod<OracleNodeThreshold>(OracleMethod.GetThreshold, new Empty());
+            var setAggregateThreshold = oracleNodeThreshold.DefaultAggregateThreshold;
+            query.Payment.ShouldBe(_payAmount);
+            query.QuerySender.ShouldBe(_owner.ConvertAddress());
+            query.AggregatorContractAddress.ShouldBe(_aggregatorContract.ConvertAddress());
+            query.AggregateThreshold.ShouldBe(Math.Max(Math.Max(nodes.Div(3).Add(1), 1), setAggregateThreshold));
+            Logger.Info(query.QueryId.ToHex());
+            return query.QueryId;
         }
 
         private void ExecuteStandaloneTask(IEnumerable<Action> actions, int sleepSeconds = 0,

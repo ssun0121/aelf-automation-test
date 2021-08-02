@@ -20,12 +20,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public readonly INodeManager NodeManager;
         public readonly AuthorityManager AuthorityManager;
         public readonly ParliamentContract ParliamentService;
-        public readonly ProfitContract ProfitService;
         public readonly ReferendumContract ReferendumService;
         public readonly TokenContract TokenService;
         public readonly VoteContract VoteService;
         public readonly TreasuryContract TreasuryContract;
-        public readonly TokenHolderContract TokenHolderContract;
         public readonly TokenConverterContract TokenConverterContract;
 
         public ContractTester(ContractServices contractServices)
@@ -37,7 +35,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             GenesisService = ContractServices.GenesisService;
             ElectionService = ContractServices.ElectionService;
             VoteService = ContractServices.VoteService;
-            ProfitService = ContractServices.ProfitService;
             TokenService = ContractServices.TokenService;
             ConsensusService = ContractServices.ConsensusService;
             AssociationService = ContractServices.AssociationService;
@@ -46,7 +43,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             ConfigurationService = ContractServices.ConfigurationService;
             CrossChainService = ContractServices.CrossChainService;
             TreasuryContract = ContractServices.TreasuryContract;
-            TokenHolderContract = ContractServices.TokenHolderContract;
             TokenConverterContract = ContractServices.TokenConverterService;
         }
 

@@ -6,36 +6,35 @@ namespace AElfChain.Common.Contracts
     {
         //Action
         Initialize,
-        Buy,
+        Stake,
+        Redeem,
+        Claim,
+        //Admin
         Draw,
-        PrepareDraw,
-        TakeReward,
-        SetBonusRate,
-        SetAdmin,
-
-
+        ResetTimestamp,
+        
         //View
-        GetPeriods,
+        GetCurrentPeriodId,
+        GetTotalLotteryCount,
+        GetLotteryCodeListByUserAddress,
+        GetAwardListByUserAddress,
         GetLottery,
-        GetLotteries,
-        GetRewardedLotteries,
-        GetLatestCashedLottery,
-        GetPeriod,
-        GetLatestDrawPeriod,
-        GetCurrentPeriodNumber,
-        GetCurrentPeriod,
-        GetPrice,
-        GetTokenSymbol,
-        GetCashDuration,
-        GetBonusRate,
-        GetAdmin,
-        GetRewards
+        GetStakingAmount,
+        GetOwnLottery,
+        GetAward,
+        GetPeriodAward,
+        GetAwardList,
+        GetAwardAmountMap,
+        
+        GetStartTimestamp,
+        GetShutdownTimestamp,
+        GetRedeemTimestamp
     }
 
     public class LotteryContract : BaseContract<LotteryMethod>
     {
         public LotteryContract(INodeManager nodeManager, string callAddress) :
-            base(nodeManager, "AElf.Contracts.LotteryContract-ssc", callAddress)
+            base(nodeManager, "AElf.Contracts.Lottery", callAddress)
         {
         }
 

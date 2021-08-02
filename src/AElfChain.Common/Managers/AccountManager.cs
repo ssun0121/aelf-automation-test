@@ -126,6 +126,16 @@ namespace AElfChain.Common.Managers
             var keyPair = GetKeyPair(address);
             return keyPair.PublicKey.ToHex();
         }
+        
+        public string GetPrivateKey(string address, string password = "")
+        {
+            if (password == "")
+                password = NodeOption.DefaultPassword;
+
+            UnlockAccount(address, password);
+            var keyPair = GetKeyPair(address);
+            return keyPair.PrivateKey.ToHex();
+        }
 
         public bool AccountIsExist(string address)
         {

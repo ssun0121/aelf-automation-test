@@ -6,13 +6,10 @@ using AElf.Contracts.Election;
 using AElf.Contracts.Genesis;
 using AElf.Contracts.MultiToken;
 using AElf.Contracts.Parliament;
-using AElf.Contracts.Profit;
 using AElf.Contracts.Referendum;
 using AElf.Contracts.TestContract.DApp;
 using AElf.Contracts.TokenConverter;
-using AElf.Contracts.TokenHolder;
 using AElf.Contracts.Treasury;
-using AElf.Contracts.Vote;
 
 namespace AElfChain.Common.Contracts
 {
@@ -83,32 +80,6 @@ namespace AElfChain.Common.Contracts
                 .GetTestStub<ParliamentContractImplContainer.ParliamentContractImplStub>(caller);
         }
 
-        public static ProfitContractContainer.ProfitContractStub GetProfitStub(this GenesisContract genesis,
-            string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var profit = genesis.GetContractAddressByName(NameProvider.Profit);
-
-            var contract = new ProfitContract(genesis.NodeManager, caller, profit.ToBase58());
-
-            return contract.GetTestStub<ProfitContractContainer.ProfitContractStub>(caller);
-        }
-        
-        public static ProfitContractImplContainer.ProfitContractImplStub GetProfitImplStub(this GenesisContract genesis,
-            string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var profit = genesis.GetContractAddressByName(NameProvider.Profit);
-
-            var contract = new ProfitContract(genesis.NodeManager, caller, profit.ToBase58());
-
-            return contract.GetTestStub<ProfitContractImplContainer.ProfitContractImplStub>(caller);
-        }
-
         public static TokenContractContainer.TokenContractStub GetTokenStub(this GenesisContract genesis,
             string caller = "")
         {
@@ -133,34 +104,6 @@ namespace AElfChain.Common.Contracts
             var contract = new TokenContract(genesis.NodeManager, caller, token.ToBase58());
 
             return contract.GetTestStub<TokenContractImplContainer.TokenContractImplStub>(caller);
-        }
-
-        public static TokenHolderContractContainer.TokenHolderContractStub GetTokenHolderStub(
-            this GenesisContract genesis,
-            string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var tokenHolder = genesis.GetContractAddressByName(NameProvider.TokenHolder);
-
-            var contract = new TokenHolderContract(genesis.NodeManager, caller, tokenHolder.ToBase58());
-
-            return contract.GetTestStub<TokenHolderContractContainer.TokenHolderContractStub>(caller);
-        }
-        
-        public static TokenHolderContractImplContainer.TokenHolderContractImplStub GetTokenHolderImplStub(
-            this GenesisContract genesis,
-            string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var tokenHolder = genesis.GetContractAddressByName(NameProvider.TokenHolder);
-
-            var contract = new TokenHolderContract(genesis.NodeManager, caller, tokenHolder.ToBase58());
-
-            return contract.GetTestStub<TokenHolderContractImplContainer.TokenHolderContractImplStub>(caller);
         }
 
         public static TokenConverterContractContainer.TokenConverterContractStub GetTokenConverterStub(
@@ -216,32 +159,6 @@ namespace AElfChain.Common.Contracts
             var contract = new TreasuryContract(genesis.NodeManager, caller, treasury.ToBase58());
 
             return contract.GetTestStub<TreasuryContractImplContainer.TreasuryContractImplStub>(caller);
-        }
-
-        public static VoteContractContainer.VoteContractStub GetVoteStub(this GenesisContract genesis,
-            string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var vote = genesis.GetContractAddressByName(NameProvider.Vote);
-
-            var contract = new VoteContract(genesis.NodeManager, caller, vote.ToBase58());
-
-            return contract.GetTestStub<VoteContractContainer.VoteContractStub>(caller);
-        }
-        
-        public static VoteContractImplContainer.VoteContractImplStub GetVoteImplStub(this GenesisContract genesis,
-            string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var vote = genesis.GetContractAddressByName(NameProvider.Vote);
-
-            var contract = new VoteContract(genesis.NodeManager, caller, vote.ToBase58());
-
-            return contract.GetTestStub<VoteContractImplContainer.VoteContractImplStub>(caller);
         }
 
         public static ElectionContractContainer.ElectionContractStub GetElectionStub(this GenesisContract genesis,
@@ -381,18 +298,6 @@ namespace AElfChain.Common.Contracts
                 new ConfigurationContract(genesis.NodeManager, caller, configuration.ToBase58());
 
             return contract.GetTestStub<ConfigurationImplContainer.ConfigurationImplStub>(caller);
-        }
-
-        public static DAppContainer.DAppStub GetDAppStub(this GenesisContract genesis, string contractAddress,
-            string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var contract =
-                new DAppContract(genesis.NodeManager, caller, contractAddress);
-
-            return contract.GetTestStub<DAppContainer.DAppStub>(caller);
         }
     }
 }

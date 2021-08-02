@@ -35,7 +35,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public TokenContract TokenService { get; set; }
         public TokenConverterContract TokenConverterService { get; set; }
         public VoteContract VoteService { get; set; }
-        public ProfitContract ProfitService { get; set; }
         public ElectionContract ElectionService { get; set; }
         public ConsensusContract ConsensusService { get; set; }
         public AssociationContract AssociationService { get; set; }
@@ -44,8 +43,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public ConfigurationContract ConfigurationService { get; set; }
         public CrossChainContract CrossChainService { get; set; }
         public TreasuryContract TreasuryContract { get; set; }
-        public TokenHolderContract TokenHolderContract { get; set; }
-
 
         public string CallAddress { get; set; }
 
@@ -70,9 +67,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             ConfigurationService = GenesisService.GetConfigurationContract();
             CrossChainService = GenesisService.GetCrossChainContract();
-            TokenHolderContract = GenesisService.GetTokenHolderContract();
-            //Profit contract
-            ProfitService = GenesisService.GetProfitContract();
         }
     }
 }

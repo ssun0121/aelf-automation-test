@@ -12,7 +12,8 @@ namespace AElfChain.Common
 
         //View
         GetHistoryPrices,
-        GetHistoryTemperatures
+        GetHistoryTemperatures,
+        GetHelpfulNodeList
     }
 
     public class OracleUserContract : BaseContract<OracleUserMethod>

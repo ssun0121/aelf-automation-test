@@ -24,11 +24,26 @@ service OracleContract {
 
   rpc CancelQuery (aelf.Hash) returns (google.protobuf.Empty) {}
 
+  rpc CreateQueryTask (CreateQueryTaskInput) returns (aelf.Hash) {}
+
+  rpc TaskQuery (TaskQueryInput) returns (aelf.Hash) {}
+
+  rpc CompleteQueryTask (CompleteQueryTaskInput) returns (google.protobuf.Empty) {}
+
   // controller
 
   rpc ChangeController (aelf.Address) returns (google.protobuf.Empty) {}
 
-  // oracle nodes management
+  // regiment related
+
+  rpc CreateRegiment (CreateRegimentInput) returns (google.protobuf.Empty) {}
+  rpc JoinRegiment (JoinRegimentInput) returns (google.protobuf.Empty) {}
+  rpc LeaveRegiment (LeaveRegimentInput) returns (google.protobuf.Empty) {}
+  rpc AddRegimentMember (AddRegimentMemberInput) returns (google.protobuf.Empty) {}
+  rpc DeleteRegimentMember (DeleteRegimentMemberInput) returns (google.protobuf.Empty) {}
+  rpc TransferRegimentOwnership (TransferRegimentOwnershipInput) returns (google.protobuf.Empty) {}
+  rpc AddAdmins (AddAdminsInput) returns (google.protobuf.Empty) {}
+  rpc DeleteAdmins (DeleteAdminsInput) returns (google.protobuf.Empty) {}
 
   rpc LockTokens (LockTokensInput) returns (google.protobuf.Empty) {}
 
@@ -41,6 +56,10 @@ service OracleContract {
   rpc ChangeDefaultExpirationSeconds (google.protobuf.Int32Value) returns (google.protobuf.Empty) {}
 
   rpc EnableChargeFee (google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+  rpc AddPostPayAddress (aelf.Address) returns (google.protobuf.Empty) {}
+
+  rpc RemovePostPayAddress (aelf.Address) returns (google.protobuf.Empty) {}
 
   // view methods
 
@@ -75,24 +94,55 @@ service OracleContract {
   rpc GetHelpfulNodeList (aelf.Hash) returns (AddressList) {
     option (aelf.is_view) = true;
   }
+
+  rpc GetQueryTask (aelf.Hash) returns (QueryTask) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetRegimentMemberList (aelf.Address) returns (AddressList) {
+    option (aelf.is_view) = true;
+  }
 }
 
-message InitializeInput{
+message InitializeInput {
   int32 minimum_oracle_nodes_count = 1;
   int32 default_reveal_threshold = 2;
   int32 default_aggregate_threshold = 3;
   int32 default_expiration_seconds = 4;
   bool is_charge_fee = 5;
+  aelf.Address regiment_contract_address = 6;
 }
 
 message QueryInput {
   int64 payment = 1;// Maximum for this query option.
   CallbackInfo callback_info = 2;
   aelf.Address aggregator_contract_address = 3;
-  AddressList designated_node_list = 4;// Will be association address if count is 1.
+  AddressList designated_node_list = 4;// Will be regiment address if count is 1.
   QueryInfo query_info = 5;
   int32 aggregate_threshold = 6;
   string token = 7;
+  int32 aggregate_option = 8;
+  aelf.Hash task_id = 9;
+}
+
+message CreateQueryTaskInput {
+  int64 each_payment = 1;
+  int32 supposed_query_times = 2;
+  QueryInfo query_info = 3;
+  google.protobuf.Timestamp end_time = 4;
+  CallbackInfo callback_info = 5;
+  aelf.Address aggregator_contract_address = 6;
+  int32 aggregate_option = 7;
+}
+
+message TaskQueryInput {
+  aelf.Hash task_id = 1;
+}
+
+message CompleteQueryTaskInput {
+  aelf.Hash task_id = 1;
+  AddressList designated_node_list = 2;
+  int32 aggregate_threshold = 3;
 }
 
 message CallbackInfo {
@@ -110,7 +160,7 @@ message QueryRecord {
   google.protobuf.Timestamp expiration_timestamp = 3;
   bool is_sufficient_commitments_collected = 4;
   bool is_sufficient_data_collected = 5;
-  bytes final_result = 6;
+  string final_result = 6;
   int64 payment = 7;
   CallbackInfo callback_info = 8;
   aelf.Hash query_id = 9;
@@ -121,6 +171,68 @@ message QueryRecord {
   bool is_cancelled = 14;
   QueryInfo query_info = 15;
   string token = 16;
+  DataRecords data_records = 17;
+  int32 aggregate_option = 18;
+  aelf.Hash task_id = 19;
+  bool is_paid_to_oracle_contract = 20;
+}
+
+message CreateRegimentInput {
+  aelf.Address manager = 1;
+  repeated aelf.Address initial_member_list = 2;
+  bool is_approve_to_join = 3;
+}
+
+message JoinRegimentInput {
+  aelf.Address regiment_address = 1;
+  aelf.Address new_member_address = 2;
+}
+
+message LeaveRegimentInput {
+  aelf.Address regiment_address = 1;
+  aelf.Address leave_member_address = 2;
+}
+
+message AddRegimentMemberInput {
+  aelf.Address regiment_address = 1;
+  aelf.Address new_member_address = 2;
+}
+
+message DeleteRegimentMemberInput {
+  aelf.Address regiment_address = 1;
+  aelf.Address delete_member_address = 2;
+}
+
+message TransferRegimentOwnershipInput {
+  aelf.Address regiment_address = 1;
+  aelf.Address new_manager_address = 2;
+  aelf.Address origin_sender_address = 3;
+}
+
+message AddAdminsInput {
+  aelf.Address regiment_address = 1;
+  repeated aelf.Address new_admins = 2;
+  aelf.Address origin_sender_address = 3;
+}
+
+message DeleteAdminsInput {
+  aelf.Address regiment_address = 1;
+  repeated aelf.Address delete_admins = 2;
+  aelf.Address origin_sender_address = 3;
+}
+
+message QueryTask {
+  int64 each_payment = 1;
+  int32 supposed_query_times = 2;
+  QueryInfo query_info = 3;
+  google.protobuf.Timestamp end_time = 4;
+  AddressList designated_node_list = 5;
+  aelf.Address aggregator_contract_address = 6;
+  int32 actual_queried_times = 7;
+  CallbackInfo callback_info = 8;
+  aelf.Address creator = 9;
+  int32 aggregate_threshold = 10;
+  int32 aggregate_option = 11;
 }
 
 message CommitInput {
@@ -130,7 +242,7 @@ message CommitInput {
 
 message RevealInput {
   aelf.Hash query_id = 1;
-  bytes data = 2;
+  string data = 2;
   aelf.Hash salt = 3;
 }
 
@@ -145,18 +257,22 @@ message OracleNodeThreshold {
 }
 
 message ResultList {
-  repeated bytes results = 1;
+  repeated string results = 1;
   repeated int32 frequencies = 2;
 }
 
-message NodeData {
+message DataRecord {
   aelf.Address address = 1;
-  bytes data = 2;
+  string data = 2;
 }
 
-message NodeDataList {
-  repeated NodeData value = 1;
-  aelf.Address observer_association_address = 2;
+message DataRecords {
+  repeated DataRecord value = 1;
+}
+
+message PlainResult {
+  DataRecords data_records = 1;
+  aelf.Address regiment_address = 2;
   QueryInfo query_info = 3;
   string token = 4;
 }
@@ -172,8 +288,8 @@ message UnlockTokensInput {
 }
 
 message QueryInfo {
-  string url_to_query = 1;
-  repeated string attributes_to_fetch = 2;
+  string title = 1;
+  repeated string options = 2;
 }
 
 // Events
@@ -182,19 +298,34 @@ message QueryCreated {
   int64 payment = 1;// Maximum for this query option.
   CallbackInfo callback_info = 2;
   aelf.Address aggregator_contract_address = 3;
-  AddressList designated_node_list = 4;// Will be association address if count is 1.
+  AddressList designated_node_list = 4;// Will be regiment address if count is 1.
   QueryInfo query_info = 5;
   int32 aggregate_threshold = 6;
   aelf.Address query_sender = 7;
   aelf.Hash query_id = 8;
   string token = 9;
   int32 maximum_permissible_deviation = 10;
+  int32 aggregate_option = 11;
+  aelf.Hash task_id = 12;
+}
+
+message QueryTaskCreated {
+  option (aelf.is_event) = true;
+  int64 each_payment = 1;
+  int32 supposed_query_times = 2;
+  QueryInfo query_info = 3;
+  google.protobuf.Timestamp end_time = 4;
+  AddressList designated_node_list = 5;
+  aelf.Address aggregator_contract_address = 6;
+  CallbackInfo callback_info = 7;
+  aelf.Address creator = 8;
+  int32 aggregate_threshold = 9;
+  int32 aggregate_option = 10;
 }
 
 message QueryCancelled {
   option (aelf.is_event) = true;
-  bytes query_id = 1;
-  google.protobuf.Timestamp cancel_time = 2;
+  aelf.Hash query_id = 1;
 }
 
 message SufficientCommitmentsCollected {
@@ -214,7 +345,7 @@ message CommitmentRevealed {
   aelf.Hash query_id = 1;
   aelf.Address oracle_node_address = 2;
   aelf.Hash commitment = 3;
-  bytes data = 4;
+  string reveal_data = 4;
   aelf.Hash salt = 5;
 }
 
@@ -223,14 +354,20 @@ message CommitmentRevealFailed {
   aelf.Hash query_id = 1;
   aelf.Address oracle_node_address = 2;
   aelf.Hash commitment = 3;
-  bytes data = 4;
+  string reveal_data = 4;
   aelf.Hash salt = 5;
 }
 
-message QueryCompleted {
+message QueryCompletedWithAggregation {
   option (aelf.is_event) = true;
   aelf.Hash query_id = 1;
-  bytes result = 2;
+  string result = 2;
+}
+
+message QueryCompletedWithoutAggregation {
+  option (aelf.is_event) = true;
+  aelf.Hash query_id = 1;
+  PlainResult result = 2;
 }
 
 message TokenLocked {

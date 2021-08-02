@@ -22,17 +22,7 @@ namespace AElfChain.Common.Contracts
 
             return new ParliamentContract(genesis.NodeManager, caller, parliamentAuth.ToBase58(), password);
         }
-
-        public static ProfitContract GetProfitContract(this GenesisContract genesis, string caller = "", string password = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var profit = genesis.GetContractAddressByName(NameProvider.Profit);
-
-            return new ProfitContract(genesis.NodeManager, caller, profit.ToBase58(), password);
-        }
-
+        
         public static TokenContract GetTokenContract(this GenesisContract genesis, string caller = "",string password="")
         {
             if (caller == "")
@@ -41,16 +31,6 @@ namespace AElfChain.Common.Contracts
             var token = genesis.GetContractAddressByName(NameProvider.Token);
 
             return new TokenContract(genesis.NodeManager, caller, token.ToBase58(),password);
-        }
-
-        public static TokenHolderContract GetTokenHolderContract(this GenesisContract genesis, string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var tokenHolder = genesis.GetContractAddressByName(NameProvider.TokenHolder);
-
-            return new TokenHolderContract(genesis.NodeManager, caller, tokenHolder.ToBase58());
         }
 
         public static TokenConverterContract GetTokenConverterContract(

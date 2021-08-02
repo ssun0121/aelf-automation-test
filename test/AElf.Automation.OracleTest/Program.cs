@@ -18,18 +18,34 @@ namespace AElf.Automation.OracleTest
             var oracle = new OracleOperations();
             var cts = new CancellationTokenSource();
             var token = cts.Token;
-            var taskList = new List<Task>();
-
+            if (oracle.OnlyOracle)
+            {
+                while (true)
+                {
+                    var taskList = new List<Task>
+                    {
+                        Task.Run(() =>
+                        {
+                            oracle.QueryJob();
+                        }, token)
+                    };
+                    Thread.Sleep(100000);
+                    Task.WaitAll(taskList.ToArray<Task>());
+                }
+            }
+            
+            oracle.ApplyObserver();
+            oracle.RegisterOffChainAggregation();
             while (true)
             {
-                taskList = new List<Task>
+                var taskList = new List<Task>
                 {
                     Task.Run(() =>
                     {
-                        oracle.QueryJob();
+                        oracle.ReportQueryJob();
                     }, token)
                 };
-                Thread.Sleep(100000);
+                Thread.Sleep(120000);
                 Task.WaitAll(taskList.ToArray<Task>());
             }
         }

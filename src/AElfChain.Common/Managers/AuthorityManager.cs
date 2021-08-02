@@ -39,13 +39,13 @@ namespace AElfChain.Common.Managers
                 caller = _info.Nodes.First().Account;
             NodeManager = nodeManager;
             _genesis = GenesisContract.GetGenesisContract(nodeManager, caller,password);
-            _consensus = _genesis.GetConsensusContract();
+             _consensus = _genesis.GetConsensusContract();
             _token = _genesis.GetTokenContract();
             _parliament = _genesis.GetParliamentContract();
-            _association = _genesis.GetAssociationAuthContract();
-            _referendum = _genesis.GetReferendumAuthContract();
+            // _association = _genesis.GetAssociationAuthContract();
+            // _referendum = _genesis.GetReferendumAuthContract();
 
-            CheckBpBalance(caller);
+           CheckBpBalance(caller);
         }
 
         public INodeManager NodeManager { get; set; }
@@ -300,6 +300,7 @@ namespace AElfChain.Common.Managers
                 createInput);
             var organizationAddress =
                 Address.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
+            Logger.Info($"{organizationAddress}");
             return organizationAddress;
         }
 

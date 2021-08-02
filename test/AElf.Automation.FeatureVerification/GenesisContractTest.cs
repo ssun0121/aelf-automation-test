@@ -29,12 +29,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         public INodeManager NM { get; set; }
         public ContractManager MainManager { get; set; }
-        public static string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
-        public static string Creator { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
-        public static string Member { get; } = "2frDVeV6VxUozNqcFbgoxruyqCRAuSyXyfCaov6bYWc7Gkxkh2";
-        public static string OtherAccount { get; } = "W4xEKTZcvPKXRAmdu9xEpM69ArF7gUxDh9MDgtsKnu7JfePXo";
+        public static string InitAccount { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
+        public static string Creator { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
+        public static string Member { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
+        public static string OtherAccount { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
         public List<string> Members;
-        private static string MainRpcUrl { get; } = "http://192.168.197.60:8000";
+        private static string MainRpcUrl { get; } = "http://13.232.173.152:8000";
         private static string SideRpcUrl { get; } = "http://192.168.197.60:8001";
         private static string SideRpcUrl2 { get; } = "http://192.168.197.60:8002";
         private string Type { get; } = "Main";
@@ -46,7 +46,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             //Init Logger
             Log4NetHelper.LogInit("ContractTest_");
-            NodeInfoHelper.SetConfig("nodes-env2-main");
+            NodeInfoHelper.SetConfig("nodes");
 
             #endregion
 
@@ -267,8 +267,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow("6bf5db3a326d99bf4c508e7b39df0f22543271cade52c6a001dba293f132251f",
-            "ce3b565c1003b2a61937c540ff7e9db15a4f63dcd7ee6ffdff31b1a47eab4ad1")]
+        [DataRow("ff51cf9e7fd99ece4d0db78c59717b0e707b43ca06d0cbfe69cadce85a573f4c",
+            "4992088e1bbc491f8b53b80beae115cadcd21c03c015f9bc3b8a59eb3d6c5c11")]
         public void ReleaseDeployCodeCheck(string proposal, string hash)
         {
             var proposalId = Hash.LoadFromHex(proposal);
@@ -321,7 +321,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void ProposalUpdate_MinerProposalUpdateContract_Success()
         {
-            var input = ContractUpdateInput("AElf.Contracts.MultiToken", Tester.ReferendumService.ContractAddress);
+            var input = ContractUpdateInput("AElf.Contracts.MerkleTreeGeneratorContract", "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ");
             var contractProposalInfo = ProposalUpdateContract(Tester, InitAccount, input);
             ApproveByMiner(Tester, contractProposalInfo.ProposalId);
             var release = Tester.GenesisService.ReleaseApprovedContract(contractProposalInfo, InitAccount);
@@ -333,8 +333,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow("6171bff09116c62a2bc5fd0ec547a99b8c8c95532b0eebaf611d713d796c4016",
-            "d65391e08082dff24e708caf5c4a664a57998f7f35e6fc9ea7b6ae118f0e2191")]
+        [DataRow("6c8de0eb8d42c132a75adfb7ace8f21a1bd2cf4c621118ae702d4bff0ab28940",
+            "880034089dc1ad276ad4efc81ee6701d887e350be46ccdc400a01691d9aa23ba")]
         public void ReleaseUpdateCodeCheck(string proposal, string hash)
         {
             var proposalId = Hash.LoadFromHex(proposal);
