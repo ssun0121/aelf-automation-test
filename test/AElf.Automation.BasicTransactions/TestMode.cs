@@ -7,6 +7,10 @@ namespace AElf.Automation.BasicTransaction
         RandomContractTransfer = 3,
         CheckUserBalance = 4,
         CheckTxInfo = 5,
-        CheckBlockInfo = 6
+        CheckBlockInfo = 6,
+        DoubleTransfer = 7,
+        AllCheck = 8,
+        NewNode = 9,
+        CheckTransactionAndBlock = 10
     }
 }

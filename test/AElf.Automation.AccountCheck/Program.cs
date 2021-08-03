@@ -51,12 +51,6 @@ namespace AElf.Automation.AccountCheck
                 // original balance 
                 _fromAccountInfos = check.CheckBalance(check.FromAccountList, _tokenInfoList, out long d1);
                 _toAccountInfos = check.CheckBalance(check.ToAccountList, _tokenInfoList, out long d2);
-
-                for (var i = 0; i < 10; i++)
-                {
-                    check.CheckBalance(check.FromAccountList, _tokenInfoList, out long fromDuration);
-                    check.CheckBalance(check.ToAccountList, _tokenInfoList, out long toDuration);
-                }
                 transfer.Transfer(_tokenInfoList);
 
                 long all = 0;
@@ -65,7 +59,6 @@ namespace AElf.Automation.AccountCheck
                     Logger.Info($"{times}");
 
                     //after transfer balance
-
                     var @from = check.CheckBalance(check.FromAccountList, _tokenInfoList, out long fromDuration);
                     Thread.Sleep(1000);
                     var to = check.CheckBalance(check.ToAccountList, _tokenInfoList, out long toDuration);
@@ -78,7 +71,7 @@ namespace AElf.Automation.AccountCheck
                         foreach (var account in list)
                         {
                             var accountInfo = after.Value.First(a => a.Account.Equals(account.Account));
-                            Logger.Info($"{account.Account}: {account.Balance}");
+                            Logger.Info($"{accountInfo.Account}: {accountInfo.Balance}"); 
                             account.Balance.ShouldBe(accountInfo.Balance + amount);
                         }
                     }
@@ -90,13 +83,13 @@ namespace AElf.Automation.AccountCheck
                         foreach (var account in list)
                         {
                             var accountInfo = after.Value.First(a => a.Account.Equals(account.Account));
-                            Logger.Info($"{account.Account}: {account.Balance}");
+                            Logger.Info($"{accountInfo.Account}: {accountInfo.Balance}"); 
                             account.Balance.ShouldBe(accountInfo.Balance - amount);
                         }
                     }
 
-                    _fromAccountInfos = from;
-                    _toAccountInfos = to;
+                    // _fromAccountInfos = from;
+                    // _toAccountInfos = to;
                     times--;
                     Thread.Sleep(1000);
                 }

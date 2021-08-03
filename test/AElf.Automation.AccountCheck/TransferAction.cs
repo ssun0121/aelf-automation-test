@@ -53,6 +53,13 @@ namespace AElf.Automation.AccountCheck
                             Symbol = symbol,
                             Memo = $"T-{Guid.NewGuid()}"
                         });
+                    contract.ExecuteMethodWithTxId(TokenMethod.Transfer, new TransferInput
+                    {
+                        To = account.ConvertAddress(),
+                        Amount = 10_00000000,
+                        Symbol = "ELF",
+                        Memo = $"T-{Guid.NewGuid()}"
+                    });
                 }
                 contract.CheckTransactionResultList();
             }

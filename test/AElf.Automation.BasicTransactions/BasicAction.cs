@@ -19,13 +19,15 @@ namespace AElf.Automation.BasicTransaction
 
             var config = ConfigInfo.ReadInformation;
             var url = config.Url;
+            var newUrl = config.NewNode;
             InitAccount = config.InitAccount;
             Password = config.Password;
             TransferAmount = config.TransferAmount;
             Times = config.Times;
             TokenAddress = config.TokenAddress;
-            WrapperAddress = config.WrapperAddress;
+            Symbol = config.Symbol;
             
+            NewNodeManager = new NodeManager(newUrl);
             NodeManager = new NodeManager(url);
             AuthorityManager = new AuthorityManager(NodeManager, InitAccount);
             GetTestAccounts();
@@ -70,6 +72,7 @@ namespace AElf.Automation.BasicTransaction
         }
 
         public INodeManager NodeManager;
+        public INodeManager NewNodeManager;
         public AuthorityManager AuthorityManager;
         public string InitAccount;
         public string Password;
@@ -79,6 +82,6 @@ namespace AElf.Automation.BasicTransaction
         public int Times;
 
         public string TokenAddress;
-        public string WrapperAddress;
+        public string Symbol;
     }
 }

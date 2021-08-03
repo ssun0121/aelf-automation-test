@@ -26,6 +26,7 @@ namespace AElf.Automation.RpcPerformance
             string baseUrl,
             int transactionGroup,
             int duration,
+            string initAccount,
             string keyStorePath = "")
         {
             if (keyStorePath == "")
@@ -45,6 +46,7 @@ namespace AElf.Automation.RpcPerformance
             BaseUrl = baseUrl.Contains("http://") ? baseUrl : $"http://{baseUrl}";
             TransactionGroup = transactionGroup;
             Duration = duration;
+            InitAccount = initAccount;
         }
 
         public void InitExecCommand()
@@ -141,7 +143,7 @@ namespace AElf.Automation.RpcPerformance
                 return;
             for (var i = 0; i < ThreadCount - already; i++)
             {
-                var contract = new ContractInfo(AccountList[i].Account, TokenAddress);
+                var contract = new ContractInfo(InitAccount, TokenAddress);
                 var account = contract.Owner;
                 var contractPath = contract.ContractAddress;
                 var symbol = TokenMonitor.GenerateNotExistTokenSymbol();
@@ -225,6 +227,27 @@ namespace AElf.Automation.RpcPerformance
                     item.Owner,
                     item.ContractAddress);
             }
+        }
+        
+        public void InitializeFee()
+        {
+            var token = new TokenContract(NodeManager, InitAccount, TokenAddress);
+            var amount = 100000_00000000;
+            foreach (var user in FromAccountList)
+            {
+                var checkBalance = token.GetUserBalance(user.Account);
+                if (checkBalance > 100000_00000000)
+                    return;
+                var transactionId = token.ExecuteMethodWithTxId(TokenMethod.Transfer, new TransferInput
+                {
+                    Amount = amount,
+                    Memo = $"{Guid.NewGuid()}",
+                    Symbol = "ELF",
+                    To = user.Account.ConvertAddress()
+                });
+                TxIdList.Add(transactionId);
+            }
+            Monitor.CheckTransactionsStatus(TxIdList);
         }
 
         public void ExecuteContinuousRoundsTransactionsTask(bool useTxs = false)
@@ -369,6 +392,13 @@ namespace AElf.Automation.RpcPerformance
             var contractPath = ContractList[threadNo].ContractAddress;
             var symbol = ContractList[threadNo].Symbol;
 
+            var result = Monitor.CheckTransactionPoolStatus(true);
+            if (!result)
+            {
+                Logger.Warn("Transaction pool transactions over limited, canceled this round execution.");
+                return;
+            }
+            
             var rawTransactionList = new ConcurrentBag<string>();
             var stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -441,6 +471,7 @@ namespace AElf.Automation.RpcPerformance
         public int ThreadCount { get; set; }
         public int ExeTimes { get; }
         public int Duration { get; }
+        public string InitAccount { get; }
 
         private ConcurrentQueue<string> GenerateTransactionQueue { get; }
         private static readonly ILog Logger = Log4NetHelper.GetLogger();

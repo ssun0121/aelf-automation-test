@@ -11,6 +11,7 @@ namespace AElf.Automation.RpcPerformance
         void InitExecCommand();
         void DeployContracts();
         void InitializeMainContracts();
+        void InitializeFee();
         void PrintContractInfo();
         void ExecuteContinuousRoundsTransactionsTask(bool useTxs = false);
     }

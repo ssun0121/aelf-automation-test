@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Linq;
+using AElfChain.Common.Contracts;
 using AElfChain.Common.Helpers;
 using log4net;
+using Shouldly;
 
 namespace AElf.Automation.BasicTransaction
 {
@@ -11,8 +14,9 @@ namespace AElf.Automation.BasicTransaction
             Log4NetHelper.LogInit("BasicTransaction");
 
             var tx = new TransactionAction();
+            Logger.Info($"{tx.NodeManager.GetApiUrl()}");
             var token = tx.DeployTokenContract(TestMode.UserTransfer);
-            var symbol = tx.CreateAndIssueTokenForWrapper(token.Contract);
+            var symbol = tx.CreateAndIssueToken(token.Contract);
             Logger.Info($"Symbol: {symbol}");
 
             var execMode = ConfigInfo.ReadInformation.ExecuteMode;
@@ -28,6 +32,7 @@ namespace AElf.Automation.BasicTransaction
                 case TestMode.UserTransfer:
                     Logger.Info(
                         $"Start basic account transfer, from account: {tx.InitAccount}, to account: {tx.TestAccount}, times: {times}");
+                    Logger.Info(DateTime.Now);
                     for (var i = 0; i < times; i++)
                     {
                         var duration = tx.TransferFromAccount(token, symbol);
@@ -56,7 +61,7 @@ namespace AElf.Automation.BasicTransaction
                     {
                         all = 0;
                         var otherToken = tx.DeployTokenContract(TestMode.RandomContractTransfer);
-                        var otherSymbol = tx.CreateAndIssueTokenForWrapper(otherToken.Contract);
+                        var otherSymbol = tx.CreateAndIssueToken(otherToken.Contract);
                         Logger.Info($"Start random contract transfer, contract: {otherToken.ContractAddress}");
                         for (var j = 0; j < times; j++)
                         {
@@ -99,6 +104,42 @@ namespace AElf.Automation.BasicTransaction
                     all = tx.CheckBlockHeight(times);
                     req = (double) times / all * 1000;
                     Logger.Info($"Check block {times} times use {all}ms, req: {req}/s, time: {all / times}ms");
+                    break;
+                case TestMode.DoubleTransfer:
+                    Logger.Info("Start Double Transfer: ");
+                    tx.DoubleTransfer(token,symbol);
+                    break;
+                case TestMode.AllCheck:
+                    Logger.Info(
+                        $"Start basic account transfer, from account: {tx.InitAccount}, to account: {tx.TestAccount}, times: {times}");
+                    tx.CheckTxInfo(token, symbol);
+                    Logger.Info("Start check user balance: ");
+                    tx.CheckAccountBalance(token, symbol);
+                    Logger.Info("Start check block info:");
+                    tx.CheckBlockHeight(times);
+                    break;
+                case TestMode.NewNode:
+                    Logger.Info($"base node {tx.NodeManager.GetApiUrl()}");
+                    Logger.Info($"new node {tx.NewNodeManager.GetApiUrl()}");
+                    Logger.Info("Check Block Info");
+                    var blockBase = tx.CheckBlockInfo(10000, tx.NodeManager);
+                    var blockNew = tx.CheckBlockInfo(10000, tx.NewNodeManager);
+
+                    var baseTx = blockBase.Body.Transactions;
+                    var newTx = blockNew.Body.Transactions;
+
+                    tx.CheckTxInfo(baseTx.First(), tx.NodeManager);
+                    tx.CheckTxInfo(newTx.First(), tx.NewNodeManager);
+
+                    var baseBalance = token.GetUserBalance(tx.InitAccount);
+                    var newToken = new TokenContract(tx.NewNodeManager, tx.InitAccount, tx.TokenAddress);
+                    var newBalance = newToken.GetUserBalance(tx.InitAccount);
+                    baseBalance.ShouldBe(newBalance);
+                    Logger.Info($"\n on {tx.NodeManager.GetApiUrl()}: balance {baseBalance}\n" +
+                                $"on {tx.NewNodeManager.GetApiUrl()}: balance {newBalance}");
+                    break;
+                case TestMode.CheckTransactionAndBlock:
+                    tx.CheckTransactionAndBlock(token,symbol);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

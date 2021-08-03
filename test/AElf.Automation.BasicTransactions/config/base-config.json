@@ -1,11 +1,12 @@
 {
-  "ServiceUrl": "3.112.235.128:8000",
-  "InitAccount": "zptx91dhHVJjJRxf5Wg5KAoMrDrWX6i1H2FAyKAiv2q8VZfbg",
+  "ServiceUrl": "192.168.67.166:8000",
+  "NewNode": "192.168.66.191:8000",
+  "InitAccount": "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D",
   "Password": "12345678",
   "TransferAmount": 100000000000,
-  "ExecuteMode": 7,
-  "ContractCount": 3,
-  "Times": 10,
-  "TokenAddress": "XyRN9VNabpBiVUFeX2t7ZUR2b3tWV7U31exufJ2AUepVb5t56",
-  "WrapperAddress":"NxSBGHE3zs85tpnX1Ns4awQUtFL8Dnr6Hux4C4E18WZsW4zzJ"
+  "ExecuteMode": 1,
+  "ContractCount": 1,
+  "Times": 20,
+  "TokenAddress": "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE",
+  "Symbol": "TEST"
 }

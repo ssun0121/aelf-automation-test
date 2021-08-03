@@ -1,11 +1,14 @@
 {
-    "GroupCount": 5,
+    "GroupCount": 3,
     "TransactionGroup": 10,
     "TransactionCount":100,
-    "ServiceUrl": "3.112.235.128:8000",
+    "ServiceUrl": "192.168.67.166:8000",
     "Timeout": 300,
     "RandomSenderTransaction": true,
     "Duration": 1000,
-    "ContractAddress": "",
+    "IsNeedFee": true,
+    "SentTxLimit": 500,
+    "InitAccount": "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D",
+    "ContractAddress": "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE",
     "TokenList": []
 }

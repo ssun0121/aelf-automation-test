@@ -2,25 +2,18 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Dynamic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using AElf.Standards.ACS0;
 using AElf.Client.Service;
 using AElf.Contracts.MultiToken;
 using AElf.Types;
-using AElfChain.Common;
 using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
-using Google.Protobuf;
 using log4net;
-using Newtonsoft.Json;
 using Volo.Abp.Threading;
 
 namespace AElf.Automation.RpcPerformance
@@ -32,6 +25,7 @@ namespace AElf.Automation.RpcPerformance
             string baseUrl,
             int transactionGroup,
             int duration,
+            string initAccount,
             string keyStorePath = "")
         {
             if (keyStorePath == "")
@@ -48,8 +42,9 @@ namespace AElf.Automation.RpcPerformance
             ExeTimes = exeTimes;
             KeyStorePath = keyStorePath;
             BaseUrl = baseUrl.Contains("http://") ? baseUrl : $"http://{baseUrl}";
-            TransactionGroup = transactionGroup;
             Duration = duration;
+            TransactionGroup = transactionGroup;
+            InitAccount = initAccount;
         }
 
         public void InitExecCommand()
@@ -211,6 +206,28 @@ namespace AElf.Automation.RpcPerformance
             }
         }
 
+        public void InitializeFee()
+        {
+            TokenAddress = RpcConfig.ReadInformation.ContractAddress;
+            var token = new TokenContract(NodeManager, InitAccount, TokenAddress);
+            var amount = 100000_00000000;
+            foreach (var user in FromAccountList)
+            {
+                var checkBalance = token.GetUserBalance(user.Account);
+                if (checkBalance > 100000_00000000)
+                    return;
+                var transactionId = token.ExecuteMethodWithTxId(TokenMethod.Transfer, new TransferInput
+                {
+                    Amount = amount,
+                    Memo = $"{Guid.NewGuid()}",
+                    Symbol = "ELF",
+                    To = user.Account.ConvertAddress()
+                });
+                TxIdList.Add(transactionId);
+            }
+            Monitor.CheckTransactionsStatus(TxIdList);
+        }
+
         #region Public Property
 
         public INodeManager NodeManager { get; private set; }
@@ -228,6 +245,8 @@ namespace AElf.Automation.RpcPerformance
         private List<string> TxIdList { get; }
         public int ThreadCount { get; set; }
         private int TransactionGroup { get; set; }
+        private string InitAccount { get; set; }
+        private string TokenAddress { get; set; }
         public int ExeTimes { get; }
         public int Duration { get; }
         private ConcurrentQueue<string> GenerateTransactionQueue { get; }

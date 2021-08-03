@@ -23,8 +23,9 @@ namespace AElf.Automation.RpcPerformance
             Logger = Log4NetHelper.GetLogger();
 
             var transactionType = RpcConfig.ReadInformation.RandomSenderTransaction;
+            var isNeedFee = RpcConfig.ReadInformation.IsNeedFee;
             var performance = transactionType
-                ? (IPerformanceCategory) new RandomCategory(GroupCount, TransactionCount, RpcUrl,TransactionGroup,Duration)
+                ? (IPerformanceCategory) new RandomCategory(GroupCount, TransactionCount, RpcUrl,TransactionGroup,Duration,InitAccount)
                 : new ExecutionCategory(GroupCount, TransactionCount, RpcUrl,TransactionGroup, Duration);
 
             //Execute transaction command
@@ -32,8 +33,10 @@ namespace AElf.Automation.RpcPerformance
             {
                 performance.InitExecCommand();
                 performance.DeployContracts();
-                performance.InitializeMainContracts(); 
-                Thread.Sleep(60000);
+                performance.InitializeMainContracts();
+                if (isNeedFee)
+                    performance.InitializeFee();
+                // Thread.Sleep(60000);
                 ExecuteTransactionPerformanceTask(performance);
             }
             catch (TimeoutException e)
@@ -69,6 +72,7 @@ namespace AElf.Automation.RpcPerformance
         private static int TransactionGroup { get; } = RpcConfig.ReadInformation.TransactionGroup;
         private static string RpcUrl { get; } = RpcConfig.ReadInformation.ServiceUrl;
         private static int Duration { get; } = RpcConfig.ReadInformation.Duration;
+        private static string InitAccount { get; } = RpcConfig.ReadInformation.InitAccount;
 
         #endregion
     }
