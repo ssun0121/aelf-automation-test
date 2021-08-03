@@ -26,7 +26,7 @@ namespace AElf.Automation.RpcPerformance
             var isNeedFee = RpcConfig.ReadInformation.IsNeedFee;
             var performance = transactionType
                 ? (IPerformanceCategory) new RandomCategory(GroupCount, TransactionCount, RpcUrl,TransactionGroup,Duration,InitAccount)
-                : new ExecutionCategory(GroupCount, TransactionCount, RpcUrl,TransactionGroup, Duration);
+                : new ExecutionCategory(GroupCount, TransactionCount, RpcUrl,TransactionGroup, Duration,InitAccount);
 
             //Execute transaction command
             try
