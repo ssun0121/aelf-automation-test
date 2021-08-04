@@ -1,18 +1,18 @@
 {
-  "Type": "Remove",
+  "Type": "Get",
   "Nodes": 
   [
     {
-      "ListeningPort": "192.168.197.44:6800"
+      "ListeningPort": "3.208.19.174:6801"
     },
     {
-      "ListeningPort": "192.168.197.45:6800"
+      "ListeningPort": "3.140.243.98:6801"
     },
     {
-      "ListeningPort": "192.168.197.12:6800"
+      "ListeningPort": "52.53.169.253:6801"
     },
     {
-      "ListeningPort": "192.168.197.37:6800"
+      "ListeningPort": "13.232.173.152:6801"
     }
   ]
 }

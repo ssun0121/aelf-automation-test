@@ -22,12 +22,12 @@ namespace AElf.Automation.NetworkTest
         private List<string> GetAllNodes()
         {
             var nodes = NodeOption.AllNodes;
-            return nodes.Select(node => node.Endpoint.Replace("8000", "6800")).ToList();
+            return nodes.Select(node => node.Endpoint.Replace("8000", "6801")).ToList();
         }
 
         public void RemovePeer(ICollection<string> operatedNode)
         {
-            var operatedNodeEndpoint = operatedNode.Select(node => node.Replace("6800", "8000")).ToList();
+            var operatedNodeEndpoint = operatedNode.Select(node => node.Replace("6801", "8000")).ToList();
 
             foreach (var endpoint in operatedNodeEndpoint)
             {
@@ -48,7 +48,7 @@ namespace AElf.Automation.NetworkTest
                     var isChanged = nodeManager.UpdateApiUrl(e);
                     if (isChanged == false) continue;
                     
-                    var removeNode = endpoint.Replace("8000", "6800");
+                    var removeNode = endpoint.Replace("8000", "6801");
                     var result = nodeManager.NetRemovePeer(removeNode);
                     Logger.Info($"{e} remove peer {removeNode} {result}");
                 }
@@ -57,7 +57,7 @@ namespace AElf.Automation.NetworkTest
 
         public void AddPeer(ICollection<string> operatedNode)
         {
-            var operatedNodeEndpoint = operatedNode.Select(node => node.Replace("6800", "8000")).ToList();
+            var operatedNodeEndpoint = operatedNode.Select(node => node.Replace("6801", "8000")).ToList();
             var nodeManager = new NodeManager(operatedNodeEndpoint.First());
 
             foreach (var node in operatedNodeEndpoint)
@@ -81,7 +81,7 @@ namespace AElf.Automation.NetworkTest
                 
                 foreach (var node in operatedNodeEndpoint)
                 {
-                    var n = node.Replace("8000", "6800");
+                    var n = node.Replace("8000", "6801");
                     var result = nodeManager.NetAddPeer(n);
                     Logger.Info($"{e} add peer {n} {result}");
                 }
