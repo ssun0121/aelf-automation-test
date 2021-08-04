@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using AElfChain.Common.Contracts;
 using AElfChain.Common.Helpers;
 using log4net;
 using Shouldly;
+using Volo.Abp.Threading;
 
 namespace AElf.Automation.AccountCheck
 {
@@ -68,24 +70,24 @@ namespace AElf.Automation.AccountCheck
                     foreach (var (symbol, list) in _fromAccountInfos)
                     {
                         var after = from.First(a => a.Key.Equals(symbol));
-                        foreach (var account in list)
+                        Parallel.ForEach(list, account =>
                         {
                             var accountInfo = after.Value.First(a => a.Account.Equals(account.Account));
-                            Logger.Info($"{accountInfo.Account}: {accountInfo.Balance}"); 
+                            Logger.Info($"{accountInfo.Account}: {accountInfo.Balance}");
                             account.Balance.ShouldBe(accountInfo.Balance + amount);
-                        }
+                        });
                     }
                     
                     Logger.Info("Check to account balance:");
                     foreach (var (symbol, list) in _toAccountInfos)
                     {
                         var after = to.First(a => a.Key.Equals(symbol));
-                        foreach (var account in list)
+                        Parallel.ForEach(list, account =>
                         {
                             var accountInfo = after.Value.First(a => a.Account.Equals(account.Account));
                             Logger.Info($"{accountInfo.Account}: {accountInfo.Balance}"); 
                             account.Balance.ShouldBe(accountInfo.Balance - amount);
-                        }
+                        });
                     }
 
                     // _fromAccountInfos = from;

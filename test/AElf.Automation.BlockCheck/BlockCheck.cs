@@ -72,7 +72,7 @@ namespace AElf.Automation.BlockCheck
             Parallel.For(1, VerifyBlockCount + 1, item =>
             {
                 var blockInfo = AsyncHelper.RunSync(() =>
-                    _aElfClient.GetBlockByHeightAsync(currentBlockHeight, IncludeTransaction));
+                    _aElfClient.GetBlockByHeightAsync(item, IncludeTransaction));
                 Logger.Info(
                     $"block height: {blockInfo.Header.Height}, block hash:{blockInfo.BlockHash}");
             });
