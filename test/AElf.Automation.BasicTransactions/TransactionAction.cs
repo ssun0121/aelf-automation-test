@@ -88,43 +88,20 @@ namespace AElf.Automation.BasicTransaction
             var toBalance = token.GetUserBalance(toAddress, symbol);
             Logger.Info($"\n{fromAddress} balance : {balance}" +
                         $"\n{toAddress} balance : {toBalance}");
+            Logger.Info($"{fromAddress} transfer to {toAddress} amount {balance}");
             token.SetAccount(fromAddress);
-            var txId1 = token.ExecuteMethodWithTxId(TokenMethod.Transfer,new TransferInput
-            {
-                To = toAddress.ConvertAddress(),
-                Amount = balance,
-                Symbol = symbol
-            });
-            
-            var txId2 = token.ExecuteMethodWithTxId(TokenMethod.Transfer,new TransferInput
-            {
-                To = toAddress.ConvertAddress(),
-                Amount = balance,
-                Symbol = symbol
-            });
-
-            Thread.Sleep(5000);
-            var txResult1 = AsyncHelper.RunSync(()=> NodeManager.ApiClient.GetTransactionResultAsync(txId1));
-            var txResult2 = AsyncHelper.RunSync(()=> NodeManager.ApiClient.GetTransactionResultAsync(txId2));
-            Logger.Info(txResult1.Status);
-            var afterBalance = token.GetUserBalance(fromAddress, symbol);
-            var afterToBalance = token.GetUserBalance(toAddress, symbol);
-            Logger.Info($"\n{fromAddress} {symbol} balance : {afterBalance}" +
-                        $"\n{toAddress} {symbol} balance : {afterToBalance}");
-
-            token.SetAccount(toAddress);
             var txId3 = token.ExecuteMethodWithTxId(TokenMethod.Transfer,new TransferInput
             {
-                To = fromAddress.ConvertAddress(),
-                Amount = afterToBalance,
+                To = toAddress.ConvertAddress(),
+                Amount = balance,
                 Symbol = symbol,
                 Memo = "1"
             });
-            
+            Logger.Info($"{fromAddress} transfer to {toAddress} amount {balance}");
             var txId4 = token.ExecuteMethodWithTxId(TokenMethod.Transfer,new TransferInput
             {
-                To = fromAddress.ConvertAddress(),
-                Amount = afterToBalance,
+                To = toAddress.ConvertAddress(),
+                Amount = balance,
                 Symbol = symbol,
                 Memo = "2"
             });
@@ -137,10 +114,16 @@ namespace AElf.Automation.BasicTransaction
             Logger.Info($"\n{fromAddress} {symbol} balance : {afterBalance1}" +
                         $"\n{toAddress} {symbol} balance : {afterToBalance2}");
 
-            Logger.Info($"\ntx id: {txResult3.TransactionId}: status: {txResult3.Status}");
+            Logger.Info($"\ntx id: {txResult3.TransactionId}: status: {txResult3.Status}\n" +
+                        $"from: {txResult3.Transaction.From}\n" +
+                        $"to :{txResult3.Transaction.To}\n" +
+                        $"block: {txResult3.BlockNumber}");
             if (txResult3.Error!=null)
                 Logger.Info($"\nError:{txResult3.Error}\n");
-            Logger.Info($"\ntx id: {txResult4.TransactionId}: status: {txResult4.Status}");
+            Logger.Info($"\ntx id: {txResult4.TransactionId}: status: {txResult4.Status}\n" +
+                        $"from: {txResult3.Transaction.From}\n" + 
+                        $"to :{txResult3.Transaction.To}\n" + 
+                        $"block: {txResult3.BlockNumber}");
             if (txResult4.Error!=null)
                 Logger.Info($"\nError:{txResult4.Error}\n");
         }
