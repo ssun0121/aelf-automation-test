@@ -54,11 +54,12 @@ namespace AElf.Automation.AccountCheck
                 _fromAccountInfos = check.CheckBalance(check.FromAccountList, _tokenInfoList, out long d1);
                 _toAccountInfos = check.CheckBalance(check.ToAccountList, _tokenInfoList, out long d2);
                 transfer.Transfer(_tokenInfoList);
-
+                var allTimes = check.CheckTimes * (check.FromAccountList.Count + check.ToAccountList.Count) *
+                               _tokenInfoList.Count;
                 long all = 0;
                 while (times > 0)
                 {
-                    Logger.Info($"{times}");
+                    Logger.Info($"start check {allTimes} user balance");
 
                     //after transfer balance
                     var @from = check.CheckBalance(check.FromAccountList, _tokenInfoList, out long fromDuration);
@@ -99,6 +100,7 @@ namespace AElf.Automation.AccountCheck
                 var req = (double) (check.CheckTimes * (check.FromAccountList.Count + check.ToAccountList.Count) *
                                     _tokenInfoList.Count) / all * 1000;
 
+                Logger.Info($"{allTimes} check succeed...");
                 Logger.Info($"all:{all}ms, 1s request {req}");
             }
             else
