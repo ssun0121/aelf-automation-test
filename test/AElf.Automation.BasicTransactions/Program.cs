@@ -82,7 +82,7 @@ namespace AElf.Automation.BasicTransaction
                     
                     break;
                 case TestMode.CheckUserBalance:
-                    Logger.Info("Start check user balance: ");
+                    Logger.Info($"Start check {times * 4} times user balance: ");
                     for (var i = 0; i < times; i++)
                     {
                         var duration = tx.CheckAccountBalance(token, symbol);
@@ -91,7 +91,8 @@ namespace AElf.Automation.BasicTransaction
 
                     req = (double) (times * 4) / all * 1000;
                     Logger.Info(
-                        $"Check balance {times * 4} times use {all}ms, req: {req}/s, time: {all / (times * 4)}ms");
+                        $"Check balance {times * 4} times succeed. \n" +
+                        $"use {all}ms, req: {req}/s, time: {all / (times * 4)}ms");
                     break;
                 case TestMode.CheckTxInfo:
                     all = tx.CheckTxInfo(token, symbol);
@@ -100,10 +101,11 @@ namespace AElf.Automation.BasicTransaction
                         $"Check  {times}  use {all}ms, req: {req}/s, time: {all /times}ms");
                     break;
                 case TestMode.CheckBlockInfo:
-                    Logger.Info("Start check block info:");
+                    Logger.Info($"Start check block info {times} times:");
                     all = tx.CheckBlockHeight(times);
                     req = (double) times / all * 1000;
-                    Logger.Info($"Check block {times} times use {all}ms, req: {req}/s, time: {all / times}ms");
+                    Logger.Info($"Check block {times} times succeed \n" +
+                                $"use {all}ms, req: {req}/s, time: {all / times}ms");
                     break;
                 case TestMode.DoubleTransfer:
                     Logger.Info("Start Double Transfer: ");
