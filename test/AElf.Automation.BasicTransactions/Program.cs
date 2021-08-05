@@ -97,7 +97,7 @@ namespace AElf.Automation.BasicTransaction
                     all = tx.CheckTxInfo(token, symbol);
                     req = (double) times / all * 1000;
                     Logger.Info(
-                        $"Check  {times} account use {all}ms, req: {req}/s, time: {all /times}ms");
+                        $"Check  {times}  use {all}ms, req: {req}/s, time: {all /times}ms");
                     break;
                 case TestMode.CheckBlockInfo:
                     Logger.Info("Start check block info:");

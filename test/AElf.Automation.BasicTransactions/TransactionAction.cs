@@ -149,6 +149,8 @@ namespace AElf.Automation.BasicTransaction
         {
             long all = 0;
             var txIds = new List<string>();
+            
+            Logger.Info($"send {TestAccountList.Count} transaction");
             foreach (var account in TestAccountList)
             {
                 var id = token.ExecuteMethodWithTxId(TokenMethod.Transfer,new TransferInput
@@ -161,8 +163,9 @@ namespace AElf.Automation.BasicTransaction
                 txIds.Add(id);
             }
             NodeManager.CheckTransactionListResult(txIds);
-
-
+            
+            Logger.Info($"check {txIds.Count} transaction");
+            
             foreach (var txId in txIds)
             {
                 var stopwatch = new Stopwatch();
@@ -173,6 +176,8 @@ namespace AElf.Automation.BasicTransaction
                 all += checkTime;
                 Logger.Info($"tx {txId} status is {txResult.Status}");
             }
+            Logger.Info($"{txIds.Count} transaction send succeed..");
+
             return all;
         }
         
