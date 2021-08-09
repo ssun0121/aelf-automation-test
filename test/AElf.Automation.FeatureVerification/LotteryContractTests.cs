@@ -83,12 +83,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 StartTimestamp = DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).ToTimestamp(),
                 ShutdownTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(2)).ToTimestamp(),
                 RedeemTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(2)).ToTimestamp(),
-                DefaultAwardList =
-                {
-                    5000_00000000,
-                    1000_00000000,1000_00000000,
-                    100_00000000,100_00000000,100_00000000
-                }
+                StopRedeemTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(4)).ToTimestamp()
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
