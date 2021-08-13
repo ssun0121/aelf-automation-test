@@ -9,7 +9,6 @@
 
     <ItemGroup>
         <ProtoContract Include="Protobuf\Proto\acs0.proto" />
-        <ProtoContract Include="Protobuf\Proto\acs1.proto" />
         <ProtoContract Include="Protobuf\Proto\acs2.proto" />
         <ProtoContract Include="Protobuf\Proto\acs4.proto" />
         <ProtoContract Include="Protobuf\Proto\acs6.proto" />
