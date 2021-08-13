@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.Serialization.Json;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace AElfChain.Common.Helpers
 {
@@ -127,6 +129,42 @@ namespace AElfChain.Common.Helpers
             var cursorPosition = Console.CursorLeft;
             if (cursorPosition != 0)
                 Console.WriteLine();
+        }
+        
+        public static string GetJson<T>(T obj)
+        {
+            DataContractJsonSerializer json = new DataContractJsonSerializer(obj.GetType());
+            using (MemoryStream stream = new MemoryStream())
+            {
+                json.WriteObject(stream,obj);
+                string szJson = Encoding.UTF8.GetString(stream.ToArray());
+                return szJson;
+            }
+        }
+        
+        public static string ConvertJsonString(string str)
+        {
+            //格式化json字符串
+            JsonSerializer serializer = new JsonSerializer();
+            TextReader tr = new StringReader(str);
+            JsonTextReader jtr = new JsonTextReader(tr);
+            object obj = serializer.Deserialize(jtr);
+            if (obj != null)
+            {
+                StringWriter textWriter = new StringWriter();
+                JsonTextWriter jsonWriter = new JsonTextWriter(textWriter)
+                {
+                    Formatting = Formatting.Indented,
+                    Indentation = 4,
+                    IndentChar = ' '
+                };
+                serializer.Serialize(jsonWriter, obj);
+                return textWriter.ToString();
+            }
+            else
+            {
+                return str;
+            }         
         }
     }
 }
