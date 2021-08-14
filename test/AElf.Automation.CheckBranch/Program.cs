@@ -30,7 +30,7 @@ namespace AElf.Automation.CheckBranch
             var branchesInfo = new Dictionary<long, List<Branch>>();
             var allFork = new List<ForkBranch>();
             var lib = initialStatus.LastIrreversibleBlockHeight;
-            while (lib < initialStatus.LastIrreversibleBlockHeight + Count)
+            while (lib < initialStatus.LastIrreversibleBlockHeight + long.Parse(Count))
             {
                 var status = await _nodeManager.ApiClient.GetChainStatusAsync();
                 var branches = _nodeServices.GetChainStatus(status);
@@ -93,16 +93,16 @@ namespace AElf.Automation.CheckBranch
         #region Parameter Option
 
         [Option("-u|--url", Description = "check node url ")]
-        private static string NodeUrl => null;
+        private static string NodeUrl { get; set; }
 
         [Option("-t|--times", Description = "check times ")]
-        private static string Times => null;
+        private static string Times{ get; set; }
         
         [Option("-bc|--count", Description = "check block count ")]
-        private static long Count => 100;
+        private static string Count { get; set; }
 
         [Option("-l|--limit", Description = "tx limit ")]
-        private static string Limit => null;
+        private static string Limit { get; set; }
 
         #endregion
     }
