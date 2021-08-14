@@ -30,7 +30,7 @@ namespace AElf.Automation.CheckBranch
             var branchesInfo = new Dictionary<long, List<Branch>>();
             var allFork = new List<ForkBranch>();
             var lib = initialStatus.LastIrreversibleBlockHeight;
-            while (lib < initialStatus.LastIrreversibleBlockHeight + 10000)
+            while (lib < initialStatus.LastIrreversibleBlockHeight + Count)
             {
                 var status = await _nodeManager.ApiClient.GetChainStatusAsync();
                 var branches = _nodeServices.GetChainStatus(status);
@@ -97,6 +97,9 @@ namespace AElf.Automation.CheckBranch
 
         [Option("-t|--times", Description = "check times ")]
         private static string Times => null;
+        
+        [Option("-bc|--count", Description = "check block count ")]
+        private static long Count => 100;
 
         [Option("-l|--limit", Description = "tx limit ")]
         private static string Limit => null;
