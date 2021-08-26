@@ -7,7 +7,7 @@ namespace AElfChain.Common.Contracts
         Initialize,
         CreateSwap,
         SwapToken,
-        
+        ChangeSwapRatio,
         Deposit,
         Withdraw,
 

@@ -138,6 +138,11 @@ namespace AElfChain.Common.Managers
         {
             return AccountManager.NewAccount(password);
         }
+        
+        public string InputAccount(string privateKey,string password = "")
+        {
+            return AccountManager.InputNewAccount(privateKey,password);
+        }
 
         public string GetRandomAccount()
         {

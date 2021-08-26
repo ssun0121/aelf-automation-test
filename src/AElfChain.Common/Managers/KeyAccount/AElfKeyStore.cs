@@ -96,6 +96,13 @@ namespace AElfChain.Common.Managers
             var res = await WriteKeyPairAsync(keyPair, password);
             return !res ? null : keyPair;
         }
+        
+        public async Task<ECKeyPair> InputAccountAsync(string password, string privateKey)
+        {
+            var keyPair = CryptoHelper.FromPrivateKey(ByteArrayHelper.HexStringToByteArray(privateKey));
+            var res = await WriteKeyPairAsync(keyPair, password);
+            return !res ? null : keyPair;
+        }
 
         public async Task<List<string>> GetAccountsAsync()
         {

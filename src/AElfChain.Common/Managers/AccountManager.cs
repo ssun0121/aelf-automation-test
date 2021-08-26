@@ -47,6 +47,25 @@ namespace AElfChain.Common.Managers
 
             return accountInfo;
         }
+        
+        public string InputNewAccount(string privateKey,string password = "")
+        {
+            if (password == "")
+                password = NodeOption.DefaultPassword;
+
+            if (password == "")
+                password = AskInvisible("password:");
+
+            var keypair = AsyncHelper.RunSync(() => _keyStore.InputAccountAsync(password,privateKey));
+            var pubKey = keypair.PublicKey;
+            var address = Address.FromPublicKey(pubKey);
+
+            var accountInfo = address.ToBase58();
+            _accounts.Add(accountInfo);
+            Logger.Info($"Input account '{accountInfo}' generated.");
+
+            return accountInfo;
+        }
 
         public string GetRandomAccount()
         {

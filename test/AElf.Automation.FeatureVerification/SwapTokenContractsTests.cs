@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AElf.Contracts.Bridge;
@@ -43,7 +44,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private string TestAccount { get; } = "2RehEQSpXeZ5DUzkjTyhAkr9csu7fWgE5DAuB2RaKQCpdhB8zC";
         //2qjoi1ZxwmH2XqQFyMhykjW364Ce2cBxxRp47zrvZFT4jqW8Ru
         //ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni
-        private string InitAccount { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
+        private string InitAccount { get; } = "2qjoi1ZxwmH2XqQFyMhykjW364Ce2cBxxRp47zrvZFT4jqW8Ru";
         private string OtherNode { get; } = "sjzNpr5bku3ZyvMqQrXeBkXGEvG2CTLA2cuNDfcDMaPTTAqEy";
 
         private readonly List<string> _associationMember = new List<string>
@@ -70,23 +71,23 @@ namespace AElf.Automation.Contracts.ScenarioTest
         //2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ
         //sr4zX6E7yVVL7HevExVcWv2ru3HSZakhsJMXfzxzfpnXofnZw
         //xsnQafDAhNTeYcooptETqWnYBksFGGXxfcQyJJ5tmu6Ak9ZZt
-        private string _oracleContractAddress = "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS";
-        private string _bridgeContractAddress = "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG";
-        private string _merkleTreeRecorderContractAddress = "2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo";
-        private string _merkleTreeGeneratorContractAddress = "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ";
-        private string _regimentContractAddress = "sr4zX6E7yVVL7HevExVcWv2ru3HSZakhsJMXfzxzfpnXofnZw";
-        private string _stringAggregatorAddress = "xsnQafDAhNTeYcooptETqWnYBksFGGXxfcQyJJ5tmu6Ak9ZZt";
-
+        private string _oracleContractAddress = "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG";
+        private string _bridgeContractAddress = "2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo";
+        private string _merkleTreeRecorderContractAddress = "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ";
+        private string _merkleTreeGeneratorContractAddress = "sr4zX6E7yVVL7HevExVcWv2ru3HSZakhsJMXfzxzfpnXofnZw";
+        private string _regimentContractAddress = "xsnQafDAhNTeYcooptETqWnYBksFGGXxfcQyJJ5tmu6Ak9ZZt";
+        private string _stringAggregatorAddress = "2nyC8hqq3pGnRu8gJzCsTaxXB6snfGxmL2viimKXgEfYWGtjEh";
         private string Password { get; } = "12345678";
-        private static string RpcUrl { get; } = "http://13.232.173.152:8000";
+        private static string RpcUrl { get; } = "http://127.0.0.1:8000";
         private string Symbol { get; } = "PORT";
         private string SwapSymbol { get; } = "ELF";
         private readonly bool isNeedInitialize = false;
-        private string _regiment = "FbHtRPx1jLsCRWFudZh63BsjmFJXRi9gFBBgS1Y9PnYW7KACe";
+        private string _regiment = "2F98ACcWAwJSV6nmWjnTwWPNER6h4VvEMCujvYwCzjmL7iuP1o";
         private long payment = 100000000;
         private int maximalLeafCount = 256;
-        private string PairId = "324ee6644b77496e5589a49443fad506fdc968223ce94e1fdfdd9ef1d4b4dcb2";
-
+        private string PairId = "caaa8140bb484e1074872350687df0b1262436cdec3042539e78eb615b376d5e";
+        //caaa8140bb484e1074872350687df0b1262436cdec3042539e78eb615b376d5e
+        //vfACnL3CsejPVxCjjensoQBNvDMPtid9cSGZVqjMAXKLtZKgo
         [TestInitialize]
         public void Initialize()
         {
@@ -118,7 +119,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _stringAggregator = _stringAggregatorAddress == ""
                 ? AuthorityManager.DeployContractWithAuthority(InitAccount, "AElf.Contracts.StringAggregator")
                 : Address.FromBase58(_stringAggregatorAddress);
-             //Transfer();
+             // Transfer();
             if (!isNeedInitialize) return;
             InitializeContract();
         }
@@ -172,14 +173,30 @@ namespace AElf.Automation.Contracts.ScenarioTest
         #region bridge
 
         [TestMethod]
+        public void ChangeSwapRatio()
+        {
+            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.ChangeSwapRatio, new ChangeSwapRatioInput
+            {
+                SwapId = Hash.LoadFromHex(PairId),
+                SwapRatio = new SwapRatio
+                {
+                    OriginShare = 100_00000000,
+                    TargetShare = 1
+                },
+                TargetTokenSymbol = SwapSymbol
+            });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
         public void CreateSwap()
         {
             var swapRatio = new SwapRatio
             {
-                OriginShare = 100_00000000,
-                TargetShare = 1
+                OriginShare = 2000_00000000,
+                TargetShare = 21
             };
-            var depositAmount = 10000000_00000000;
+            var depositAmount = 400000_00000000;
             var originTokenSizeInByte = 32;
             _tokenContract.ApproveToken(InitAccount, _bridgeContractAddress, depositAmount, SwapSymbol);
             var balance = _tokenContract.GetUserBalance(InitAccount, SwapSymbol);
@@ -233,6 +250,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var receiptId = 512;
             var balance = _tokenContract.GetUserBalance(receiveAddress, SwapSymbol);
             var expectedAmount = long.Parse(originAmount.Substring(0, originAmount.Length - 10));
+            // var expectedAmount = Convert.ToInt64(long.Parse(originAmount.Substring(0, originAmount.Length - 10))*1.05);
             _bridgeContract.SetAccount(receiveAddress);
             var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.SwapToken, new SwapTokenInput
             {
@@ -262,6 +280,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     SwapId = Hash.LoadFromHex(PairId)
                 });
             checkSwappedReceiptIdList.Value.ShouldContain(receiptId);
+            Logger.Info(expectedAmount);
         }
 
 

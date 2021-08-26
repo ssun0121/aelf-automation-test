@@ -25,9 +25,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private TokenContract _tokenContract;
         private GenesisContract _genesisContract;
         private LotteryContract _lotteryContract;
-        private string InitAccount { get; } = "zptx91dhHVJjJRxf5Wg5KAoMrDrWX6i1H2FAyKAiv2q8VZfbg";
+        private string InitAccount { get; } = "2qjoi1ZxwmH2XqQFyMhykjW364Ce2cBxxRp47zrvZFT4jqW8Ru";
         private string TestAccount { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
-
+        //2qjoi1ZxwmH2XqQFyMhykjW364Ce2cBxxRp47zrvZFT4jqW8Ru
+        //zptx91dhHVJjJRxf5Wg5KAoMrDrWX6i1H2FAyKAiv2q8VZfbg
         private readonly List<string> _tester = new List<string>
         {
             "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni",
@@ -42,7 +43,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private long testerCount = 100;
         //2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS
-        private string _lotteryContractAddress = "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS";
+        //DHo2K7oUXXq3kJRs1JpuwqBJP56gqoaeSKFfuvr9x8svf3vEJ
+        private string _lotteryContractAddress = "DHo2K7oUXXq3kJRs1JpuwqBJP56gqoaeSKFfuvr9x8svf3vEJ";
 
         private static string RpcUrl { get; } = "127.0.0.1:8000";
         private string Symbol { get; } = "ELF";
@@ -54,10 +56,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             Log4NetHelper.LogInit("ContractTest");
             Logger = Log4NetHelper.GetLogger();
-            NodeInfoHelper.SetConfig("nodes");
+            NodeInfoHelper.SetConfig("nodes-online-stage-main");
             NodeManager = new NodeManager(RpcUrl);
             Logger.Info(RpcUrl);
-            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
+            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount,"12345678");
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
             _lotteryContract = _lotteryContractAddress == ""
                 ? new LotteryContract(NodeManager, InitAccount)
@@ -65,13 +67,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"Lottery contract : {_lotteryContract.ContractAddress}");
             if (isNeedInit)
                 InitializeLotteryContract();
-            _tokenContract.TransferBalance(InitAccount, _lotteryContract.ContractAddress, AllAward * 10);
+            Logger.Info(_tokenContract.GetUserBalance(_lotteryContract.ContractAddress));
+            Logger.Info(_tokenContract.GetUserBalance(InitAccount));
+            // _tokenContract.TransferBalance(InitAccount, _lotteryContract.ContractAddress, 15000_00000000);
             // for (int i = 0; i < testerCount; i++)
             // {
             //     var account = NodeManager.AccountManager.NewAccount();
             //     _tester2.Add(account);
             // }
-           
+           //2nyC8hqq3pGnRu8gJzCsTaxXB6snfGxmL2viimKXgEfYWGtjEh
+           //DHo2K7oUXXq3kJRs1JpuwqBJP56gqoaeSKFfuvr9x8svf3vEJ
         }
 
         [TestMethod]
@@ -80,10 +85,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var result = _lotteryContract.ExecuteMethodWithResult(LotteryMethod.Initialize, new InitializeInput
             {
                 Admin = InitAccount.ConvertAddress(),
-                StartTimestamp = DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).ToTimestamp(),
-                ShutdownTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(2)).ToTimestamp(),
-                RedeemTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(2)).ToTimestamp(),
-                StopRedeemTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(4)).ToTimestamp()
+                StartTimestamp = Timestamp.FromDateTime(new DateTime(2021,8,23,22,00,00,00).ToUniversalTime()),
+                ShutdownTimestamp = Timestamp.FromDateTime(new DateTime(2021,8,26,12,00,00,00).ToUniversalTime()),
+                RedeemTimestamp = Timestamp.FromDateTime(new DateTime(2021,8,26,12,00,00,00).ToUniversalTime()),
+                StopRedeemTimestamp = Timestamp.FromDateTime(new DateTime(2021,8,27,15,00,00,00).ToUniversalTime())
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
@@ -95,8 +100,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 Admin = InitAccount.ConvertAddress(),
                 StartTimestamp = DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).ToTimestamp(),
-                ShutdownTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(2)).ToTimestamp(),
-                RedeemTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(2)).ToTimestamp()
+                ShutdownTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(5)).ToTimestamp(),
+                RedeemTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(5)).ToTimestamp(),
+                StopRedeemTimestamp = DateTime.UtcNow.Add(TimeSpan.FromHours(7)).ToTimestamp()
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
@@ -342,7 +348,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var codeList = getAwardList.Value.Select(a => a.LotteryCode).ToList();
             var b = checkList(codeList);
             b.ShouldBeFalse();
-            getAwardList.Value.Count.ShouldBe(totalLottery.Value >= 120 ? 120 : (int) totalLottery.Value);
+            getAwardList.Value.Count.ShouldBe(totalLottery.Value >= 26 ? 26 : (int) totalLottery.Value);
         }
         
         [TestMethod]
@@ -441,7 +447,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var getAwardList =
                 _lotteryContract.CallViewMethod<AwardList>(LotteryMethod.GetAwardList, new GetAwardListInput
                 {
-                    PeriodId = periodId.Value -1,
+                    PeriodId = periodId.Value - 1,
                     StartIndex = 0,
                     Count = 120
                 });
@@ -449,7 +455,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var codeList = getAwardList.Value.Select(a => a.LotteryCode).ToList();
             var b = checkList(codeList);
             b.ShouldBeFalse();
-            getAwardList.Value.Count.ShouldBe(totalLottery.Value >= 120 ? 120 : (int) totalLottery.Value);
+            getAwardList.Value.Count.ShouldBe(totalLottery.Value >= 26 ? 26 : (int) totalLottery.Value);
         }
 
         [TestMethod]
@@ -476,10 +482,19 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var reset = _lotteryContract.ExecuteMethodWithResult(LotteryMethod.ResetTimestamp, new InitializeInput
             {
-                ShutdownTimestamp = DateTime.UtcNow.Add(TimeSpan.FromSeconds(10)).ToTimestamp(),
-                RedeemTimestamp = DateTime.UtcNow.Add(TimeSpan.FromSeconds(20)).ToTimestamp()
+                StartTimestamp = Timestamp.FromDateTime(new DateTime(2021,8,23,18,00,00,00).ToUniversalTime()),
+                ShutdownTimestamp = Timestamp.FromDateTime(new DateTime(2021,8,26,12,00,00,00).ToUniversalTime()),
+                RedeemTimestamp = Timestamp.FromDateTime(new DateTime(2021,8,26,12,00,00,00).ToUniversalTime()),
+                StopRedeemTimestamp = Timestamp.FromDateTime(new DateTime(2021,8,27,15,00,00,00).ToUniversalTime())
             });
             reset.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
+        public void GetTimestamp()
+        {
+            var reset = _lotteryContract.CallViewMethod<Timestamp>(LotteryMethod.GetStartTimestamp, new Empty());
+            Logger.Info(reset);
         }
 
         #endregion
