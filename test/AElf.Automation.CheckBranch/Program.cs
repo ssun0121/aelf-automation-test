@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
@@ -58,10 +59,14 @@ namespace AElf.Automation.CheckBranch
             var json = CommonHelper.GetJson(allFork);
             var jsonFormatting = CommonHelper.ConvertJsonString(json);
             var node = NodeUrl.Split(":");
-            var path = CommonHelper.MapPath($"forkInfo_{node.First().Split(".").Last()}_{Limit}_{Times}.json");
+            var fileName = $"forkInfo_{node.First().Split(".").Last()}_{Limit}_{Times}";
+            var path = CommonHelper.MapPath(fileName+".json");
             await using StreamWriter file = File.CreateText($"{path}");
             //serialize object directly into file stream
             await File.WriteAllTextAsync(path, jsonFormatting);
+
+            var headers = new List<string>{"ForkBranch","Height","Count"};
+            CommonHelper.CreateCVSHeader(path,headers);
 
             var sum = 0;
             for (var i = initialStatus.LastIrreversibleBlockHeight; i <= lib; i++)
@@ -83,6 +88,20 @@ namespace AElf.Automation.CheckBranch
                 forkBranchList.Add(branch.BlockHash);
                 Logger.Info($"fork branch: {branch.BlockHash}");
             }
+
+            StreamWriter sw = new StreamWriter(fileName+".cvs", true, Encoding.Default);
+            foreach (var fork in forkBranchList)
+            {
+                StringBuilder sb = new StringBuilder();
+                var height = (await _nodeManager.ApiClient.GetBlockByHashAsync(fork)).Header.Height;
+                var forkCount = await _nodeServices.CalculateBranchHeight(fork);
+                Logger.Info($"ForkBranch: {fork} Height: {height} count: {forkCount}");
+                sb.Append(fork).Append(",").Append(height).Append(",").Append(forkCount).Append(",");
+                await sw.WriteLineAsync(sb);
+                await sw.FlushAsync();
+            }
+            sw.Close();
+            
             Logger.Info($"total transaction: {sum}, block count {blockCount}, average: {sum / (blockCount)}, fork count: {forkBranchList.Count}");
         }
 

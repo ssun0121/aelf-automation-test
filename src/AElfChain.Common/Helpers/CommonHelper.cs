@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization.Json;
@@ -145,26 +146,39 @@ namespace AElfChain.Common.Helpers
         public static string ConvertJsonString(string str)
         {
             //格式化json字符串
-            JsonSerializer serializer = new JsonSerializer();
+            var serializer = new JsonSerializer();
             TextReader tr = new StringReader(str);
             JsonTextReader jtr = new JsonTextReader(tr);
-            object obj = serializer.Deserialize(jtr);
-            if (obj != null)
+            var obj = serializer.Deserialize(jtr);
+            if (obj == null) return str;
+            StringWriter textWriter = new StringWriter();
+            JsonTextWriter jsonWriter = new JsonTextWriter(textWriter)
             {
-                StringWriter textWriter = new StringWriter();
-                JsonTextWriter jsonWriter = new JsonTextWriter(textWriter)
+                Formatting = Formatting.Indented,
+                Indentation = 4,
+                IndentChar = ' '
+            };
+            serializer.Serialize(jsonWriter, obj);
+            return textWriter.ToString();
+
+        }
+        
+        public static void CreateCVSHeader(string fileName,List<string> headers)
+        {
+            if (!File.Exists(fileName))
+            {
+                FileStream fs = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+                StreamWriter sw = new StreamWriter(fs);
+                StringBuilder sb = new StringBuilder();
+                foreach (var header in headers)
                 {
-                    Formatting = Formatting.Indented,
-                    Indentation = 4,
-                    IndentChar = ' '
-                };
-                serializer.Serialize(jsonWriter, obj);
-                return textWriter.ToString();
+                    sb.Append(header).Append(",");
+                }
+                sw.WriteLine(sb);
+                sw.Flush();
+                sw.Close();
+                fs.Close();
             }
-            else
-            {
-                return str;
-            }         
         }
     }
 }

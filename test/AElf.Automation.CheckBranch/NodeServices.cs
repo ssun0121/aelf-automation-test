@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf.Client.Dto;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
+using JetBrains.Annotations;
 using log4net;
 using Volo.Abp.Threading;
 
@@ -25,7 +26,7 @@ namespace AElf.Automation.CheckBranch
             var height = status.LastIrreversibleBlockHeight;
             var branches = status.Branches;
             var notLinkBlock = status.NotLinkedBlocks;
-            var branchList = branches.Count > 1 
+            var branchList = branches.Count > 1
                 ? branches.Select(branch => new Branch(branch.Value, branch.Key)).ToList()
                 : new List<Branch>();
             return branchList;
@@ -53,6 +54,26 @@ namespace AElf.Automation.CheckBranch
             forkBranch[height] = branchList;
             return forkBranch;
         }
+
+        public async Task<long> CalculateBranchHeight(string blockHash)
+        {
+            var count = 0;
+            while (true)
+            {
+                var blockInfo = await _nodeManager.ApiClient.GetBlockByHashAsync(blockHash);
+                var blockHeight = blockInfo.Header.Height;
+                var currentBlockHash = (await _nodeManager.ApiClient.GetBlockByHeightAsync(blockHeight)).BlockHash;
+
+                if (blockHash == currentBlockHash)
+                {
+                    return count;
+                }
+
+                blockHash = blockInfo.Header.PreviousBlockHash;
+                count += 1;
+            }
+        }
+
 
         public async Task<BlockDto> CheckBlockInfo(long height)
         {
