@@ -232,7 +232,6 @@ namespace AElfChain.Common.Managers
                     RawTransactions = rawTransactions
                 }));
                 return transactions.ToList();
-
             }
             catch (AElfClientException e)
             {
@@ -358,6 +357,7 @@ namespace AElfChain.Common.Managers
                     Logger.Info($"Check {id} again:");
                     transactionResult = AsyncHelper.RunSync(() => ApiClient.GetTransactionResultAsync(id));
                 }
+
                 var status = transactionResult.Status.ConvertTransactionResultStatus();
                 switch (status)
                 {
@@ -450,14 +450,14 @@ namespace AElfChain.Common.Managers
             return AsyncHelper.RunSync(() => ApiClient.GetPeersAsync(true));
         }
 
-        public bool NetAddPeer(string address)
+        public bool NetAddPeer(string address, string userName = "", string password = "")
         {
-            return AsyncHelper.RunSync(() => ApiClient.AddPeerAsync(address));
+            return AsyncHelper.RunSync(() => ApiClient.AddPeerAsync(address, userName, password));
         }
 
-        public bool NetRemovePeer(string address)
+        public bool NetRemovePeer(string address, string userName = "", string password = "")
         {
-            return AsyncHelper.RunSync(() => ApiClient.RemovePeerAsync(address));
+            return AsyncHelper.RunSync(() => ApiClient.RemovePeerAsync(address, userName, password));
         }
 
         public NetworkInfoOutput NetworkInfo()

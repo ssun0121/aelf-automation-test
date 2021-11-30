@@ -13,8 +13,8 @@
       <ProjectReference Include="..\..\src\AElfChain.Common\AElfChain.Common.csproj" />
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="AElf.Client" Version="1.0.0" />
-      <PackageReference Include="AElf.Types" Version="1.0.0" />
+      <PackageReference Include="AElf.Client" Version="1.1.0" />
+      <PackageReference Include="AElf.Types" Version="1.1.0-18960" />
     </ItemGroup>
 
 </Project>

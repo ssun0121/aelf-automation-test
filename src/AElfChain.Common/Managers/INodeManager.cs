@@ -39,8 +39,8 @@ namespace AElfChain.Common.Managers
 
         //net
         List<PeerDto> NetGetPeers();
-        bool NetAddPeer(string address);
-        bool NetRemovePeer(string address);
+        bool NetAddPeer(string address, string userName = "", string password = "");
+        bool NetRemovePeer(string address, string userName = "", string password = "");
         NetworkInfoOutput NetworkInfo();
     }
 }
