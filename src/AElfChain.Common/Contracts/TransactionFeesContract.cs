@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using AElf.Contracts.TestContract.TransactionFees;
 using AElf.Types;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Managers;
@@ -43,12 +42,6 @@ namespace AElfChain.Common.Contracts
         {
             var initializeResult = ExecuteMethodWithResult(TxFeesMethod.InitializeFeesContract, address);
             initializeResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
-
-        public Dictionary<string, long> QueryContractResource()
-        {
-            var resources = CallViewMethod<ResourcesOutput>(TxFeesMethod.QueryContractResource, new Empty());
-            return resources.Resources.ToDictionary(tokenInfo => tokenInfo.Symbol, tokenInfo => tokenInfo.Amount);
         }
 
         public static TransactionFeesContract GetOrDeployTxFeesContract(INodeManager nodeManager, string callAddress)
