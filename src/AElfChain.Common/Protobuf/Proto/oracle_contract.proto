@@ -133,6 +133,7 @@ message CreateQueryTaskInput {
   CallbackInfo callback_info = 5;
   aelf.Address aggregator_contract_address = 6;
   int32 aggregate_option = 7;
+  int32 aggregate_threshold = 8;
 }
 
 message TaskQueryInput {
@@ -233,6 +234,7 @@ message QueryTask {
   aelf.Address creator = 9;
   int32 aggregate_threshold = 10;
   int32 aggregate_option = 11;
+  bool on_going = 12;
 }
 
 message CommitInput {

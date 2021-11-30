@@ -20,6 +20,12 @@ service LotteryContract {
     }
     rpc ResetTimestamp (InitializeInput) returns (google.protobuf.Empty) {
     }
+    rpc ResetTxFee (TxFee) returns (google.protobuf.Empty) {
+    }
+    rpc ResetAdmin (aelf.Address) returns (google.protobuf.Empty) {
+    }
+    rpc Withdraw (google.protobuf.Int64Value) returns (google.protobuf.Empty) {
+    }
 
     // User
     rpc Stake (google.protobuf.Int64Value) returns (OwnLottery) {
@@ -34,6 +40,9 @@ service LotteryContract {
         option (aelf.is_view) = true;
     }
     rpc GetTotalLotteryCount (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetTotalAwardCount (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
         option (aelf.is_view) = true;
     }
     rpc GetLotteryCodeListByUserAddress (aelf.Address) returns (Int64List) {
@@ -73,7 +82,16 @@ service LotteryContract {
     rpc GetRedeemTimestamp (google.protobuf.Empty) returns (google.protobuf.Timestamp) {
         option (aelf.is_view) = true;
     }
+    rpc GetStopRedeemTimestamp (google.protobuf.Empty) returns (google.protobuf.Timestamp) {
+        option (aelf.is_view) = true;
+    }
     rpc GetAwardAmountMap (aelf.Address) returns (AwardAmountMap) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetTxFee (google.protobuf.Empty) returns (TxFee) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetAdmin (google.protobuf.Empty) returns (aelf.Address) {
         option (aelf.is_view) = true;
     }
 }
@@ -90,6 +108,7 @@ message InitializeInput {
     repeated int64 default_award_list = 5;
     aelf.Address admin = 6;
     bool is_debug = 7;
+    TxFee tx_fee = 8;
 }
 
 message OwnLottery {
@@ -106,6 +125,7 @@ message Lottery {
     repeated int64 award_id_list = 3;
     aelf.Address owner = 4;
     int64 latest_claimed_award_id = 5;
+    int64 lottery_total_award_amount = 6;
 }
 
 // Show lottery codes.
@@ -119,6 +139,7 @@ message Award {
     int64 lottery_code = 3;
     bool is_claimed = 4;
     aelf.Address owner = 5;
+    int32 period = 6;
 }
 
 message AwardList {
@@ -149,6 +170,12 @@ message GetAwardListInput {
 
 message AwardAmountMap {
     map<int64, int64> value = 1;// Lottery Code -> Award Amount
+}
+
+message TxFee {
+    int64 stake_tx_fee = 1;
+    int64 redeem_tx_fee = 2;
+    int64 claim_tx_fee = 3;
 }
 
 // Events

@@ -52,7 +52,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private Address _integerAggregator;
 
         private string TestAccount { get; } = "2RehEQSpXeZ5DUzkjTyhAkr9csu7fWgE5DAuB2RaKQCpdhB8zC";
-        private string InitAccount { get; } = "zptx91dhHVJjJRxf5Wg5KAoMrDrWX6i1H2FAyKAiv2q8VZfbg";
+        private string InitAccount { get; } = "J6zgLjGwd1bxTBpULLXrGVeV74tnS2n74FFJJz7KNdjTYkDF6";
         private string OtherNode { get; } = "sjzNpr5bku3ZyvMqQrXeBkXGEvG2CTLA2cuNDfcDMaPTTAqEy";
 
         private readonly List<string> _associationMember = new List<string>
@@ -82,9 +82,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         //2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ
         //2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo
         private string _oracleContractAddress = "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS";
-        private string _regimentContractAddress = "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG";
-        private string _oracleUserContractAddress = "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ";
-        private string _integerAggregatorAddress = "2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo";
+        private string _regimentContractAddress = "sr4zX6E7yVVL7HevExVcWv2ru3HSZakhsJMXfzxzfpnXofnZw";
+        private string _oracleUserContractAddress = "2nyC8hqq3pGnRu8gJzCsTaxXB6snfGxmL2viimKXgEfYWGtjEh";
+        private string _integerAggregatorAddress = "2u6Dd139bHvZJdZ835XnNKL5y6cxqzV9PEWD5fZdQXdFZLgevc";
 
         //6Yu5KJprje1EKf78MicuoAL3VsK3DoNoGm1ah1dUR5Y7frPdE
         //2S2Fx7PuK9Us3h7PVUmnsLX7Q3PTsFpTXuW52qdKUBAgJLw5s5
@@ -94,14 +94,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private string Password { get; } = "12345678";
 
         // private static string RpcUrl { get; } = "18.229.184.199:8000";
-        private static string RpcUrl { get; } = "127.0.0.1:8000";
+        private static string RpcUrl { get; } = "192.168.66.9:8000";
 
         // private static string MainRpcUrl { get; } = "18.228.140.143:8000";
         private string Symbol { get; } = "PORT";
         private readonly bool isNeedInitialize = false;
-        private string _regiment = "BtsXFCds98jMGAoZtvKkXPuwJxacXn1fDuXeiFLB9sE4S4XNy";
-        private string _regimentTrue = "2pzjg1WEt6CtxTSjBmS4bmicMoNvychGh8Uw43RB9oYSD38eLs";
-        private string _regimentNotEnough = "2avxp9beLWUdwWFVUJtFAWvZViypnByWDXwhGvXaWYxt5WCgTU";
+        private string _regiment = "USRPhS38yEzHqgkerhsSQ49tGbDSkNfjnyRRhKVUpbEDfnw2z";
+        private string _regimentTrue = "";
+        private string _regimentNotEnough = "";
 
         [TestInitialize]
         public void Initialize()
@@ -112,7 +112,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             // MainNodeManager = new NodeManager(MainRpcUrl);
             // Logger.Info(MainRpcUrl,RpcUrl);
 
-            NodeInfoHelper.SetConfig("nodes");
+            NodeInfoHelper.SetConfig("nodes-env2-main");
             // _mainGenesisContract = GenesisContract.GetGenesisContract(MainNodeManager, InitAccount, Password);
             // _mainTokenContract = _mainGenesisContract.GetTokenContract(InitAccount, Password);
             AuthorityManager = new AuthorityManager(NodeManager, InitAccount, Password);
@@ -475,6 +475,66 @@ namespace AElf.Automation.Contracts.ScenarioTest
         #endregion
 
         #region Query
+        [TestMethod]
+        public void QueryWithoutCallBack()
+        {
+            var payAmount = 0;
+            var allowance = _tokenContract.GetAllowance(InitAccount, _oracleContract.ContractAddress, Symbol);
+            Logger.Info(allowance);
+            if (allowance < payAmount)
+                _tokenContract.ApproveToken(InitAccount, _oracleContract.ContractAddress, payAmount, Symbol);
+            _tokenContract.IssueBalance(InitAccount, InitAccount, payAmount, Symbol);
+            var nodes = _regimentContract.CallViewMethod<RegimentMemberList>(RegimentMethod.GetRegimentMemberList,
+                _regiment.ConvertAddress()).Value.Count;
+
+            var balance = _tokenContract.GetUserBalance(InitAccount, Symbol);
+            var result = ExecutedQuery(payAmount, _integerAggregator, new QueryInfo
+            {
+                Title = "https://api.coincap.io/v2/assets/aelf",
+                Options =
+                {
+                    "data/priceUsd"
+                }
+            }, new AddressList
+            {
+                Value = {_regiment.ConvertAddress()}
+            });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var byteString = result.Logs.First(l => l.Name.Contains(nameof(QueryCreated))).NonIndexed;
+            var query = QueryCreated.Parser.ParseFrom(ByteString.FromBase64(byteString));
+            query.Payment.ShouldBe(payAmount);
+            query.Token.ShouldBe("Test");
+            query.QuerySender.ShouldBe(InitAccount.ConvertAddress());
+            query.AggregatorContractAddress.ShouldBe(_integerAggregator);
+            // query.AggregateThreshold.ShouldBe(Math.Max(nodes.Div(3).Add(1),1));
+            Logger.Info(query.QueryId.ToHex());
+
+            var getQuery = GetQueryRecord(query.QueryId.ToHex());
+            getQuery.Payment.ShouldBe(query.Payment);
+            getQuery.Token.ShouldBe(query.Token);
+            getQuery.AggregateThreshold.ShouldBe(Math.Max(nodes.Div(3).Add(1), 1));
+            getQuery.CallbackInfo.ShouldBe(query.CallbackInfo);
+            getQuery.QueryInfo.ShouldBe(query.QueryInfo);
+            getQuery.IsCancelled.ShouldBeFalse();
+            getQuery.AggregatorContractAddress.ShouldBe(query.AggregatorContractAddress);
+            getQuery.QuerySender.ShouldBe(query.QuerySender);
+            getQuery.IsCommitStageFinished.ShouldBeFalse();
+            getQuery.IsSufficientDataCollected.ShouldBeFalse();
+            getQuery.IsSufficientCommitmentsCollected.ShouldBeFalse();
+            getQuery.IsPaidToOracleContract.ShouldBeFalse();
+
+            //wait node to push message
+            Thread.Sleep(120000);
+            var finalRecord = GetQueryRecord(query.QueryId.ToHex());
+            finalRecord.IsCommitStageFinished.ShouldBeTrue();
+            finalRecord.IsSufficientDataCollected.ShouldBeTrue();
+            finalRecord.IsSufficientCommitmentsCollected.ShouldBeTrue();
+            CheckRevel();
+            CheckNodeBalance();
+            var afterBalance = _tokenContract.GetUserBalance(InitAccount, Symbol);
+            afterBalance.ShouldBe(balance - payAmount);
+        }
 
         [TestMethod]
         public void QueryWithCommitAndReveal()
@@ -1011,7 +1071,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void GetQueryRecord()
         {
-            var id = "6cd27590f5ad846b1994ab3617b0ecfc777dca6999fa39d52872fe03a3d9c4a3";
+            var id = "f7e907f61997f8a4e5d04b390422cde08bdc1bfd4394e3d7f38ceb8471f6eda9";
             var record = GetQueryRecord(id);
             record.IsPaidToOracleContract.ShouldBeTrue();
             if (record.IsCancelled)
@@ -1266,9 +1326,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var times = 3;
             var allowance = _tokenContract.GetAllowance(InitAccount, _oracleContract.ContractAddress, Symbol);
             Logger.Info(allowance);
-            if (allowance < payAmount * times)
-                _tokenContract.ApproveToken(InitAccount, _oracleContract.ContractAddress, payAmount * times, Symbol);
-            _tokenContract.IssueBalance(InitAccount, InitAccount, payAmount * times, Symbol);
+            if (allowance < (long)payAmount * times * 10)
+                _tokenContract.ApproveToken(InitAccount, _oracleContract.ContractAddress, (long)payAmount * times * 10, Symbol);
+            // _tokenContract.IssueBalance(InitAccount, InitAccount, payAmount * times, Symbol);
             var balance = _tokenContract.GetUserBalance(InitAccount, Symbol);
             var result =
                 _oracleContract.ExecuteMethodWithResult(OracleMethod.CreateQueryTask, new CreateQueryTaskInput
@@ -1295,6 +1355,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var logEventDto = result.Logs.First(l => l.Name.Equals(nameof(QueryTaskCreated))).NonIndexed;
             var queryTaskCreated = QueryTaskCreated.Parser.ParseFrom(ByteString.FromBase64(logEventDto));
+            Logger.Info(queryTaskCreated.Creator.ToBase58());
             queryTaskCreated.Creator.ShouldBe(_oracleContract.CallAccount);
             queryTaskCreated.SupposedQueryTimes.ShouldBe(times);
             queryTaskCreated.AggregatorContractAddress.ShouldBe(_integerAggregator);
@@ -1311,7 +1372,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void CompleteQueryTask()
         {
-            var taskId = "8f1cdb49d39557b8f0964063b2a652337b49da49bcf7d0aa6a500dc20a829de3";
+            var taskId = "4a6c490aff74083ffd339c69db1dfe644174836af072efcd5cc1ce403d5f0ea3";
             var result =
                 _oracleContract.ExecuteMethodWithResult(OracleMethod.CompleteQueryTask,
                     new CompleteQueryTaskInput
@@ -1329,10 +1390,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void TaskQuery()
         {
-            var taskId = "043100f007948615b8b157d23cb0226d2df719b0c9b3492496ff02657dcc09a7";
+            var taskId = "4a6c490aff74083ffd339c69db1dfe644174836af072efcd5cc1ce403d5f0ea3";
+            var payAmount = 100000000;
+
             var getTask = _oracleContract.CallViewMethod<QueryTask>(OracleMethod.GetQueryTask, Hash.LoadFromHex(taskId));
             var times = getTask.SupposedQueryTimes;
-            for (int i = 0; i < times; i++)
+            var amount = 3000000000;
+            Logger.Info(amount);
+            _tokenContract.ApproveToken(InitAccount, _oracleContract.ContractAddress, amount, Symbol);
+
+            Logger.Info(times);
+            for (int i = 0; i < times + 1; i++)
             {
                 var result = _oracleContract.ExecuteMethodWithResult(OracleMethod.TaskQuery, new TaskQueryInput
                 {
@@ -1342,6 +1410,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var logEventDto = result.Logs.First(l => l.Name.Contains(nameof(QueryCreated))).NonIndexed;
                 var queryCreated = QueryCreated.Parser.ParseFrom(ByteString.FromBase64(logEventDto));
                 Logger.Info($"{queryCreated.QueryId}");
+                Thread.Sleep(60000);
+                CheckRevel();
             }
         }
 
@@ -1418,7 +1488,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Hash.LoadFromHex(hash));
         }
 
-        private void InitializeTestContract()
+        [TestMethod]
+        public void InitializeTestContract()
         {
             _oracleUserContract.ExecuteMethodWithResult(OracleUserMethod.Initialize, _oracleContract.Contract);
         }

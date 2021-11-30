@@ -12,6 +12,8 @@ namespace AElfChain.Common.Contracts
         //Admin
         Draw,
         ResetTimestamp,
+        Withdraw,
+        ResetTxFee,
         
         //View
         GetCurrentPeriodId,
@@ -25,6 +27,7 @@ namespace AElfChain.Common.Contracts
         GetPeriodAward,
         GetAwardList,
         GetAwardAmountMap,
+        GetAdmin,
         
         GetStartTimestamp,
         GetShutdownTimestamp,
