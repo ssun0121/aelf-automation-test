@@ -382,17 +382,5 @@ namespace AElfChain.Common.Contracts
 
             return contract.GetTestStub<ConfigurationImplContainer.ConfigurationImplStub>(caller);
         }
-
-        public static DAppContainer.DAppStub GetDAppStub(this GenesisContract genesis, string contractAddress,
-            string caller = "")
-        {
-            if (caller == "")
-                caller = genesis.CallAddress;
-
-            var contract =
-                new DAppContract(genesis.NodeManager, caller, contractAddress);
-
-            return contract.GetTestStub<DAppContainer.DAppStub>(caller);
-        }
     }
 }
