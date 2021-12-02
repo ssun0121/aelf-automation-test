@@ -26,7 +26,9 @@ namespace AElfChain.Common.Contracts
 
         //View
         GetOwner,
-        GetFaucetStatus
+        GetFaucetStatus,
+        GetLimitAmount,
+        GetIntervalMinutes
     }
 
     public class FaucetContract : BaseContract<FaucetContractMethod>
@@ -50,11 +52,11 @@ namespace AElfChain.Common.Contracts
             long intervalMinutes)
         {
             return ExecuteMethodWithResult(FaucetContractMethod.Initialize, new InitializeInput
-                {
-                    Admin = admin.ConvertAddress(),
-                    AmountLimit = amountLimit,
-                    IntervalMinutes = intervalMinutes
-                });
+            {
+                Admin = admin.ConvertAddress(),
+                AmountLimit = amountLimit,
+                IntervalMinutes = intervalMinutes
+            });
         }
 
         public TransactionResultDto NewFaucet(string symbol, long amount, string owner, long amountLimit,
@@ -153,6 +155,23 @@ namespace AElfChain.Common.Contracts
         public FaucetStatus GetFaucetStatus(string symbol)
         {
             return CallViewMethod<FaucetStatus>(FaucetContractMethod.GetFaucetStatus, new StringValue {Value = symbol});
+        }
+        
+        public long GetLimitAmount(string symbol)
+        {
+            return CallViewMethod<Int64Value>(FaucetContractMethod.GetLimitAmount, new StringValue {Value = symbol}).Value;
+        }
+        
+        public long GetIntervalMinutes(string symbol)
+        {
+            return CallViewMethod<Int64Value>(FaucetContractMethod.GetIntervalMinutes, new StringValue {Value = symbol}).Value;
+        }
+        
+        public static FaucetContract GetFaucetContract(INodeManager nm, string callAddress)
+        {
+            var genesisContract = nm.GetGenesisContractAddress();
+
+            return new FaucetContract(nm, callAddress, genesisContract);
         }
     }
 }

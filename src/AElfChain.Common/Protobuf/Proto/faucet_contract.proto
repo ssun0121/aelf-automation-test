@@ -44,6 +44,12 @@ service FaucetContract {
     rpc GetFaucetStatus (google.protobuf.StringValue) returns (FaucetStatus) {
         option (aelf.is_view) = true;
     }
+    rpc GetLimitAmount (google.protobuf.StringValue) returns (google.protobuf.Int64Value) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetIntervalMinutes (google.protobuf.StringValue) returns (google.protobuf.Int64Value) {
+        option (aelf.is_view) = true;
+    }
 }
 
 message InitializeInput {
