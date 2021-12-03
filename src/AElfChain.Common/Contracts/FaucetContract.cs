@@ -59,13 +59,12 @@ namespace AElfChain.Common.Contracts
             });
         }
 
-        public TransactionResultDto NewFaucet(string symbol, long amount, string owner, long amountLimit,
+        public TransactionResultDto NewFaucet(string symbol, string owner, long amountLimit,
             long intervalMinutes)
         {
             return ExecuteMethodWithResult(FaucetContractMethod.NewFaucet, new NewFaucetInput
             {
                 Symbol = symbol,
-                Amount = amount,
                 Owner = owner.ConvertAddress(),
                 AmountLimit = amountLimit,
                 IntervalMinutes = intervalMinutes
