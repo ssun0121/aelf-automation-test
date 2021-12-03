@@ -389,9 +389,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             // takeAmount > pourAmount(200_00000000)
             _faucetContract3.SetAccount(Target);
             var take5 = _faucetContract3.Take("ELF", 300_00000000);
-            // take5.Status.ConvertTransactionResultStatus()
-            //     .ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            // take5.Error.ShouldContain("Insufficient balance of ELF.");
+            take5.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            take5.Error.ShouldContain("Insufficient balance of ELF.");
 
             // return amount > takeAmount
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Target);
@@ -403,9 +403,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var targetReturn1 =
                 _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.Return,
                     new ReturnInput {Symbol = "ELF", Amount = 30_00000000});
-            // targetReturn1.Status.ConvertTransactionResultStatus()
-            //     .ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            // targetReturn1.Error.ShouldContain("Insufficient balance of ELF.");
+            targetReturn1.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            targetReturn1.Error.ShouldContain("Insufficient balance of ELF.");
 
             // turn off
             _faucetContract3.SetAccount(Account1);
@@ -422,9 +422,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var take6 = _faucetContract3.Take("ELF", 30_00000000);
             take6.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
-            // take6.Status.ConvertTransactionResultStatus()
-            //     .ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            // take6.Error.ShouldContain("Faucet of ELF is off.");
+            take6.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            take6.Error.ShouldContain("Faucet of ELF is off.");
 
             // get faucet status
             var faucetStatusTurnOffAfter = _faucetContract3.GetFaucetStatus("ELF");
