@@ -25,16 +25,8 @@
         <ProtoMessage Include="Protobuf\Proto\transaction_fee.proto" />
         <ProtoContract Include="Protobuf\Proto\acs5_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs8_plugin_test_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\test_basic_function_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\test_basic_function_with_parallel_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\test_basic_security_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\test_basic_update_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\test_performance_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_events_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_transaction_fees_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\test_a_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\test_b_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\test_c_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\token_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\token_holder_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\token_holder_contract_impl.proto" />
@@ -63,9 +55,7 @@
         <ProtoContract Include="Protobuf\Proto\configuration_contract_impl.proto" />
         <ProtoContract Include="Protobuf\Proto\referendum_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\referendum_contract_impl.proto" />
-        <ProtoContract Include="Protobuf\Proto\dapp_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\execution.proto" />
-        <ProtoContract Include="Protobuf\Proto\random_number_provider_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>
