@@ -35,7 +35,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private static string RpcUrl { get; } = "192.168.66.9:8000";
         private string Symbol { get; } = "ELF";
         private string faucet = "2M24EKAecggCnttZ9DUUMCXi4xC67rozA87kFgid9qEwRUMHTs";
-        private string faucet2 = "2dKF3svqDXrYtA5mYwKfADiHajo37mLZHPHVVuGbEDoD9jSgE8";
+        // private string faucet2 = "2dKF3svqDXrYtA5mYwKfADiHajo37mLZHPHVVuGbEDoD9jSgE8";
+        private string faucet2 = "";
         private string faucet3 = "";
 
         [TestInitialize]
@@ -95,12 +96,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             // others call some methods(turnOn、turnOff、NewFaucet、Pour、SetLimit、Ban、Send)
             _faucetContract.SetAccount(Others);
-            var turnOn = _faucetContract.TurnOn("ELF", at: null);
+            var turnOn = _faucetContract.TurnOn("ELF");
             turnOn.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
             Logger.Info($"turnOn.Error is {turnOn.Error}");
             turnOn.Error.ShouldContain("No permission to operate faucet of ELF.");
 
-            var turnOff = _faucetContract.TurnOff(symbol: "ELF", at: null);
+            var turnOff = _faucetContract.TurnOff(symbol: "ELF");
             turnOff.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
             Logger.Info($"turnOff.Error is {turnOff.Error}");
             turnOff.Error.ShouldContain("No permission to operate faucet of ELF.");
@@ -152,23 +153,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             limitAmount.ShouldBe(50_00000000);
             intervalMinutes.ShouldBe(300);
 
-            // turn on(set time before)
-            var turnOnTimestamp = Timestamp.FromDateTime(new DateTime(2020, 12, 2, 17, 00, 00, 00).ToUniversalTime());
-            var turnOnTimeBefore = _faucetContract2.TurnOn("ELF", turnOnTimestamp);
-            var faucetStatusTurnOnTimeBefore = _faucetContract2.GetFaucetStatus("ELF");
-            Logger.Info($"faucetStatusTurnOnTimeBefore.is_on is {faucetStatusTurnOnTimeBefore.IsOn}");
-            Logger.Info($"faucetStatusTurnOnTimeBefore.turn_at is {faucetStatusTurnOnTimeBefore.TurnAt}");
-            faucetStatusTurnOnTimeBefore.IsOn.ShouldBeTrue();
-            faucetStatusTurnOnTimeBefore.TurnAt.ShouldNotBeNull();
-
-            // turn off(set time before)
-            var turnOffTimestamp = Timestamp.FromDateTime(new DateTime(2020, 12, 3, 17, 00, 00, 00).ToUniversalTime());
-            var turnOffTimeBefore = _faucetContract2.TurnOff("ELF", turnOffTimestamp);
-            var faucetStatusTurnOffTimeBefore = _faucetContract2.GetFaucetStatus("ELF");
-            Logger.Info($"faucetStatusTurnOffTimeBefore.is_on is {faucetStatusTurnOffTimeBefore.IsOn}");
-            Logger.Info($"faucetStatusTurnOffTimeBefore.turn_at is {faucetStatusTurnOffTimeBefore.TurnAt}");
-            faucetStatusTurnOffTimeBefore.IsOn.ShouldBeFalse();
-            faucetStatusTurnOffTimeBefore.TurnAt.ShouldNotBeNull();
+            // turn on(init)
+            var turnOn = _faucetContract2.ExecuteMethodWithResult(FaucetContractMethod.TurnOn, new TurnInput());
+            var faucetStatusTurnOn = _faucetContract2.GetFaucetStatus("ELF");
+            Logger.Info($"faucetStatusTurnOn.is_on is {faucetStatusTurnOn.IsOn}");
+            Logger.Info($"faucetStatusTurnOn.turn_at is {faucetStatusTurnOn.TurnAt}");
+            faucetStatusTurnOn.IsOn.ShouldBeTrue();
+            faucetStatusTurnOn.TurnAt.ShouldNotBeNull();
 
             // turn off(init)
             var turnOff = _faucetContract2.ExecuteMethodWithResult(FaucetContractMethod.TurnOff, new TurnInput());
@@ -178,14 +169,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             faucetStatusTurnOff.IsOn.ShouldBeFalse();
             faucetStatusTurnOff.TurnAt.ShouldNotBeNull();
 
-            // turn on(init)
-            var turnOn = _faucetContract2.ExecuteMethodWithResult(FaucetContractMethod.TurnOn, new TurnInput());
-            var faucetStatusTurnOn = _faucetContract2.GetFaucetStatus("ELF");
-            Logger.Info($"faucetStatusTurnOn.is_on is {faucetStatusTurnOn.IsOn}");
-            Logger.Info($"faucetStatusTurnOn.turn_at is {faucetStatusTurnOn.TurnAt}");
-            faucetStatusTurnOn.IsOn.ShouldBeTrue();
-            faucetStatusTurnOn.TurnAt.ShouldNotBeNull();
-
             // faucet'balance before pour
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Account1);
             _tokenContract = _genesisContract.GetTokenContract(Account1);
@@ -194,10 +177,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             // faucetBalanceBeforePour.ShouldBe(0);
 
             // approve
+            _faucetContract2.SetAccount(Account1);
+            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Account1);
+            _tokenContract = _genesisContract.GetTokenContract(Account1);
             var approve1 =
-                _tokenContract.ApproveToken(Account1, _faucetContract2.ContractAddress, 10000000000_00000000);
+                _tokenContract.ApproveToken(Account1, _faucetContract2.ContractAddress, 10000_00000000);
             approve1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
             // pour
             var pour = _faucetContract2.Pour("ELF", 100_00000000);
             pour.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -206,13 +191,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var targetBalanceBeforeTake = _tokenContract.GetUserBalance(Target, "ELF");
             Logger.Info($"targetBalanceBeforeTake is {targetBalanceBeforeTake}");
             // faucetBalanceAfterPour.ShouldBe(100_00000000);
-            targetBalanceBeforeTake.ShouldBe(0);
+            // targetBalanceBeforeTake.ShouldBe(0);
 
             // set isBan to true
             var banTrue = _faucetContract2.Ban("ELF", Target, true);
             banTrue.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            Logger.Info($"banTrue is {banTrue}");
-            
+            var isBanTrue = _faucetContract2.IsBannedByOwner(Target, "ELF");
+            Logger.Info($"isBan(True) is {isBanTrue}");
 
             // take(is_ban = true)
             _faucetContract2.SetAccount(Target);
@@ -225,7 +210,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _faucetContract2.SetAccount(Account1);
             var banFalse = _faucetContract2.Ban("ELF", Target, false);
             banFalse.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            Logger.Info($"banFalse is {banFalse}");
+            var isBanFalse = _faucetContract2.IsBannedByOwner(Target, "ELF");
+            Logger.Info($"isBan(False) is {isBanFalse}");
 
             // take(is_ban = false)
             _faucetContract2.SetAccount(Target);
@@ -236,12 +222,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var faucetBalanceAfterTake = _tokenContract.GetUserBalance(_faucetContract2.ContractAddress, "ELF");
             Logger.Info($"faucetBalanceAfterTake is {faucetBalanceAfterTake}");
             targetBalanceAfterTake.ShouldBe(10_00000000);
-
-            // // take for the second time
-            // var takeSecond = _faucetContract2.Take("ELF", 20_00000000);
-            // takeSecond.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            // Logger.Info($"takeSecond.Error is {takeSecond.Error}");
-            // takeSecond.Error.ShouldContain("Can take ELF again after");
 
             // return
             _tokenContract.SetAccount(Target);
@@ -291,7 +271,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"faucetBalance is {faucetBalance}");
 
             // new faucet
-            var newFaucet = _faucetContract3.NewFaucet("ELF", Account1, 20_00000000, 20);
+            var newFaucet = _faucetContract3.NewFaucet("ELF", Account1, 20_00000000, 1);
             newFaucet.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             // get owner
             var ownerAccount1 = _faucetContract3.GetOwner("ELF");
@@ -303,7 +283,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"limitAmountAfter is {limitAmountAfter}");
             Logger.Info($"intervalMinutesAfter is {intervalMinutesAfter}");
             limitAmountAfter.ShouldBe(20_00000000);
-            intervalMinutesAfter.ShouldBe(20);
+            intervalMinutesAfter.ShouldBe(1);
             // get faucet'balance
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
@@ -325,6 +305,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             take1.Error.ShouldContain(
                 "Cannot take 0 from ELF faucet due to either limit amount (2000000000) or input amount (0) is negative or zero.");
 
+            Thread.Sleep(60 * 1000);
             // takeAmount > 0
             _faucetContract3.SetAccount(Target);
             var take2 = _faucetContract3.Take("ELF", 10_00000000);
@@ -348,6 +329,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             pour2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             // takeAmount = 0
+            Thread.Sleep(60 * 1000);
             _faucetContract3.SetAccount(Target);
             var take3 = _faucetContract3.Take("ELF", 0);
             take3.Status.ConvertTransactionResultStatus()
@@ -367,6 +349,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             faucetStatus.TurnAt.ShouldNotBeNull();
 
             // takeAmount > limit(20_00000000)
+            Thread.Sleep(60 * 1000);
             _faucetContract3.SetAccount(Target);
             var take4 = _faucetContract3.Take("ELF", 30_00000000);
             take4.Status.ConvertTransactionResultStatus()
@@ -387,6 +370,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             intervalMinutesReset.ShouldBe(1);
 
             // takeAmount > pourAmount(200_00000000)
+            Thread.Sleep(60 * 1000);
             _faucetContract3.SetAccount(Target);
             var take5 = _faucetContract3.Take("ELF", 300_00000000);
             take5.Status.ConvertTransactionResultStatus()
@@ -406,48 +390,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             targetReturn1.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             targetReturn1.Error.ShouldContain("Insufficient balance of ELF.");
-
-            // turn off
-            _faucetContract3.SetAccount(Account1);
-            var turnOff = _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.TurnOff, new TurnInput());
-            // get faucet status
-            var faucetStatusTurnOff = _faucetContract3.GetFaucetStatus("ELF");
-            Logger.Info($"faucetStatusTurnOff.is_on is {faucetStatusTurnOff.IsOn}");
-            Logger.Info($"faucetStatusTurnOff.turn_at is {faucetStatusTurnOff.TurnAt}");
-            faucetStatusTurnOff.IsOn.ShouldBeFalse();
-            faucetStatusTurnOff.TurnAt.ShouldNotBeNull();
-
-            // take(turn off)
-            _faucetContract3.SetAccount(Target);
-            var take6 = _faucetContract3.Take("ELF", 30_00000000);
-            take6.Status.ConvertTransactionResultStatus()
-                .ShouldBe(TransactionResultStatus.Mined);
-            take6.Status.ConvertTransactionResultStatus()
-                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            take6.Error.ShouldContain("Faucet of ELF is off.");
-
-            // get faucet status
-            var faucetStatusTurnOffAfter = _faucetContract3.GetFaucetStatus("ELF");
-            Logger.Info($"faucetStatusTurnOffAfter.is_on is {faucetStatusTurnOffAfter.IsOn}");
-
-            // return(turn off)
-            var targetReturnAllOff =
-                _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.Return, new ReturnInput {Symbol = "ELF"});
-            targetReturnAllOff.Status.ConvertTransactionResultStatus()
-                .ShouldBe(TransactionResultStatus.Mined);
-            targetReturnAllOff.Status.ConvertTransactionResultStatus()
-                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            targetReturnAllOff.Error.ShouldContain("Faucet of ELF is off.");
-
-            // turn on
-            _faucetContract3.SetAccount(Account1);
-            var TurnOn = _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.TurnOn, new TurnInput());
-            // get faucet status
-            var faucetStatusTurnOn1 = _faucetContract3.GetFaucetStatus("ELF");
-            Logger.Info($"faucetStatusTurnOn1.is_on is {faucetStatusTurnOff.IsOn}");
-            Logger.Info($"faucetStatusTurnOn1.turn_at is {faucetStatusTurnOff.TurnAt}");
-            faucetStatusTurnOn1.IsOn.ShouldBeFalse();
-            faucetStatusTurnOn1.TurnAt.ShouldNotBeNull();
 
             // return all
             _faucetContract3.SetAccount(Target);
@@ -472,10 +414,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var initialize = _faucetContract3.Initialize(InitAccount, 50_00000000, 300);
             initialize.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            // turn on(set feature time)
+            // turn on(ELF)
             _faucetContract3.SetAccount(InitAccount);
-            var turnOnTimestamp = Timestamp.FromDateTime(new DateTime(2022, 12, 2, 17, 00, 00, 00).ToUniversalTime());
-            var turnOnTimeBefore = _faucetContract3.TurnOn("ELF", turnOnTimestamp);
+            var turnOnTimeBefore = _faucetContract3.TurnOn("ELF");
             turnOnTimeBefore.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var faucetStatusTurnOnTimeBefore = _faucetContract3.GetFaucetStatus("ELF");
             Logger.Info($"faucetStatusTurnOnTimeBefore.is_on is {faucetStatusTurnOnTimeBefore.IsOn}");
@@ -483,9 +424,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             faucetStatusTurnOnTimeBefore.IsOn.ShouldBeTrue();
             faucetStatusTurnOnTimeBefore.TurnAt.ShouldNotBeNull();
 
-            // turn off(set feature time)
-            var turnOffTimestamp = Timestamp.FromDateTime(new DateTime(2022, 12, 3, 17, 00, 00, 00).ToUniversalTime());
-            var turnOffTimeBefore = _faucetContract3.TurnOff("ELF", turnOffTimestamp);
+            // turn off(ELF)
+            var turnOffTimeBefore = _faucetContract3.TurnOff("ELF");
             turnOffTimeBefore.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var faucetStatusTurnOffTimeBefore = _faucetContract3.GetFaucetStatus("ELF");
             Logger.Info($"faucetStatusTurnOffTimeBefore.is_on is {faucetStatusTurnOffTimeBefore.IsOn}");
@@ -522,7 +462,26 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"intervalMinutes2 is {intervalMinutes2}");
             limitAmount2.ShouldBe(100_00000000);
             intervalMinutes2.ShouldBe(180);
-            
+
+            // turn on(ELF_TEST)
+            _faucetContract3.SetAccount(Others);
+            var turnOnTimeBefore1 = _faucetContract3.TurnOn("ELF_TEST");
+            turnOnTimeBefore1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var faucetStatusTurnOnTimeBefore1 = _faucetContract3.GetFaucetStatus("ELF_TEST");
+            Logger.Info($"faucetStatusTurnOnTimeBefore1.is_on is {faucetStatusTurnOnTimeBefore1.IsOn}");
+            Logger.Info($"faucetStatusTurnOnTimeBefore1.turn_at is {faucetStatusTurnOnTimeBefore1.TurnAt}");
+            faucetStatusTurnOnTimeBefore1.IsOn.ShouldBeTrue();
+            faucetStatusTurnOnTimeBefore1.TurnAt.ShouldNotBeNull();
+
+            // turn off(ELF_TEST)
+            var turnOffTimeBefore1 = _faucetContract3.TurnOff("ELF_TEST");
+            turnOffTimeBefore1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var faucetStatusTurnOffTimeBefore1 = _faucetContract3.GetFaucetStatus("ELF_TEST");
+            Logger.Info($"faucetStatusTurnOffTimeBefore1.is_on is {faucetStatusTurnOffTimeBefore1.IsOn}");
+            Logger.Info($"faucetStatusTurnOffTimeBefore1.turn_at is {faucetStatusTurnOffTimeBefore1.TurnAt}");
+            faucetStatusTurnOffTimeBefore1.IsOn.ShouldBeFalse();
+            faucetStatusTurnOffTimeBefore1.TurnAt.ShouldNotBeNull();
+
             // pour
             _faucetContract3.SetAccount(InitAccount);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Target);
@@ -540,23 +499,243 @@ namespace AElf.Automation.Contracts.ScenarioTest
             // send
             var initAccountBalance = _tokenContract.GetUserBalance(InitAccount, "ELF");
             Logger.Info($"initAccountBalance is {initAccountBalance}");
-            var send = _faucetContract3.Send(Target,"ELF",100);
+            var send = _faucetContract3.Send(Target, "ELF", 100);
             send.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
+
             var faucetBalance = _tokenContract.GetUserBalance(Target, "ELF");
             Logger.Info($"faucetBalance is {faucetBalance}");
             var targetBalance = _tokenContract.GetUserBalance(Target, "ELF");
             Logger.Info($"targetBalanceBefore is {targetBalance}");
-            targetBalance.ShouldBe(100);
+            targetBalance.ShouldBe(100 + targetBalanceBeforeTake);
         }
 
         [TestMethod]
-        public void ViewTargetBalance()
+        public void TakeReturnLimitTest()
+        {
+            // init
+            _faucetContract3.SetAccount(InitAccount);
+            var initialize = _faucetContract3.Initialize(InitAccount, 50_00000000, 1);
+            initialize.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            // get owner
+            var ownerInitAccount = _faucetContract3.GetOwner("ELF");
+            Logger.Info($"owner is {ownerInitAccount}");
+            ownerInitAccount.ShouldBe(InitAccount.ConvertAddress());
+            // get limit amount and interval minutes
+            var limitAmount = _faucetContract3.GetLimitAmount("ELF");
+            var intervalMinutes = _faucetContract3.GetIntervalMinutes("ELF");
+            Logger.Info($"limitAmount is {limitAmount}");
+            Logger.Info($"intervalMinutes is {intervalMinutes}");
+            limitAmount.ShouldBe(50_00000000);
+            intervalMinutes.ShouldBe(1);
+
+            // approve
+            _faucetContract3.SetAccount(InitAccount);
+            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
+            _tokenContract = _genesisContract.GetTokenContract(InitAccount);
+            var approve =
+                _tokenContract.ApproveToken(InitAccount, _faucetContract3.ContractAddress, 1000_00000000);
+            approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // pourAmount > 0
+            var pour2 = _faucetContract3.Pour("ELF", 200_00000000);
+            pour2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // take(never turned on)
+            _faucetContract3.SetAccount(Target);
+            var takeFirst = _faucetContract3.Take("ELF", 1_00000000);
+            takeFirst.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            takeFirst.Error.ShouldContain("Faucet of ELF never turned on.");
+
+            // turn on(ELF)
+            _faucetContract3.SetAccount(InitAccount);
+            var turnOn = _faucetContract3.TurnOn("ELF");
+            turnOn.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var faucetStatus = _faucetContract3.GetFaucetStatus("ELF");
+            Logger.Info($"faucetStatus.is_on is {faucetStatus.IsOn}");
+            Logger.Info($"faucetStatus.turn_at is {faucetStatus.TurnAt}");
+            faucetStatus.IsOn.ShouldBeTrue();
+            faucetStatus.TurnAt.ShouldNotBeNull();
+
+            // take for the first time
+            _faucetContract3.SetAccount(Target);
+            var takeFirst1 = _faucetContract3.Take("ELF", 2_00000000);
+            takeFirst1.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.Mined);
+
+            // take for the second time
+            var takeSecond = _faucetContract3.Take("ELF", 3_00000000);
+            takeSecond.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            Logger.Info($"takeSecond.Error is {takeSecond.Error}");
+            takeSecond.Error.ShouldContain("Can take ELF again after");
+            Thread.Sleep(60 * 1000);
+
+            // take for the third time
+            var takeThird = _faucetContract3.Take("ELF", 3_00000000);
+            takeThird.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.Mined);
+
+            // return for the first time
+            _faucetContract3.SetAccount(Target);
+            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Target);
+            _tokenContract = _genesisContract.GetTokenContract(Target);
+            var approve2 = _tokenContract.ApproveToken(Target, _faucetContract3.ContractAddress, 10000000000_00000000);
+            var targetReturnFirst =
+                _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.Return,
+                    new ReturnInput {Symbol = "ELF", Amount = 1_00000000});
+            targetReturnFirst.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.Mined);
+
+            // return for the second time
+            var targetReturnSecond =
+                _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.Return,
+                    new ReturnInput {Symbol = "ELF", Amount = 2_00000000});
+            targetReturnSecond.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.Mined);
+
+            // return amount = 0
+            var targetReturnThird =
+                _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.Return,
+                    new ReturnInput {Symbol = "ELF", Amount = 0});
+            targetReturnSecond.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.Mined);
+            var targetBalance = ViewTargetBalance();
+            targetBalance.ShouldBe(0);
+        }
+
+        [TestMethod]
+        public void TakeReturnTwiceTest()
+        {
+            // init
+            var initialize = _faucetContract3.Initialize(InitAccount, 50_00000000, 300);
+            initialize.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // turn on(ELF)
+            _faucetContract3.SetAccount(InitAccount);
+            var turnOnTimeBefore = _faucetContract3.TurnOn("ELF");
+            turnOnTimeBefore.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var faucetStatusTurnOnTimeBefore = _faucetContract3.GetFaucetStatus("ELF");
+            Logger.Info($"faucetStatusTurnOnTimeBefore.is_on is {faucetStatusTurnOnTimeBefore.IsOn}");
+            Logger.Info($"faucetStatusTurnOnTimeBefore.turn_at is {faucetStatusTurnOnTimeBefore.TurnAt}");
+            faucetStatusTurnOnTimeBefore.IsOn.ShouldBeTrue();
+            faucetStatusTurnOnTimeBefore.TurnAt.ShouldNotBeNull();
+
+            // turn on for the second time(ELF)
+            Thread.Sleep(60 * 1000);
+            var turnOnTimeBefore2 = _faucetContract3.TurnOn("ELF");
+            turnOnTimeBefore2.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            turnOnTimeBefore2.Error.ShouldContain("Faucet of ELF is on.");
+
+            // turn off(ELF)
+            Thread.Sleep(60 * 1000);
+            var turnOffTimeBefore = _faucetContract3.TurnOff("ELF");
+            turnOffTimeBefore.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var faucetStatusTurnOffTimeBefore = _faucetContract3.GetFaucetStatus("ELF");
+            Logger.Info($"faucetStatusTurnOffTimeBefore.is_on is {faucetStatusTurnOffTimeBefore.IsOn}");
+            Logger.Info($"faucetStatusTurnOffTimeBefore.turn_at is {faucetStatusTurnOffTimeBefore.TurnAt}");
+            faucetStatusTurnOffTimeBefore.IsOn.ShouldBeFalse();
+            faucetStatusTurnOffTimeBefore.TurnAt.ShouldNotBeNull();
+
+            // turn off for the second time(ELF)
+            Thread.Sleep(60 * 1000);
+            var turnOffTimeBefore2 = _faucetContract3.TurnOff("ELF");
+            turnOffTimeBefore2.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            turnOffTimeBefore2.Error.ShouldContain("Faucet of ELF is off.");
+        }
+
+        [TestMethod]
+        public void TakeReturnFaucetOffTest()
+        {
+            // init
+            _faucetContract3.SetAccount(InitAccount);
+            var initialize = _faucetContract3.Initialize(InitAccount, 50_00000000, 50);
+            initialize.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // approve
+            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
+            _tokenContract = _genesisContract.GetTokenContract(InitAccount);
+            _tokenContract.SetAccount(InitAccount);
+            _faucetContract3.SetAccount(InitAccount);
+            var approve =
+                _tokenContract.ApproveToken(InitAccount, _faucetContract3.ContractAddress, 1000_00000000);
+            approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // pour
+            var pour2 = _faucetContract3.Pour("ELF", 100_00000000);
+            pour2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // turn off failed
+            _faucetContract3.SetAccount(InitAccount);
+            var turnOff = _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.TurnOff, new TurnInput());
+            turnOff.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            turnOff.Error.ShouldContain("Faucet of ELF never turned on.");
+            var faucetStatus = _faucetContract3.GetFaucetStatus("ELF");
+            Logger.Info($"faucetStatus.is_on is {faucetStatus.IsOn}");
+            Logger.Info($"faucetStatus.turn_at is {faucetStatus.TurnAt}");
+            faucetStatus.IsOn.ShouldBeFalse();
+            faucetStatus.TurnAt.ShouldBeNull();
+
+            // turn on(ELF)
+            _faucetContract3.SetAccount(InitAccount);
+            var turnOn = _faucetContract3.TurnOn("ELF");
+            turnOn.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var faucetStatusTurnOn = _faucetContract3.GetFaucetStatus("ELF");
+            Logger.Info($"faucetStatusTurnOn.is_on is {faucetStatusTurnOn.IsOn}");
+            Logger.Info($"faucetStatusTurnOn.turn_at is {faucetStatusTurnOn.TurnAt}");
+            faucetStatusTurnOn.IsOn.ShouldBeTrue();
+            faucetStatusTurnOn.TurnAt.ShouldNotBeNull();
+
+            // take
+            _faucetContract3.SetAccount(Target);
+            var takeIsBanTrue = _faucetContract3.Take("ELF", 10_00000000);
+            takeIsBanTrue.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.Mined);
+
+            // turn off successed
+            Thread.Sleep(60 * 1000);
+            _faucetContract3.SetAccount(InitAccount);
+            var turnOff1 = _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.TurnOff, new TurnInput());
+            turnOff1.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.Mined);
+            var faucetStatusFalse = _faucetContract3.GetFaucetStatus("ELF");
+            Logger.Info($"faucetStatusFalse.is_on is {faucetStatusFalse.IsOn}");
+            Logger.Info($"faucetStatusFalse.turn_at is {faucetStatusFalse.TurnAt}");
+            faucetStatusFalse.IsOn.ShouldBeFalse();
+            faucetStatusFalse.TurnAt.ShouldNotBeNull();
+
+            // take
+            _faucetContract3.SetAccount(Target);
+            var take = _faucetContract3.Take("ELF", 10_00000000);
+            take.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            take.Error.ShouldContain("Faucet of ELF is off.");
+
+            // return
+            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Target);
+            _tokenContract = _genesisContract.GetTokenContract(Target);
+            _tokenContract.SetAccount(Target);
+            _faucetContract3.SetAccount(Target);
+            var approve2 = _tokenContract.ApproveToken(Target, _faucetContract3.ContractAddress, 1000_00000000);
+            approve2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var targetReturn1 =
+                _faucetContract3.ExecuteMethodWithResult(FaucetContractMethod.Return,
+                    new ReturnInput {Symbol = "ELF", Amount = 5_00000000});
+            targetReturn1.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
+        public long ViewTargetBalance()
         {
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Target);
             _tokenContract = _genesisContract.GetTokenContract(Target);
             var targetBalance = _tokenContract.GetUserBalance(Target, "ELF");
-            Logger.Info($"targetBalanceBefore is {targetBalance}");
+            Logger.Info($"targetBalance is {targetBalance}");
+            return targetBalance;
         }
     }
 }
