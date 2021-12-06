@@ -34,7 +34,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private static string RpcUrl { get; } = "192.168.66.9:8000";
         private string Symbol { get; } = "ELF";
+
         private string faucet = "2M24EKAecggCnttZ9DUUMCXi4xC67rozA87kFgid9qEwRUMHTs";
+
         // private string faucet2 = "2dKF3svqDXrYtA5mYwKfADiHajo37mLZHPHVVuGbEDoD9jSgE8";
         private string faucet2 = "";
         private string faucet3 = "";
@@ -168,6 +170,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"faucetStatusTurnOff.turn_at is {faucetStatusTurnOff.TurnAt}");
             faucetStatusTurnOff.IsOn.ShouldBeFalse();
             faucetStatusTurnOff.TurnAt.ShouldNotBeNull();
+
+            // turn on
+            Thread.Sleep(60 * 1000);
+            var turnOn1 = _faucetContract2.ExecuteMethodWithResult(FaucetContractMethod.TurnOn, new TurnInput());
+            var faucetStatusTurnOn1 = _faucetContract2.GetFaucetStatus("ELF");
+            Logger.Info($"faucetStatusTurnOn1.is_on is {faucetStatusTurnOn1.IsOn}");
+            Logger.Info($"faucetStatusTurnOn1.turn_at is {faucetStatusTurnOn1.TurnAt}");
+            faucetStatusTurnOn1.IsOn.ShouldBeTrue();
+            faucetStatusTurnOn1.TurnAt.ShouldNotBeNull();
 
             // faucet'balance before pour
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Account1);
