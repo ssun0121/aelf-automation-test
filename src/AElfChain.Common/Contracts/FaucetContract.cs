@@ -5,6 +5,7 @@ using AElf.Types;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using Google.Protobuf.WellKnownTypes;
+using Org.BouncyCastle.Asn1.X509;
 using ProtoBuf.WellKnownTypes;
 using Timestamp = Google.Protobuf.WellKnownTypes.Timestamp;
 
@@ -28,7 +29,8 @@ namespace AElfChain.Common.Contracts
         GetOwner,
         GetFaucetStatus,
         GetLimitAmount,
-        GetIntervalMinutes
+        GetIntervalMinutes,
+        IsBannedByOwner
     }
 
     public class FaucetContract : BaseContract<FaucetContractMethod>
@@ -80,21 +82,19 @@ namespace AElfChain.Common.Contracts
             });
         }
 
-        public TransactionResultDto TurnOn(string symbol, Timestamp at)
+        public TransactionResultDto TurnOn(string symbol)
         {
             return ExecuteMethodWithResult(FaucetContractMethod.TurnOn, new TurnInput
             {
-                Symbol = symbol,
-                At = at
+                Symbol = symbol
             });
         }
 
-        public TransactionResultDto TurnOff(string symbol, Timestamp at)
+        public TransactionResultDto TurnOff(string symbol)
         {
             return ExecuteMethodWithResult(FaucetContractMethod.TurnOff, new TurnInput
             {
-                Symbol = symbol,
-                At = at
+                Symbol = symbol
             });
         }
 
@@ -130,7 +130,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto Take(string symbol, long amount)
         {
-            return ExecuteMethodWithResult(FaucetContractMethod.Take, new SendInput
+            return ExecuteMethodWithResult(FaucetContractMethod.Take, new TakeInput
             {
                 Symbol = symbol,
                 Amount = amount
@@ -155,22 +155,26 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<FaucetStatus>(FaucetContractMethod.GetFaucetStatus, new StringValue {Value = symbol});
         }
-        
+
         public long GetLimitAmount(string symbol)
         {
-            return CallViewMethod<Int64Value>(FaucetContractMethod.GetLimitAmount, new StringValue {Value = symbol}).Value;
+            return CallViewMethod<Int64Value>(FaucetContractMethod.GetLimitAmount, new StringValue {Value = symbol})
+                .Value;
         }
-        
+
         public long GetIntervalMinutes(string symbol)
         {
-            return CallViewMethod<Int64Value>(FaucetContractMethod.GetIntervalMinutes, new StringValue {Value = symbol}).Value;
+            return CallViewMethod<Int64Value>(FaucetContractMethod.GetIntervalMinutes, new StringValue {Value = symbol})
+                .Value;
         }
-        
-        public static FaucetContract GetFaucetContract(INodeManager nm, string callAddress)
-        {
-            var genesisContract = nm.GetGenesisContractAddress();
 
-            return new FaucetContract(nm, callAddress, genesisContract);
+        public bool IsBannedByOwner(string target, string symbol)
+        {
+            return CallViewMethod<BoolValue>(FaucetContractMethod.IsBannedByOwner, new IsBannedByOwnerInput
+            {
+                Target = target.ConvertAddress(),
+                Symbol = symbol
+            }).Value;
         }
     }
 }

@@ -75,7 +75,6 @@ message PourInput {
 
 message TurnInput {
     string symbol = 1;
-    google.protobuf.Timestamp at = 2;
 }
 
 message SetLimitInput {
