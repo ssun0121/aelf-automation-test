@@ -23,6 +23,7 @@
         <ProtoContract Include="Protobuf\Proto\authority_info.proto" />
         <ProtoContract Include="Protobuf\Proto\code_check.proto" />
         <ProtoMessage Include="Protobuf\Proto\transaction_fee.proto" />
+        <ProtoContract Include="Protobuf\Proto\faucet_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\quadratic_funding_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs5_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs8_plugin_test_contract.proto" />
@@ -54,9 +55,7 @@
         <ProtoContract Include="Protobuf\Proto\configuration_contract_impl.proto" />
         <ProtoContract Include="Protobuf\Proto\referendum_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\referendum_contract_impl.proto" />
-        <ProtoContract Include="Protobuf\Proto\dapp_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\execution.proto" />
-        <ProtoContract Include="Protobuf\Proto\random_number_provider_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>

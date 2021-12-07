@@ -8,7 +8,6 @@ using AElf.Contracts.MultiToken;
 using AElf.Contracts.Parliament;
 using AElf.Contracts.Profit;
 using AElf.Contracts.Referendum;
-using AElf.Contracts.TestContract.DApp;
 using AElf.Contracts.TokenConverter;
 using AElf.Contracts.TokenHolder;
 using AElf.Contracts.Treasury;
