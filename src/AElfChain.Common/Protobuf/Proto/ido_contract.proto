@@ -72,6 +72,10 @@ service IdoContract {
   rpc GetUserInfo(UserInfoInput) returns (UserInfo){
     option (aelf.is_view) = true;
   }
+  
+  rpc GetPublicOfferingLength(google.protobuf.Empty) returns (google.protobuf.Int32Value){
+    option (aelf.is_view) = true;
+  }
 }
 
 // stuct
@@ -116,6 +120,7 @@ message ChangeAscriptionInput{
 message InvestInput{
   int32 public_id = 1;
   aelf.BigIntValue amount = 2;
+  string channel = 3;
 }
 
 message UserInfoInput{
@@ -130,7 +135,6 @@ message ResetTimeSpanInput{
 }
 
 //out put
-
 message ResetTimeSpanOutput{
   int64 max_timespan = 1;
   int64 min_timespan = 2;
@@ -187,6 +191,7 @@ message Invest{
   string token_symbol = 3;
   aelf.BigIntValue income = 4;
   aelf.BigIntValue spend = 5;
+  string channel = 6;
 }
 
 message Harvest{

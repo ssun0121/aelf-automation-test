@@ -30,7 +30,8 @@ namespace AElfChain.Common.Contracts
         GetOwner,
         GetTimespan,
         GetPublicOffering,
-        GetUserInfo
+        GetUserInfo,
+        GetPublicOfferingLength
     }
 
     public class IdoContract : BaseContract<IdoContractMethod>
@@ -57,7 +58,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto AddPublicOffering(string offeringTokenSymbol, long offeringTokenAmount,
             string wantTokenSymbol,
-            long wantTokenAmount, DateTime startTime, DateTime endTime)
+            long wantTokenAmount, Timestamp startTime, Timestamp endTime)
         {
             return ExecuteMethodWithResult(IdoContractMethod.AddPublicOffering,
                 new AddPublicOfferingInput
@@ -66,8 +67,8 @@ namespace AElfChain.Common.Contracts
                     OfferingTokenAmount = offeringTokenAmount,
                     WantTokenSymbol = wantTokenSymbol,
                     WantTokenAmount = wantTokenAmount,
-                    StartTime = Timestamp.FromDateTime(startTime.ToUniversalTime()),
-                    EndTime = Timestamp.FromDateTime(endTime.ToUniversalTime())
+                    StartTime = startTime,
+                    EndTime = endTime
                 });
         }
 
@@ -80,23 +81,24 @@ namespace AElfChain.Common.Contracts
             });
         }
 
-        public TransactionResultDto Withdraw(Int32Value withdrawAmount)
+        public TransactionResultDto Withdraw(int publicId)
         {
-            return ExecuteMethodWithResult(IdoContractMethod.Withdraw, new Int32Value(withdrawAmount));
+            return ExecuteMethodWithResult(IdoContractMethod.Withdraw, new Int32Value {Value = publicId});
         }
 
-        public TransactionResultDto Invest(int publicId, long amount)
+        public TransactionResultDto Invest(int publicId, long amount, string channel)
         {
             return ExecuteMethodWithResult(IdoContractMethod.Invest, new InvestInput
             {
                 PublicId = publicId,
-                Amount = amount
+                Amount = amount,
+                Channel = channel
             });
         }
 
-        public TransactionResultDto Harvest(Int32Value harvestAmount)
+        public TransactionResultDto Harvest(int publicId)
         {
-            return ExecuteMethodWithResult(IdoContractMethod.Harvest, new Int32Value(harvestAmount));
+            return ExecuteMethodWithResult(IdoContractMethod.Harvest, new Int32Value {Value = publicId});
         }
 
         public TransactionResultDto ResetTimeSpan(long maxTimespan, long minTimespan)
@@ -118,9 +120,9 @@ namespace AElfChain.Common.Contracts
             return CallViewMethod<ResetTimeSpanOutput>(IdoContractMethod.GetTimespan, new Empty());
         }
 
-        public PublicOfferingOutput GetPublicOffering(Int32Value publicId)
+        public PublicOfferingOutput GetPublicOffering(Int64Value publicId)
         {
-            return CallViewMethod<PublicOfferingOutput>(IdoContractMethod.GetPublicOffering, new Int32Value(publicId));
+            return CallViewMethod<PublicOfferingOutput>(IdoContractMethod.GetPublicOffering, publicId);
         }
 
         public UserInfo GetUserInfo(int publicId, string user)
@@ -130,6 +132,11 @@ namespace AElfChain.Common.Contracts
                 PublicId = publicId,
                 User = user.ConvertAddress()
             });
+        }
+
+        public int GetPublicOfferingLength()
+        {
+            return CallViewMethod<Int32Value>(IdoContractMethod.GetPublicOfferingLength, new Empty()).Value;
         }
     }
 }
