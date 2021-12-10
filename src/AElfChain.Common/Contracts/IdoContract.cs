@@ -31,7 +31,8 @@ namespace AElfChain.Common.Contracts
         GetTimespan,
         GetPublicOffering,
         GetUserInfo,
-        GetPublicOfferingLength
+        GetPublicOfferingLength,
+        GetTokenOwnership
     }
 
     public class IdoContract : BaseContract<IdoContractMethod>
@@ -83,7 +84,10 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto Withdraw(int publicId)
         {
-            return ExecuteMethodWithResult(IdoContractMethod.Withdraw, new Int32Value {Value = publicId});
+            return ExecuteMethodWithResult(IdoContractMethod.Withdraw, new Int32Value
+            {
+                Value = publicId
+            });
         }
 
         public TransactionResultDto Invest(int publicId, long amount, string channel)
@@ -137,6 +141,11 @@ namespace AElfChain.Common.Contracts
         public int GetPublicOfferingLength()
         {
             return CallViewMethod<Int32Value>(IdoContractMethod.GetPublicOfferingLength, new Empty()).Value;
+        }
+
+        public Address GetTokenOwnership(string symbol)
+        {
+            return CallViewMethod<Address>(IdoContractMethod.GetTokenOwnership, new StringValue {Value = symbol});
         }
     }
 }

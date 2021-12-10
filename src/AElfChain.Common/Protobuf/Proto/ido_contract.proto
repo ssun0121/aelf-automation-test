@@ -76,6 +76,11 @@ service IdoContract {
   rpc GetPublicOfferingLength(google.protobuf.Empty) returns (google.protobuf.Int32Value){
     option (aelf.is_view) = true;
   }
+  
+  rpc GetTokenOwnership(Token) returns (aelf.Address){
+    option (aelf.is_view) = true;
+  }
+  
 }
 
 // stuct
@@ -102,6 +107,9 @@ message PublicOfferList{
 }
 
 //input
+message Token{
+  string token_symbol=1;
+}
 
 message AddPublicOfferingInput{
   string offering_token_symbol = 1;
