@@ -113,6 +113,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void AddPublicOfferingTest()
         {
             // contract:GVqTvLDwiDfoWEtq3VeB9g4jMfbP4KbXRyqit4Z1LKsbZrwrV
+            // contract：g9xy6gaLtM5WKEe3kSEqXfBQjhhPBbRtgbrVveMURNzf2zVaK
+            // contract:2avzCgLG2qQrtFQrtcmcHQtu52mRRGhMeGrnviv77j1qQaKt3d
             ResetTimeSpanTest();
 
             // get timeSpan
@@ -164,7 +166,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             // Invaild start time.
             var addPublicOffering2 = _idoContract.AddPublicOffering(offeringTokenSymbol, offeringTokenAmount,
                 wantTokenSymbol,
-                wantTokenAmount, new DateTime(2020, 12, 8, 00, 00, 00, 00).ToTimestamp(), endTime);
+                wantTokenAmount, new DateTime(2020, 12, 8, 00, 00, 00, 00, kind: DateTimeKind.Utc).ToTimestamp(),
+                endTime);
             addPublicOffering2.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             addPublicOffering2.Error.ShouldContain("Invaild start time.");
