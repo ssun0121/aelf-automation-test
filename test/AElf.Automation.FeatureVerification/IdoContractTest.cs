@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Security.Policy;
 using System.Threading;
 using AElf.Client.Dto;
-using AElf.Standards.ACS10;
 using AElf.Types;
 using AElfChain.Common;
 using AElfChain.Common.Contracts;
@@ -239,12 +237,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             harvest.Error.ShouldContain("Activity id not exist.");
         }
-
-        [TestMethod]
-        public void ActivityNotExistTest()
-        {
-        }
-
+        
         [TestMethod]
         public void ChangeAscriptionTest()
         {
