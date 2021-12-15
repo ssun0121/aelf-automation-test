@@ -23,6 +23,7 @@
         <ProtoContract Include="Protobuf\Proto\authority_info.proto" />
         <ProtoContract Include="Protobuf\Proto\code_check.proto" />
         <ProtoMessage Include="Protobuf\Proto\transaction_fee.proto" />
+        <ProtoContract Include="Protobuf\Proto\gandalfswap_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs5_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs8_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_events_contract.proto" />
@@ -61,7 +62,7 @@
     <ItemGroup>
         <!--AElf packages-->
         <PackageReference Include="AElf.Kernel.Types" Version="1.0.0" />
-        <PackageReference Include="AElf.Types" Version="1.1.0-18960" />
+        <PackageReference Include="AElf.Types" Version="1.1.1-18963" />
         <PackageReference Include="AElf.CSharp.Core" Version="1.1.0-18960" />
         <PackageReference Include="AElf.Cryptography" Version="1.1.0-18960" />
         <PackageReference Include="AElf.Client" Version="1.1.0" />

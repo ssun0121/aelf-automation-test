@@ -2,6 +2,8 @@
 using System.IO;
 using System.Reflection;
 using System.Text;
+using AElf.CSharp.Core;
+using AElf.Types;
 
 namespace AElfChain.Common.Helpers
 {
@@ -127,6 +129,32 @@ namespace AElfChain.Common.Helpers
             var cursorPosition = Console.CursorLeft;
             if (cursorPosition != 0)
                 Console.WriteLine();
+        }
+        
+        public static BigIntValue Sqrt(BigIntValue n)
+        {
+            if (n.Value == "0" )
+                return n;
+            var left = new BigIntValue(1);
+            var right = n;
+            var mid = left.Add(right).Div(2);
+            while (!left.Equals(right)  && ! mid.Equals(left) )
+            {
+                if (mid.Equals(n.Div(mid)) )
+                    return mid;
+                if (mid < n.Div(mid))
+                {
+                    left = mid;
+                    mid =  left.Add(right).Div(2);
+                }
+                else
+                {
+                    right = mid;
+                    mid =  left.Add(right).Div(2);
+                }
+            }
+
+            return left;
         }
     }
 }
