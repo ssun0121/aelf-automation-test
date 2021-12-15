@@ -24,6 +24,7 @@
         <ProtoContract Include="Protobuf\Proto\code_check.proto" />
         <ProtoMessage Include="Protobuf\Proto\transaction_fee.proto" />
         <ProtoContract Include="Protobuf\Proto\gandalfswap_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\ido_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs5_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs8_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_events_contract.proto" />
@@ -84,6 +85,10 @@
 
     <ItemGroup>
       <ProjectReference Include="..\AElfChain.Contract\AElfChain.Contract.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Include="Protobuf\Generated\TokenConverterContract.g.cs" />
     </ItemGroup>
 
 </Project>
