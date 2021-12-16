@@ -1,39 +1,17 @@
-/* This files is part of the Hello World smart contract example that is included in Boilerplate.
- * It is only the definition of the contract, implementation is located in the "contract" folder
- * and tests are located in the "test" folder.
- *
- * You can use this as a basic template for new contracts.
- * 
- * When building Boilerplate or the contract project located in the "../contract/AElf.Contracts.IdoContract/" 
- * protoc (the protobuf compiler) will be invoked and this file will produce a .c.cs file and .g.cs file, in the 
- * "../contract/AElf.Contracts.IdoContract/Protobuf/Generated/" folder. 
- */
-
-// the version of the language, use proto3 for contracts
 syntax = "proto3";
 
-// some core imports for aelf chain types
 import "aelf/core.proto";
 import "aelf/options.proto";
-
-// import for using the google.protobuf.Empty type.
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 
-// the name of the C# namespace in which the contract code will be,
-// generated code will also be in this namespace.
-option csharp_namespace = "Gandalf.Contracts.IdoContract";
+option csharp_namespace = "Gandalf.Contracts.Shadowfax";
 
-// the contract definition: a gRPC service definition.
-service IdoContract {
+service ShadowfaxContract {
 
-  // the full name of the C# class that will contain the state (here <namespace>.<state-class-name> format).
-  option (aelf.csharp_state) = "Gandalf.Contracts.IdoContract.IdoContractState";
+  option (aelf.csharp_state) = "Gandalf.Contracts.Shadowfax.ShadowfaxContractState";
 
-  // an action defined as a gRPC service method.
-  // this action take a google.protobuf.Empty (placeholder for void) as input
-  // and returns a custom defined type: HelloReturn.
   //  Action
   rpc Initialize(aelf.Address) returns(google.protobuf.Empty){
   }
@@ -65,11 +43,11 @@ service IdoContract {
     option (aelf.is_view) = true;
   }
 
-  rpc GetPublicOffering(google.protobuf.Int32Value) returns (PublicOfferingOutput){
+  rpc PublicOfferings(google.protobuf.Int32Value) returns (PublicOfferingOutput){
     option (aelf.is_view) = true;
   }
 
-  rpc GetUserInfo(UserInfoInput) returns (UserInfo){
+  rpc UserInfo(UserInfoInput) returns (UserInfoStruct){
     option (aelf.is_view) = true;
   }
   
@@ -80,10 +58,10 @@ service IdoContract {
   rpc GetTokenOwnership(Token) returns (aelf.Address){
     option (aelf.is_view) = true;
   }
-  
+
 }
 
-// stuct
+// Stucts
 message PublicOffering {
   string offering_token_symbol = 1;
   aelf.BigIntValue offering_token_amount = 2;
@@ -97,7 +75,7 @@ message PublicOffering {
   aelf.BigIntValue subscribed_offering_amount = 10;
 }
 
-message UserInfo{
+message UserInfoStruct{
   bool claimed = 1;
   aelf.BigIntValue obtain_amount = 2;
 }
@@ -106,7 +84,7 @@ message PublicOfferList{
   repeated PublicOffering value = 1;
 }
 
-//input
+// Inputs
 message Token{
   string token_symbol=1;
 }
@@ -136,13 +114,13 @@ message UserInfoInput{
   aelf.Address user = 2;
 }
 
-//seconds
+// Seconds
 message ResetTimeSpanInput{
   int64 max_timespan = 1;
   int64 min_timespan = 2;
 }
 
-//out put
+// Outputs
 message ResetTimeSpanOutput{
   int64 max_timespan = 1;
   int64 min_timespan = 2;
@@ -158,12 +136,12 @@ message PublicOfferingOutput{
   int64 public_id = 7;
   aelf.Address publisher = 8;
   bool claimed = 9;
-  aelf.BigIntValue Want_Token_Balance = 10;
-  aelf.BigIntValue Subscribed_Offering_Amount = 11;
+  aelf.BigIntValue want_token_balance = 10;
+  aelf.BigIntValue subscribed_offering_amount = 11;
 }
 
 
-//Events
+// Events
 message AddPublicOffering{
   option (aelf.is_event) = true;
   string offering_token_symbol = 1;
