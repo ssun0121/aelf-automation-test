@@ -43,9 +43,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             NodeManager = new NodeManager(RpcUrl);
             if (Ido.Equals(""))
-                _shadowfaxContract = new GandalfShadowfaxContract(NodeManager, InitAccount);
+                _shadowfaxContract = new GandalfShadowfaxContract(NodeManager, Owner);
             else
-                _shadowfaxContract = new GandalfShadowfaxContract(NodeManager, InitAccount, Ido);
+                _shadowfaxContract = new GandalfShadowfaxContract(NodeManager, Owner, Ido);
         }
 
         [TestMethod]
@@ -874,13 +874,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Owner);
             _tokenContract = _genesisContract.GetTokenContract(Owner);
             var account1BalanceBefore = _tokenContract.GetUserBalance(Owner, "ELF");
-            var targetBalanceBefore = _tokenContract.GetUserBalance(InitAccount, "ELF");
+            var targetBalanceBefore =
+                _tokenContract.GetUserBalance("2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4", "ELF");
             Logger.Info($"account1BalanceBefore is {account1BalanceBefore}");
             Logger.Info($"targetBalanceBefore is {targetBalanceBefore}");
 
-            _tokenContract.TransferBalance(Owner, InitAccount, 10000_00000000, "ELF");
+            _tokenContract.TransferBalance(Owner, "2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4", 10000000_00000000,
+                "ELF");
             var account1BalanceAfter = _tokenContract.GetUserBalance(Owner, "ELF");
-            var targetBalanceAfter = _tokenContract.GetUserBalance(InitAccount, "ELF");
+            var targetBalanceAfter =
+                _tokenContract.GetUserBalance("2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4", "ELF");
             Logger.Info($"account1BalanceAfter is {account1BalanceAfter}");
             Logger.Info($"targetBalanceAfter is {targetBalanceAfter}");
         }
