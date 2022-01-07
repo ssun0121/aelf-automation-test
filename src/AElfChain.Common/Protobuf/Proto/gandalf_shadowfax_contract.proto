@@ -9,180 +9,164 @@ import "google/protobuf/timestamp.proto";
 option csharp_namespace = "Gandalf.Contracts.Shadowfax";
 
 service ShadowfaxContract {
+    option (aelf.csharp_state) = "Gandalf.Contracts.Shadowfax.ShadowfaxContractState";
 
-  option (aelf.csharp_state) = "Gandalf.Contracts.Shadowfax.ShadowfaxContractState";
+    //  Action
+    rpc Initialize (InitializeInput) returns (google.protobuf.Empty) {
+    }
+    rpc AddPublicOffering (AddPublicOfferingInput) returns (google.protobuf.Int64Value) {
+    }
+    rpc ChangeAscription (ChangeAscriptionInput) returns (google.protobuf.Empty) {
+    }
+    rpc Withdraw (google.protobuf.Int64Value) returns (google.protobuf.Empty) {
+    }
+    rpc Invest (InvestInput) returns (google.protobuf.Empty) {
+    }
+    rpc Harvest (google.protobuf.Int64Value) returns (google.protobuf.Empty) {
+    }
+    rpc ResetTimeSpan (ResetTimeSpanInput) returns (google.protobuf.Empty) {
+    }
 
-  //  Action
-  rpc Initialize(aelf.Address) returns(google.protobuf.Empty){
-  }
-
-  rpc AddPublicOffering(AddPublicOfferingInput) returns (google.protobuf.Int64Value){
-  }
-
-  rpc ChangeAscription(ChangeAscriptionInput) returns(google.protobuf.Empty){
-  }
-
-  rpc Withdraw(google.protobuf.Int32Value) returns(google.protobuf.Empty){
-  }
-
-  rpc Invest(InvestInput) returns(google.protobuf.Empty){
-  }
-
-  rpc Harvest(google.protobuf.Int32Value) returns (google.protobuf.Empty){
-  }
-
-  rpc ResetTimeSpan(ResetTimeSpanInput) returns (google.protobuf.Empty){
-  }
-
-  //  View
-  rpc GetOwner(google.protobuf.Empty) returns (aelf.Address){
-    option (aelf.is_view) = true;
-  }
-
-  rpc GetTimespan(google.protobuf.Empty) returns (ResetTimeSpanOutput){
-    option (aelf.is_view) = true;
-  }
-
-  rpc PublicOfferings(google.protobuf.Int32Value) returns (PublicOfferingOutput){
-    option (aelf.is_view) = true;
-  }
-
-  rpc UserInfo(UserInfoInput) returns (UserInfoStruct){
-    option (aelf.is_view) = true;
-  }
-  
-  rpc GetPublicOfferingLength(google.protobuf.Empty) returns (google.protobuf.Int32Value){
-    option (aelf.is_view) = true;
-  }
-  
-  rpc GetTokenOwnership(Token) returns (aelf.Address){
-    option (aelf.is_view) = true;
-  }
-
+    //  View
+    rpc Owner (google.protobuf.Empty) returns (aelf.Address) {
+        option (aelf.is_view) = true;
+    }
+    rpc MaximalTimeSpan (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
+        option (aelf.is_view) = true;
+    }
+    
+    rpc MinimalTimespan(google.protobuf.Empty) returns (google.protobuf.Int64Value){
+        option (aelf.is_view) = true;
+    }
+    
+    rpc PublicOfferings (google.protobuf.Int64Value) returns (PublicOfferingOutput){
+        option (aelf.is_view) = true;
+    }
+    rpc UserInfo (UserInfoInput) returns (UserInfoStruct){
+        option (aelf.is_view) = true;
+    }
+    rpc GetPublicOfferingLength (google.protobuf.Empty) returns (google.protobuf.Int64Value){
+        option (aelf.is_view) = true;
+    }
+    rpc Ascription (google.protobuf.StringValue) returns (aelf.Address){
+        option (aelf.is_view) = true;
+    }
+    
+    
 }
 
 // Stucts
 message PublicOffering {
-  string offering_token_symbol = 1;
-  aelf.BigIntValue offering_token_amount = 2;
-  string want_token_symbol = 3;
-  aelf.BigIntValue want_token_amount = 4;
-  google.protobuf.Timestamp start_time = 5;
-  google.protobuf.Timestamp end_time = 6;
-  aelf.Address  publisher = 7;
-  bool claimed = 8;
-  aelf.BigIntValue want_token_balance = 9;
-  aelf.BigIntValue subscribed_offering_amount = 10;
+    string offering_token_symbol = 1;
+    int64 offering_token_amount = 2;
+    string want_token_symbol = 3;
+    int64 want_token_amount = 4;
+    google.protobuf.Timestamp start_time = 5;
+    google.protobuf.Timestamp end_time = 6;
+    aelf.Address  publisher = 7;
+    bool claimed = 8;
+    int64 want_token_balance = 9;
+    int64 subscribed_offering_amount = 10;
 }
 
-message UserInfoStruct{
-  bool claimed = 1;
-  aelf.BigIntValue obtain_amount = 2;
-}
-
-message PublicOfferList{
-  repeated PublicOffering value = 1;
+message UserInfoStruct {
+    bool claimed = 1;
+    int64 obtain_amount = 2;
 }
 
 // Inputs
-message Token{
-  string token_symbol=1;
+message InitializeInput {
+    aelf.Address owner = 1;
 }
 
-message AddPublicOfferingInput{
-  string offering_token_symbol = 1;
-  aelf.BigIntValue offering_token_amount = 2;
-  string want_token_symbol = 3;
-  aelf.BigIntValue want_token_amount = 4;
-  google.protobuf.Timestamp start_time = 5;
-  google.protobuf.Timestamp end_time = 6;
+message AddPublicOfferingInput {
+    string offering_token_symbol = 1;
+    int64 offering_token_amount = 2;
+    string want_token_symbol = 3;
+    int64 want_token_amount = 4;
+    google.protobuf.Timestamp start_time = 5;
+    google.protobuf.Timestamp end_time = 6;
 }
 
-message ChangeAscriptionInput{
-  string token_symbol = 1;
-  aelf.Address receiver = 2;
+message ChangeAscriptionInput {
+    string token_symbol = 1;
+    aelf.Address receiver = 2;
 }
 
-message InvestInput{
-  int32 public_id = 1;
-  aelf.BigIntValue amount = 2;
-  string channel = 3;
+message InvestInput {
+    int64 public_id = 1;
+    int64 amount = 2;
+    string channel = 3;
 }
 
-message UserInfoInput{
-  int32 public_id = 1;
-  aelf.Address user = 2;
+message UserInfoInput {
+    int64 public_id = 1;
+    aelf.Address user = 2;
 }
 
 // Seconds
-message ResetTimeSpanInput{
-  int64 max_timespan = 1;
-  int64 min_timespan = 2;
+message ResetTimeSpanInput {
+    int64 max_timespan = 1;
+    int64 min_timespan = 2;
 }
 
 // Outputs
-message ResetTimeSpanOutput{
-  int64 max_timespan = 1;
-  int64 min_timespan = 2;
-}
 
 message PublicOfferingOutput{
-  string offering_token_symbol = 1;
-  aelf.BigIntValue offering_token_amount = 2;
-  string want_token_symbol = 3;
-  aelf.BigIntValue want_token_amount = 4;
-  google.protobuf.Timestamp start_time = 5;
-  google.protobuf.Timestamp end_time = 6;
-  int64 public_id = 7;
-  aelf.Address publisher = 8;
-  bool claimed = 9;
-  aelf.BigIntValue want_token_balance = 10;
-  aelf.BigIntValue subscribed_offering_amount = 11;
+    string offering_token_symbol = 1;
+    int64 offering_token_amount = 2;
+    string want_token_symbol = 3;
+    int64 want_token_amount = 4;
+    google.protobuf.Timestamp start_time = 5;
+    google.protobuf.Timestamp end_time = 6;
+    int64 public_id = 7;
+    aelf.Address publisher = 8;
+    bool claimed = 9;
+    int64 Want_Token_Balance = 10;
+    int64 Subscribed_Offering_Amount = 11;
 }
-
 
 // Events
 message AddPublicOffering{
-  option (aelf.is_event) = true;
-  string offering_token_symbol = 1;
-  aelf.BigIntValue offering_token_amount = 2;
-  string want_token_symbol = 3;
-  aelf.BigIntValue want_token_amount = 4;
-  aelf.Address publisher = 5;
-  google.protobuf.Timestamp start_time = 6;
-  google.protobuf.Timestamp end_time = 7;
-  int64 public_id = 8;
+    option (aelf.is_event) = true;
+    string offering_token_symbol = 1;
+    int64 offering_token_amount = 2;
+    string want_token_symbol = 3;
+    int64 want_token_amount = 4;
+    aelf.Address publisher = 5;
+    google.protobuf.Timestamp start_time = 6;
+    google.protobuf.Timestamp end_time = 7;
+    int64 public_id = 8;
 }
-
 
 message ChangeAscription{
-  option (aelf.is_event) = true;
-  string token_symbol = 1;
-  aelf.Address old_publisher = 2;
-  aelf.Address new_publisher = 3;
+    option (aelf.is_event) = true;
+    string token_symbol = 1;
+    aelf.Address old_publisher = 2;
+    aelf.Address new_publisher = 3;
 }
 
-message Withdraw{
-  option (aelf.is_event) = true;
-  int64 pubilic_id = 1;
-  aelf.Address to = 2;
-  int64 want_token = 3;
-  int64 offering_token = 4;
+message Withdraw {
+    option (aelf.is_event) = true;
+    int64 pubilic_id = 1;
+    aelf.Address to = 2;
+    int64 want_token = 3;
+    int64 offering_token = 4;
 }
 
-message Invest{
-  option (aelf.is_event) = true;
-  int64 public_id = 1;
-  aelf.Address investor = 2;
-  string token_symbol = 3;
-  aelf.BigIntValue income = 4;
-  aelf.BigIntValue spend = 5;
-  string channel = 6;
+message Invest {
+    option (aelf.is_event) = true;
+    int64 public_id = 1;
+    aelf.Address investor = 2;
+    string token_symbol = 3;
+    int64 income = 4;
+    int64 spend = 5;
+    string channel = 6;
 }
 
-message Harvest{
-  option (aelf.is_event) = true;
-  int64 public_id = 1;
-  aelf.Address to = 2;
-  aelf.BigIntValue amount = 3;
+message Harvest {
+    option (aelf.is_event) = true;
+    int64 public_id = 1;
+    aelf.Address to = 2;
+    int64 amount = 3;
 }

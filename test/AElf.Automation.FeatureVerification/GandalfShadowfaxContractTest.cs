@@ -33,6 +33,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private string USDT { get; } = "USDT";
 
         private string Ido = "";
+        //fMnnV7VZcSwiyDuLy5EZU1JRWCJA6HFy7qdRS3nURoiW3c1HE
 
         [TestInitialize]
         public void Initialize()
@@ -80,6 +81,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             InitializeTest();
 
             // Not Owner
+            _shadowfaxContract.SetAccount(User);
             var result = _shadowfaxContract.ResetTimeSpan(maxTimespan, minTimespan);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
             result.Error.ShouldContain("Not Owner.");
@@ -88,9 +90,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _shadowfaxContract.SetAccount(Owner);
             var result1 = _shadowfaxContract.ResetTimeSpan(maxTimespan, minTimespan);
             result1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var getTimespan = _shadowfaxContract.GetTimespan();
-            Logger.Info($"MaxTimespan is {getTimespan.MaxTimespan}");
-            Logger.Info($"MinTimespan is {getTimespan.MinTimespan}");
+            var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
+            var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
+            Logger.Info($"MaxTimespan is {maxTimeSpan}");
+            Logger.Info($"MinTimespan is {minTimeSpan}");
 
             // MaxTimespan < MinTimespan
             var maxTimespan1 = 86400;
@@ -114,9 +117,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
             ResetTimeSpanTest();
 
             // get timeSpan
-            var getTimespan = _shadowfaxContract.GetTimespan();
-            Logger.Info($"MaxTimespan is {getTimespan.MaxTimespan}");
-            Logger.Info($"MinTimespan is {getTimespan.MinTimespan}");
+            var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
+            var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
+
+            Logger.Info($"MaxTimespan is {maxTimeSpan}");
+            Logger.Info($"MinTimespan is {minTimeSpan}");
 
             _shadowfaxContract.SetAccount(Owner);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Owner);
@@ -128,9 +133,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var offeringTokenSymbol = ISTAR;
             var offeringTokenAmount = 100_00000000;
             var wantTokenSymbol = USDT;
-            var wantTokenAmount = 10_0000;
+            var wantTokenAmount = 10_000000;
             var startTime = DateTime.UtcNow.AddSeconds(10).ToTimestamp();
-            var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(minTimeSpan).ToTimestamp();
 
             var addPublicOffering = _shadowfaxContract.AddPublicOffering(offeringTokenSymbol, offeringTokenAmount,
                 wantTokenSymbol,
@@ -142,7 +147,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 OfferingTokenSymbol = ISTAR,
                 OfferingTokenAmount = 100_00000000,
                 WantTokenSymbol = USDT,
-                WantTokenAmount = 10_0000,
+                WantTokenAmount = 10_000000,
                 StartTime = startTime,
                 EndTime = endTime,
                 PublicId = 0,
@@ -180,7 +185,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var addPublicOffering4 = _shadowfaxContract.AddPublicOffering(offeringTokenSymbol, offeringTokenAmount,
                 wantTokenSymbol,
                 wantTokenAmount, DateTime.UtcNow.AddSeconds(10).ToTimestamp(),
-                DateTime.UtcNow.AddSeconds(1000).AddSeconds(getTimespan.MaxTimespan).ToTimestamp());
+                DateTime.UtcNow.AddSeconds(1000).AddSeconds(maxTimeSpan).ToTimestamp());
             addPublicOffering4.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             addPublicOffering4.Error.ShouldContain("Invalid end time.");
@@ -190,7 +195,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var addPublicOffering5 = _shadowfaxContract.AddPublicOffering(offeringTokenSymbol, istarBalance + 100,
                 wantTokenSymbol,
                 wantTokenAmount, DateTime.UtcNow.AddSeconds(10).ToTimestamp(),
-                DateTime.UtcNow.AddSeconds(10).AddSeconds(getTimespan.MinTimespan).ToTimestamp());
+                DateTime.UtcNow.AddSeconds(10).AddSeconds(minTimeSpan).ToTimestamp());
             addPublicOffering5.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             addPublicOffering5.Error.ShouldContain("Insufficient balance of ISTAR.");
@@ -206,31 +211,37 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var elfBalance = GetBalance(User, "ELF");
             if (usdtBalance == 0 && elfBalance == 0)
             {
-                Transfer(Owner, User, USDT, 1000_000);
+                Transfer(Owner, User, USDT, 1000_000000);
                 Transfer(Owner, User, "ELF", 1000_00000000);
             }
 
             // Withdraw
-            var withdraw = _shadowfaxContract.Withdraw(0);
-            withdraw.Status.ConvertTransactionResultStatus()
+            var withdraw1 = _shadowfaxContract.Withdraw(1);
+            withdraw1.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            withdraw.Error.ShouldContain("Activity id not exist.");
+            withdraw1.Error.ShouldContain("Activity id not exist.");
+
+            // Withdraw
+            var withdraw2 = _shadowfaxContract.Withdraw(-1);
+            withdraw2.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            withdraw2.Error.ShouldContain("Invalid number.");
 
             // Invest
             _shadowfaxContract.SetAccount(User);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, User);
             _tokenContract = _genesisContract.GetTokenContract(User);
             var approve =
-                _tokenContract.ApproveToken(User, _shadowfaxContract.ContractAddress, 100000_00000000, USDT);
+                _tokenContract.ApproveToken(User, _shadowfaxContract.ContractAddress, 100000_000000, USDT);
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            var invest = _shadowfaxContract.Invest(0, 10_000, "");
+            var invest = _shadowfaxContract.Invest(1, 10_000, "");
             invest.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             invest.Error.ShouldContain("Activity id not exist.");
 
             // Harvest
-            var harvest = _shadowfaxContract.Harvest(0);
+            var harvest = _shadowfaxContract.Harvest(1);
             harvest.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             harvest.Error.ShouldContain("Activity id not exist.");
@@ -250,19 +261,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             ResetTimeSpanTest();
             // Get timeSpan
-            var getTimespan = _shadowfaxContract.GetTimespan();
-            Logger.Info($"MaxTimespan is {getTimespan.MaxTimespan}");
-            Logger.Info($"MinTimespan is {getTimespan.MinTimespan}");
+            var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
+            var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
+            Logger.Info($"MaxTimespan is {maxTimeSpan}");
+            Logger.Info($"MinTimespan is {minTimeSpan}");
 
             var startTime = DateTime.UtcNow.AddSeconds(60).ToTimestamp();
-            var endTime = DateTime.UtcNow.AddSeconds(60).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime = DateTime.UtcNow.AddSeconds(60).AddSeconds(minTimeSpan).ToTimestamp();
             var addPublicOffering = AddPublicOffering(Owner, startTime, endTime);
             addPublicOffering.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             // Owner adds publicOffering twice
             Thread.Sleep(60 * 1000);
             var startTime1 = DateTime.UtcNow.AddSeconds(60).ToTimestamp();
-            var endTime1 = DateTime.UtcNow.AddSeconds(60).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime1 = DateTime.UtcNow.AddSeconds(60).AddSeconds(minTimeSpan).ToTimestamp();
             var addPublicOffering2 = AddPublicOffering(Owner, startTime1, endTime1);
             addPublicOffering2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -285,7 +297,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             changeAscription.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             changeAscription.Error.ShouldContain("No right to assign.");
-            var tokenOwnership = _shadowfaxContract.GetTokenOwnership(ISTAR);
+            var tokenOwnership = _shadowfaxContract.GetAscription(ISTAR);
             Logger.Info($"tokenOwnership is {tokenOwnership}");
             tokenOwnership.ShouldBe(Owner.ConvertAddress());
 
@@ -302,14 +314,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             changeAscription4.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
 
-            var tokenOwnership1 = _shadowfaxContract.GetTokenOwnership(ISTAR);
+            var tokenOwnership1 = _shadowfaxContract.GetAscription(ISTAR);
             Logger.Info($"tokenOwnership1 is {tokenOwnership1}");
             tokenOwnership1.ShouldBe(NewPublisher.ConvertAddress());
 
             // NewPublisher adds publicOffering
             Thread.Sleep(60 * 1000);
             var startTime2 = DateTime.UtcNow.AddSeconds(60).ToTimestamp();
-            var endTime2 = DateTime.UtcNow.AddSeconds(60).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime2 = DateTime.UtcNow.AddSeconds(60).AddSeconds(minTimeSpan).ToTimestamp();
             var addPublicOffering4 = AddPublicOffering(NewPublisher, startTime2, endTime2);
             addPublicOffering4.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -322,7 +334,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 OfferingTokenSymbol = ISTAR,
                 OfferingTokenAmount = 100_00000000,
                 WantTokenSymbol = USDT,
-                WantTokenAmount = 10_0000,
+                WantTokenAmount = 10_000000,
                 StartTime = startTime2,
                 EndTime = endTime2,
                 PublicId = 2,
@@ -346,7 +358,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             changeAscription3.Error.ShouldContain("No right to assign.");
 
-            var tokenOwnership2 = _shadowfaxContract.GetTokenOwnership(ISTAR);
+            var tokenOwnership2 = _shadowfaxContract.GetAscription(ISTAR);
             Logger.Info($"tokenOwnership2 is {tokenOwnership2}");
             tokenOwnership2.ShouldBe(Owner.ConvertAddress());
         }
@@ -358,9 +370,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             ResetTimeSpanTest();
             // get timeSpan
-            var getTimespan = _shadowfaxContract.GetTimespan();
-            Logger.Info($"MaxTimespan is {getTimespan.MaxTimespan}");
-            Logger.Info($"MinTimespan is {getTimespan.MinTimespan}");
+            var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
+            var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
+            Logger.Info($"MaxTimespan is {maxTimeSpan}");
+            Logger.Info($"MinTimespan is {minTimeSpan}");
 
             _shadowfaxContract.SetAccount(Owner);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Owner);
@@ -372,9 +385,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var offeringTokenSymbol = ISTAR;
             var offeringTokenAmount = 100_00000000;
             var wantTokenSymbol = USDT;
-            var wantTokenAmount = 10_0000;
+            var wantTokenAmount = 10_000000;
             var startTime = DateTime.UtcNow.AddSeconds(10).ToTimestamp();
-            var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(minTimeSpan).ToTimestamp();
             var addPublicOffering = _shadowfaxContract.AddPublicOffering(offeringTokenSymbol, offeringTokenAmount,
                 wantTokenSymbol,
                 wantTokenAmount, startTime, endTime);
@@ -385,7 +398,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 OfferingTokenSymbol = ISTAR,
                 OfferingTokenAmount = 100_00000000,
                 WantTokenSymbol = USDT,
-                WantTokenAmount = 10_0000,
+                WantTokenAmount = 10_000000,
                 StartTime = startTime,
                 EndTime = endTime,
                 PublicId = 0,
@@ -412,14 +425,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 _tokenContract.ApproveToken(User, _shadowfaxContract.ContractAddress, 10000000000_00000000, USDT);
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            Thread.Sleep(60 * 1000);
+            Thread.Sleep(30 * 1000);
             var invest1 = _shadowfaxContract.Invest(0, 0, "");
             invest1.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             invest1.Error.ShouldContain("Invalid amount.");
-
-            Thread.Sleep(60 * 1000);
-            var invest2 = _shadowfaxContract.Invest(0, 1_0000, "");
+            
+            var invest2 = _shadowfaxContract.Invest(0, 1_000000, "");
             invest2.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
             CheckPublicOffering(new PublicOfferingOutput
@@ -427,13 +439,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 OfferingTokenSymbol = ISTAR,
                 OfferingTokenAmount = 100_00000000,
                 WantTokenSymbol = USDT,
-                WantTokenAmount = 10_0000,
+                WantTokenAmount = 10_000000,
                 StartTime = startTime,
                 EndTime = endTime,
                 PublicId = 0,
                 Publisher = Owner.ConvertAddress(),
                 Claimed = false,
-                WantTokenBalance = 1_0000,
+                WantTokenBalance = 1_000000,
                 SubscribedOfferingAmount = 10_00000000
             });
             CheckUserInfo(0, User, new UserInfoStruct
@@ -443,8 +455,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             });
 
             // Over raising
-            Thread.Sleep(60 * 1000);
-            var invest = _shadowfaxContract.Invest(0, usdtBalanceAfter + 10_0000, "");
+            var invest = _shadowfaxContract.Invest(0, usdtBalanceAfter + 10_000000, "");
             invest.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
             CheckPublicOffering(new PublicOfferingOutput
@@ -452,13 +463,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 OfferingTokenSymbol = ISTAR,
                 OfferingTokenAmount = 100_00000000,
                 WantTokenSymbol = USDT,
-                WantTokenAmount = 10_0000,
+                WantTokenAmount = 10_000000,
                 StartTime = startTime,
                 EndTime = endTime,
                 PublicId = 0,
                 Publisher = Owner.ConvertAddress(),
                 Claimed = false,
-                WantTokenBalance = 10_0000,
+                WantTokenBalance = 10_000000,
                 SubscribedOfferingAmount = 100_00000000
             });
             CheckUserInfo(0, User, new UserInfoStruct
@@ -468,17 +479,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
             });
 
             // Out of stock
-            Thread.Sleep(60 * 1000);
-            var invest3 = _shadowfaxContract.Invest(0, 5_0000, "");
+            var invest3 = _shadowfaxContract.Invest(0, 5_000000, "");
             invest3.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             invest3.Error.ShouldContain("Out of stock.");
 
             // Invalid channel.
-            var invest4 = _shadowfaxContract.Invest(0, 5_0000, null);
+            /*var invest4 = _shadowfaxContract.Invest(0, 5_000000, null);
             invest4.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            invest4.Error.ShouldContain("Invalid channel.");
+            invest4.Error.ShouldContain("Invalid channel.");*/
         }
 
         [TestMethod]
@@ -486,9 +496,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             ResetTimeSpanTest();
             // get timeSpan
-            var getTimespan = _shadowfaxContract.GetTimespan();
-            Logger.Info($"MaxTimespan is {getTimespan.MaxTimespan}");
-            Logger.Info($"MinTimespan is {getTimespan.MinTimespan}");
+            var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
+            var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
+            
+            Logger.Info($"MaxTimespan is {maxTimeSpan}");
+            Logger.Info($"MinTimespan is {minTimeSpan}");
 
             _shadowfaxContract.SetAccount(Owner);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Owner);
@@ -500,9 +512,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var offeringTokenSymbol = ISTAR;
             var offeringTokenAmount = 100_00000000;
             var wantTokenSymbol = USDT;
-            var wantTokenAmount = 10_0000;
+            var wantTokenAmount = 10_000000;
             var startTime = DateTime.UtcNow.AddSeconds(60).ToTimestamp();
-            var endTime = DateTime.UtcNow.AddSeconds(60).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime = DateTime.UtcNow.AddSeconds(60).AddSeconds(minTimeSpan).ToTimestamp();
             var addPublicOffering = _shadowfaxContract.AddPublicOffering(offeringTokenSymbol, offeringTokenAmount,
                 wantTokenSymbol,
                 wantTokenAmount, startTime, endTime);
@@ -538,7 +550,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var approve =
                 _tokenContract.ApproveToken(User, _shadowfaxContract.ContractAddress, 100000_00000000, USDT);
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var invest = _shadowfaxContract.Invest(0, 10_000, "");
+            var invest = _shadowfaxContract.Invest(0, 10_0000000, "");
             invest.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             invest.Error.ShouldContain("Not ido time.");
@@ -593,12 +605,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var minTimespan = 60;
             var result = _shadowfaxContract.ResetTimeSpan(maxTimespan, minTimespan);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var getTimespan = _shadowfaxContract.GetTimespan();
-            Logger.Info($"MaxTimespan is {getTimespan.MaxTimespan}");
-            Logger.Info($"MinTimespan is {getTimespan.MinTimespan}");
+            var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
+            var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
+            Logger.Info($"MaxTimespan is {maxTimeSpan}");
+            Logger.Info($"MinTimespan is {minTimeSpan}");
 
             var startTime = DateTime.UtcNow.AddSeconds(10).ToTimestamp();
-            var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(minTimeSpan).ToTimestamp();
             var addPublicOffering = AddPublicOffering(Owner, startTime, endTime);
             addPublicOffering.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -609,13 +622,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 _tokenContract.ApproveToken(User, _shadowfaxContract.ContractAddress, 10000000000_00000000, USDT);
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            var invest1 = _shadowfaxContract.Invest(0, 10_0000, "");
+            var invest1 = _shadowfaxContract.Invest(0, 10_000000, "");
             invest1.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             invest1.Error.ShouldContain("Insufficient balance of USDT.");
 
             Thread.Sleep(90 * 1000);
-            var invest2 = _shadowfaxContract.Invest(0, 1_0000, "");
+            var invest2 = _shadowfaxContract.Invest(0, 1_000000, "");
             invest2.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             invest2.Error.ShouldContain("Not ido time.");
@@ -650,12 +663,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var minTimespan = 60;
             var result = _shadowfaxContract.ResetTimeSpan(maxTimespan, minTimespan);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var getTimespan = _shadowfaxContract.GetTimespan();
-            Logger.Info($"MaxTimespan is {getTimespan.MaxTimespan}");
-            Logger.Info($"MinTimespan is {getTimespan.MinTimespan}");
+            var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
+            var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
+            Logger.Info($"MaxTimespan is {maxTimeSpan}");
+            Logger.Info($"MinTimespan is {minTimeSpan}");
 
             var startTime = DateTime.UtcNow.AddSeconds(10).ToTimestamp();
-            var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(minTimeSpan).ToTimestamp();
             var addPublicOffering = AddPublicOffering(Owner, startTime, endTime);
             addPublicOffering.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -666,13 +680,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var approve =
                 _tokenContract.ApproveToken(User, _shadowfaxContract.ContractAddress, 10000000000_00000000, USDT);
             approve.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var invest1 = _shadowfaxContract.Invest(0, 1_0000, "");
+            var invest1 = _shadowfaxContract.Invest(0, 1_000000, "");
             invest1.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
 
             Thread.Sleep(60 * 1000);
             var startTime1 = DateTime.UtcNow.AddSeconds(10).ToTimestamp();
-            var endTime1 = DateTime.UtcNow.AddSeconds(10).AddSeconds(getTimespan.MinTimespan).ToTimestamp();
+            var endTime1 = DateTime.UtcNow.AddSeconds(10).AddSeconds(minTimeSpan).ToTimestamp();
             var addPublicOffering1 = AddPublicOffering(Owner, startTime1, endTime1);
             addPublicOffering1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -683,7 +697,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var approve1 =
                 _tokenContract.ApproveToken(User, _shadowfaxContract.ContractAddress, 10000000000_00000000, USDT);
             approve1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var invest2 = _shadowfaxContract.Invest(1, 10_0000, "");
+            var invest2 = _shadowfaxContract.Invest(1, 10_000000, "");
             invest2.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
 
@@ -702,7 +716,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var ownerIstarAfter = GetBalance(Owner, ISTAR);
             var ownerUsdtAfter = GetBalance(Owner, USDT);
             ownerIstarAfter.ShouldBe(90_00000000 + ownerIstarBefore);
-            ownerUsdtAfter.ShouldBe(1_0000 + ownerUsdtBefore);
+            ownerUsdtAfter.ShouldBe(1_000000 + ownerUsdtBefore);
 
             // Owner withdraw twice from pool1
             Thread.Sleep(60 * 1000);
@@ -732,7 +746,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var ownerIstarAfterPool2 = GetBalance(Owner, ISTAR);
             var ownerUsdtAfterPool2 = GetBalance(Owner, USDT);
             ownerIstarAfterPool2.ShouldBe(0 + ownerIstarBefore1);
-            ownerUsdtAfterPool2.ShouldBe(10_0000 + ownerUsdtBefore1);
+            ownerUsdtAfterPool2.ShouldBe(10_000000 + ownerUsdtBefore1);
 
             // User harvest
             _shadowfaxContract.SetAccount(User);
@@ -765,13 +779,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 OfferingTokenSymbol = ISTAR,
                 OfferingTokenAmount = 100_00000000,
                 WantTokenSymbol = USDT,
-                WantTokenAmount = 10_0000,
+                WantTokenAmount = 10_000000,
                 StartTime = startTime,
                 EndTime = endTime,
                 PublicId = 0,
                 Publisher = Owner.ConvertAddress(),
                 Claimed = true,
-                WantTokenBalance = 1_0000,
+                WantTokenBalance = 1_000000,
                 SubscribedOfferingAmount = 10_00000000
             });
 
@@ -780,13 +794,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 OfferingTokenSymbol = ISTAR,
                 OfferingTokenAmount = 100_00000000,
                 WantTokenSymbol = USDT,
-                WantTokenAmount = 10_0000,
+                WantTokenAmount = 10_000000,
                 StartTime = startTime1,
                 EndTime = endTime1,
                 PublicId = 1,
                 Publisher = Owner.ConvertAddress(),
                 Claimed = true,
-                WantTokenBalance = 10_0000,
+                WantTokenBalance = 10_000000,
                 SubscribedOfferingAmount = 100_00000000
             });
 
@@ -891,9 +905,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private TransactionResultDto AddPublicOffering(string publisher, Timestamp startTime, Timestamp endTime)
         {
             // get timeSpan
-            var getTimespan = _shadowfaxContract.GetTimespan();
-            Logger.Info($"MaxTimespan is {getTimespan.MaxTimespan}");
-            Logger.Info($"MinTimespan is {getTimespan.MinTimespan}");
+            var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
+            var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
+            Logger.Info($"MaxTimespan is {maxTimeSpan}");
+            Logger.Info($"MinTimespan is {minTimeSpan}");
 
             _shadowfaxContract.SetAccount(publisher);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, publisher);
@@ -905,7 +920,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var offeringTokenSymbol = ISTAR;
             var offeringTokenAmount = 100_00000000;
             var wantTokenSymbol = USDT;
-            var wantTokenAmount = 10_0000;
+            var wantTokenAmount = 10_000000;
             var addPublicOffering = _shadowfaxContract.AddPublicOffering(offeringTokenSymbol, offeringTokenAmount,
                 wantTokenSymbol,
                 wantTokenAmount, startTime, endTime);

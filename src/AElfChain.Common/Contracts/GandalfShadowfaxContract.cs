@@ -20,12 +20,13 @@ namespace AElfChain.Common.Contracts
         ResetTimeSpan,
 
         //View
-        GetOwner,
-        GetTimespan,
+        Owner,
+        MaximalTimeSpan,
+        MinimalTimespan,
         PublicOfferings,
-        GetUserInfo,
+        UserInfo,
         GetPublicOfferingLength,
-        GetTokenOwnership
+        Ascription
     }
 
     public class GandalfShadowfaxContract : BaseContract<GandalfShadowfaxContractMethod>
@@ -47,7 +48,10 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto Initialize(string owner)
         {
-            return ExecuteMethodWithResult(GandalfShadowfaxContractMethod.Initialize, owner.ConvertAddress());
+            return ExecuteMethodWithResult(GandalfShadowfaxContractMethod.Initialize, new InitializeInput
+            {
+                Owner = owner.ConvertAddress()
+            });
         }
 
         public TransactionResultDto AddPublicOffering(string offeringTokenSymbol, long offeringTokenAmount,
@@ -95,7 +99,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto Harvest(int publicId)
         {
-            return ExecuteMethodWithResult(GandalfShadowfaxContractMethod.Harvest, new Int32Value {Value = publicId});
+            return ExecuteMethodWithResult(GandalfShadowfaxContractMethod.Harvest, new Int32Value { Value = publicId });
         }
 
         public TransactionResultDto ResetTimeSpan(long maxTimespan, long minTimespan)
@@ -109,12 +113,17 @@ namespace AElfChain.Common.Contracts
 
         public Address GetOwner()
         {
-            return CallViewMethod<Address>(GandalfShadowfaxContractMethod.GetOwner, new Empty());
+            return CallViewMethod<Address>(GandalfShadowfaxContractMethod.Owner, new Empty());
         }
 
-        public ResetTimeSpanOutput GetTimespan()
+        public long GetMaximalTimeSpan()
         {
-            return CallViewMethod<ResetTimeSpanOutput>(GandalfShadowfaxContractMethod.GetTimespan, new Empty());
+            return CallViewMethod<Int64Value>(GandalfShadowfaxContractMethod.MaximalTimeSpan, new Empty()).Value;
+        }
+
+        public long GetMinimalTimespan()
+        {
+            return CallViewMethod<Int64Value>(GandalfShadowfaxContractMethod.MinimalTimespan, new Empty()).Value;
         }
 
         public PublicOfferingOutput PublicOfferings(Int64Value publicId)
@@ -124,7 +133,7 @@ namespace AElfChain.Common.Contracts
 
         public UserInfoStruct GetUserInfo(int publicId, string user)
         {
-            return CallViewMethod<UserInfoStruct>(GandalfShadowfaxContractMethod.GetUserInfo, new UserInfoInput
+            return CallViewMethod<UserInfoStruct>(GandalfShadowfaxContractMethod.UserInfo, new UserInfoInput
             {
                 PublicId = publicId,
                 User = user.ConvertAddress()
@@ -137,10 +146,10 @@ namespace AElfChain.Common.Contracts
                 .Value;
         }
 
-        public Address GetTokenOwnership(string symbol)
+        public Address GetAscription(string symbol)
         {
-            return CallViewMethod<Address>(GandalfShadowfaxContractMethod.GetTokenOwnership,
-                new StringValue {Value = symbol});
+            return CallViewMethod<Address>(GandalfShadowfaxContractMethod.Ascription,
+                new StringValue { Value = symbol });
         }
     }
 }
