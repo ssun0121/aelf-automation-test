@@ -58,6 +58,7 @@
         <ProtoContract Include="Protobuf\Proto\referendum_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\referendum_contract_impl.proto" />
         <ProtoContract Include="Protobuf\Proto\execution.proto" />
+        <ProtoContract Include="Protobuf\Proto\pool_two_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>
