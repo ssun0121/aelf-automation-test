@@ -2,6 +2,7 @@
 using System;
 using AElf.Client.Dto;
 using AElf.Types;
+using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Managers;
 using Gandalf.Contracts.PoolTwoContract;
 using Google.Protobuf.WellKnownTypes;
@@ -59,12 +60,12 @@ namespace AElfChain.Common.Contracts
             return result;
         }
 
-        public UserInfoStruct GetUserInfo(int pid, Address user)
+        public UserInfoStruct GetUserInfo(int pid, string user)
         {
             return CallViewMethod<UserInfoStruct>(FarmMethod.UserInfo, new UserInfoInput
             {
                 Pid = pid,
-                User = user
+                User = user.ConvertAddress()
             });
         }
         
