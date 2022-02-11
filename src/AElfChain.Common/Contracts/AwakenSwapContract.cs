@@ -185,6 +185,12 @@ namespace AElfChain.Common.Contracts
             });
             return result;
         }
+        
+        public TransactionResultDto SetVault(Address vault)
+        {
+            var result = ExecuteMethodWithResult(SwapMethod.SetVault, vault);
+            return result;
+        }
 
         //view
         public StringList GetPairs()

@@ -303,6 +303,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             after["UserBalanceB"].ShouldBe(origin["UserBalanceB"] - amountB);
             after["ReserveA"].ShouldBe(origin["ReserveA"] + amountA);
             after["ReserveB"].ShouldBe(origin["ReserveB"] + amountB);
+            after["ContractBalanceA"].ShouldBe(origin["ContractBalanceA"] + amountA);
+            after["ContractBalanceB"].ShouldBe(origin["ContractBalanceB"] + amountB);
 
             _awakenSwapContract.SetAccount(account);
             var accountAssets = _awakenSwapContract.GetAccountAssets();
@@ -397,6 +399,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             after["UserBalanceB"].ShouldBe(origin["UserBalanceB"] - amountB);
             after["ReserveA"].ShouldBe(origin["ReserveA"] + amountA);
             after["ReserveB"].ShouldBe(origin["ReserveB"] + amountB);
+            after["ContractBalanceA"].ShouldBe(origin["ContractBalanceA"] + amountA);
+            after["ContractBalanceB"].ShouldBe(origin["ContractBalanceB"] + amountB);
 
             _awakenSwapContract.SetAccount(account);
             var accountAssets = _awakenSwapContract.GetAccountAssets();
@@ -532,6 +536,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 .ShouldBe(new BigIntValue(after["ReserveA"]).Mul(new BigIntValue(after["ReserveB"])).Value);
             after["UserBalanceA"].ShouldBe(origin["UserBalanceA"] + liquidityRemoved.AmountA);
             after["UserBalanceB"].ShouldBe(origin["UserBalanceB"] + liquidityRemoved.AmountB);
+            after["ContractBalanceA"].ShouldBe(origin["ContractBalanceA"] - liquidityRemoved.AmountA);
+            after["ContractBalanceB"].ShouldBe(origin["ContractBalanceB"] - liquidityRemoved.AmountB);
 
             var afterTokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
             afterTokenInfo.Supply.ShouldBe(tokenInfo.Supply - removeLpTokenAmount);
@@ -660,6 +666,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             after["ReserveB"].ShouldBe(origin["ReserveB"] - amountOut);
             after["UserBalanceA"].ShouldBe(origin["UserBalanceA"] - amountIn);
             after["UserBalanceB"].ShouldBe(origin["UserBalanceB"] + amountOut);
+            after["ContractBalanceA"].ShouldBe(origin["ContractBalanceA"] + amountIn);
+            after["ContractBalanceB"].ShouldBe(origin["ContractBalanceB"] - amountOut);
         }
 
         //TokenA - TokenB - TokenC
@@ -731,7 +739,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var outSymbol = path[i + 1];
                 var pairAddress = _awakenSwapContract.GetPairAddress(inSymbol, outSymbol);
 
-                CheckSyncEvent(sync, symbolIn, symbolOut, pairAddress, originList[i]["ReserveA"],
+                CheckSyncEvent(sync, inSymbol, outSymbol, pairAddress, originList[i]["ReserveA"],
                     originList[i]["ReserveB"], exceptAmountOut.Amount[i], exceptAmountOut.Amount[i + 1], "swap");
             }
 
@@ -747,16 +755,22 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 {
                     after["UserBalanceA"].ShouldBe(originList[i]["UserBalanceA"] - exceptAmountOut.Amount[i]);
                     after["UserBalanceB"].ShouldBe(originList[i]["UserBalanceB"]);
+                    after["ContractBalanceA"].ShouldBe(originList[i]["ContractBalanceA"] + exceptAmountOut.Amount[i]);
+                    after["ContractBalanceB"].ShouldBe(originList[i]["ContractBalanceB"]);
                 }
                 else if (i == path.Count - 2)
                 {
                     after["UserBalanceA"].ShouldBe(originList[i]["UserBalanceA"]);
                     after["UserBalanceB"].ShouldBe(originList[i]["UserBalanceB"] + exceptAmountOut.Amount[i + 1]);
+                    after["ContractBalanceA"].ShouldBe(originList[i]["ContractBalanceA"]);
+                    after["ContractBalanceB"].ShouldBe(originList[i]["ContractBalanceB"] - exceptAmountOut.Amount[i + 1]);
                 }
                 else
                 {
                     after["UserBalanceA"].ShouldBe(originList[i]["UserBalanceA"]);
                     after["UserBalanceB"].ShouldBe(originList[i]["UserBalanceB"]);
+                    after["ContractBalanceA"].ShouldBe(originList[i]["ContractBalanceA"]);
+                    after["ContractBalanceB"].ShouldBe(originList[i]["ContractBalanceB"]);
                 }
             }
         }
@@ -1232,6 +1246,32 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
+        public void Take()
+        {
+            var vault = "NUddzDNy8PBMUgPCAcFW7jkaGmofDTEmr5DUoddXDpdR6E85X";
+            var takeSymbol = "TEST";
+            var setVault = _awakenSwapContract.SetVault(vault.ConvertAddress());
+            setVault.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            _awakenSwapContract.SetAccount(vault);
+            var balance = _tokenContract.GetUserBalance(_awakenSwapContract.ContractAddress, takeSymbol);
+            var takeAmount = balance.Div(4);
+            var beforeVaultBalance = _tokenContract.GetUserBalance(vault, takeSymbol);
+            Logger.Info($"before contract balance: {balance}\n" +
+                        $"before vault balance: {beforeVaultBalance}\n" +
+                        $"take amount: {takeAmount}");
+            
+            var takeResult = _awakenSwapContract.Take(takeSymbol, takeAmount);
+            takeResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            var afterBalance = _tokenContract.GetUserBalance(_awakenSwapContract.ContractAddress, takeSymbol);
+            var afterVaultBalance =  _tokenContract.GetUserBalance(vault, takeSymbol);
+            
+            Logger.Info($"after contract balance: {afterBalance}\n" +
+                        $"after vault balance: {afterVaultBalance}");
+        }
+
+        [TestMethod]
         public void CheckInfo()
         {
             var admin = _awakenSwapContract.GetAdmin();
@@ -1352,17 +1392,23 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var userBalanceA = _tokenContract.GetUserBalance(account, symbolList.First());
             var userBalanceB = _tokenContract.GetUserBalance(account, symbolList.Last());
             var userLpBalance = _awakenTokenContract.GetBalance(pairSymbol, account.ConvertAddress());
+            var contractBalanceA = _tokenContract.GetUserBalance(_awakenSwapContract.ContractAddress, symbolList.First());
+            var contractBalanceB = _tokenContract.GetUserBalance(_awakenSwapContract.ContractAddress, symbolList.Last());
 
             resultsList["UserBalanceA"] = userBalanceA;
             resultsList["UserBalanceB"] = userBalanceB;
             resultsList["UserLPBalance"] = userLpBalance.Amount;
+            resultsList["ContractBalanceA"] = contractBalanceA;
+            resultsList["ContractBalanceB"] = contractBalanceB;
 
             Logger.Info($"\ntotalSupply: {result.TotalSupply}\n" +
                         $"{symbolA} ReserveA: {resultsList["ReserveA"]}\n" +
                         $"{symbolB} ReserveB: {resultsList["ReserveB"]}\n" +
                         $"UserBalanceA: {userBalanceA}\n" +
                         $"UserBalanceB: {userBalanceB}\n" +
-                        $"UserLPBalance: {userLpBalance.Amount}\n");
+                        $"UserLPBalance: {userLpBalance.Amount}\n" +
+                        $"ContractBalanceA: {contractBalanceA}\n" +
+                        $"ContractBalanceB: {contractBalanceB}");
             return resultsList;
         }
 
