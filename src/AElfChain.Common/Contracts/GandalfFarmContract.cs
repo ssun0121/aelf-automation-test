@@ -171,12 +171,9 @@ namespace AElfChain.Common.Contracts
             return CallViewMethod<Int64Value>(FarmMethod.TotalAllocPoint, new Empty());
         }
 
-        public BigIntValue Reward(Int64 block)
+        public BigIntValue Reward(Int64Value block)
         {
-            return CallViewMethod<BigIntValue>(FarmMethod.Reward, new Int64Value
-            {
-                Value = block
-            });
+            return CallViewMethod<BigIntValue>(FarmMethod.Reward, new Int64Value(block));
         }
     }
 }

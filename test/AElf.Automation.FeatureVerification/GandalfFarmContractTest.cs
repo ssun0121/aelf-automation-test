@@ -31,8 +31,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private ILog Logger { get; set; }
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
-        //private string farmPoolTwoAddress = "";
-        private string farmPoolTwoAddress = "2CUt9QP4SH25GubsBiVvW17nAwfyHRSMkk8GQ6r7Ez5aUJttG5";
+        private string farmPoolTwoAddress = "";
+        //private string farmPoolTwoAddress = "KRqiqama8Kzv3UfDeJMdWfsDca4SqAbp1DoSTqJJHLAoJYoJN";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string FeeToAccount { get; } = "Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx";
         private static string RpcUrl { get; } = "192.168.67.166:8000";
@@ -42,8 +42,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private const string LPTOKEN = "ELF";
         
         
-
-
         [TestInitialize]
         public void Initialize()
         {
@@ -65,9 +63,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             string tokenSymbol = DISTRIBUTETOKEN;
             var tokenPerBlock = new BigIntValue(8);
-            Int64 halvingPeriod = 10800;
+            Int64 halvingPeriod = 600;
             Int64 startBlock = NodeManager.ApiClient.GetBlockHeightAsync().Result.Add(500);
-            var totalReward = new BigIntValue(162000);
+            var totalReward = new BigIntValue(9000);
             
             var result = _gandalfFarmContract.Initialize(tokenSymbol, tokenPerBlock, halvingPeriod, startBlock, totalReward);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -174,14 +172,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
         
         [TestMethod]
-        public void DepositInPhase0()
+        public void DepositAfterStartBlock()
         {
-            var currentHeight = NodeManager.ApiClient.GetBlockHeightAsync().Result;
-            var startBlockHeight = _gandalfFarmContract.GetStartBlock().Value;
-            var havlingPeriod = _gandalfFarmContract.GetHalvingPeriod().Value;
-            //Assert((currentHeight > startBlockHeight
-              //      && currentHeight < startBlockHeight + havlingPeriod), "Case needs to be executed in Phase0");
-            
             //Do approve
             var approveResult = _tokenContract.ApproveToken(InitAccount, farmPoolTwoAddress, 100, LPTOKEN);
             approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -235,8 +227,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var distributeTokenAfter = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
             Logger.Info($"distributeTokenAfter {distributeTokenAfter}");
             new BigIntValue(distributeTokenAfter).ShouldBe(transferDistritubeToken.Add(new BigIntValue(distributeTokenBefore)));
-            
-            
         }
         
         private bool IsTokenExist(string symbol)
@@ -245,27 +235,55 @@ namespace AElf.Automation.Contracts.ScenarioTest
             return !getTokenResult.Equals(new TokenInfo());
         }
         
-        private BigIntValue GetTransferDistributeToken(int pid, long lastrewardblock, long rewardblock, BigIntValue useramount, BigIntValue poolTotalAmount)
+        private BigIntValue GetTransferDistributeToken(int pid, long lastrewardblock, long txblock, BigIntValue useramount, BigIntValue poolTotalAmount)
         {
-            var poolInfo = _gandalfFarmContract.GetPoolInfo(pid);
-            var userAmount = useramount;
-            var totalAmount = poolTotalAmount;
-            var totalAllocPoint = _gandalfFarmContract.TotalAllocPoint().Value;
-            var poolAllocPoint = poolInfo.AllocPoint;
+            if (poolTotalAmount.Equals(new BigIntValue(0)))
+            {
+                return new BigIntValue(0);   
+            }
 
-            var blocks = rewardblock - lastrewardblock;
-            var reward = _gandalfFarmContract.Reward(rewardblock);
+            var endBlock = _gandalfFarmContract.EndBlock().Value;
+            var rewardblock = txblock > endBlock
+                ? endBlock
+                : txblock;
             
-            if (totalAmount.Equals(new BigIntValue(0)))
-                return 0;
+            if (rewardblock <= lastrewardblock)
+            {
+                return new BigIntValue(0);
+            }
+
+            var blockreward = new BigIntValue(0);
+            var n = _gandalfFarmContract.GetPhase(lastrewardblock).Value;
+            var m = _gandalfFarmContract.GetPhase(rewardblock).Value;
+            var halvingperiod = _gandalfFarmContract.GetHalvingPeriod().Value;
+            var startblock = _gandalfFarmContract.GetStartBlock().Value;
+             
+            while (n < m)
+            {
+                n++;
+                var r = n.Mul(halvingperiod).Add(startblock);
+                var reward = _gandalfFarmContract.Reward(new Int64Value
+                {
+                    Value = r
+                });
+                blockreward = blockreward.Add(reward.Mul(r.Sub(lastrewardblock)));
+                lastrewardblock = r;
+            }
+
+            blockreward = blockreward.Add(_gandalfFarmContract.Reward(new Int64Value
+                {
+                    Value = rewardblock
+                })
+                .Mul(rewardblock.Sub(lastrewardblock)));
             
-            var transferDistributeToken = userAmount
-                    .Mul(reward)
-                    .Mul(blocks)
+            var poolAllocPoint = _gandalfFarmContract.GetPoolInfo(pid).AllocPoint;
+            var totalAllocPoint = _gandalfFarmContract.TotalAllocPoint().Value;
+            var transferDistributeToken = useramount
+                    .Mul(blockreward)
                     .Mul(poolAllocPoint)
-                    .Div(totalAmount.Mul(totalAllocPoint));
-            return transferDistributeToken;
+                    .Div(poolTotalAmount.Mul(totalAllocPoint));
             
+            return transferDistributeToken;
         }
         
         [TestMethod]
@@ -283,7 +301,55 @@ namespace AElf.Automation.Contracts.ScenarioTest
             //post-check user amount
             GetUserAmount(1,InitAccount).ShouldBe(userAmount);
         }
-        
+
+        [TestMethod]
+        public void Withdraw()
+        {
+            //pre-check user amount
+            var userAmountBeforeWithdraw = GetUserAmount(1,InitAccount);
+            Logger.Info($"userAmountBeforeWithdraw is {userAmountBeforeWithdraw}");
+            
+            //pre-check distributetoken in farm contract before deposit
+            Logger.Info(_tokenContract.GetUserBalance(_gandalfFarmContract.ContractAddress, DISTRIBUTETOKEN));
+
+            //pre-check user balance
+            var balanceBeforeWithdraw = _tokenContract.GetUserBalance(InitAccount, LPTOKEN);
+            Logger.Info($"balanceBeforeWithdraw is {balanceBeforeWithdraw}");
+
+            //pre-check disributetoken
+            var distributeTokenBefore = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
+            Logger.Info($"distributeTokenBefore {distributeTokenBefore}");
+            
+            //pre get
+            var lastRewardBlock = GetLastRewardBlock(1);
+            var poolTotalAmount = _gandalfFarmContract.GetPoolInfo(1).TotalAmount;
+
+            //Do withdraw
+            var withdrawResult = _gandalfFarmContract.Withdraw(1, userAmountBeforeWithdraw);
+            withdrawResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var withdrawBlock = withdrawResult.BlockNumber;
+            
+            //post-check user balance
+            var balanceAfterWithdraw = _tokenContract.GetUserBalance(InitAccount, LPTOKEN);
+            new BigIntValue(balanceAfterWithdraw).ShouldBe(userAmountBeforeWithdraw.Add(new BigIntValue(balanceBeforeWithdraw)));
+            
+            //post-check user amount
+            var userAmountAfterWithdraw = GetUserAmount(1, InitAccount);
+            userAmountAfterWithdraw.ShouldBe(new BigIntValue(0));
+            
+            Logger.Info($"balanceAfterDeposit is {balanceAfterWithdraw}");
+            Logger.Info($"userAmountAfterDeposit is {userAmountAfterWithdraw}");
+            
+            var transferDistritubeToken = GetTransferDistributeToken(1, lastRewardBlock, 
+                withdrawBlock,userAmountBeforeWithdraw, poolTotalAmount);
+            Logger.Info($"transferDistritubeToken {transferDistritubeToken}");
+            
+            //post-check Distribute Token Transfer
+            var distributeTokenAfter = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
+            Logger.Info($"distributeTokenAfter {distributeTokenAfter}");
+            new BigIntValue(distributeTokenAfter).ShouldBe(transferDistritubeToken.Add(new BigIntValue(distributeTokenBefore)));
+
+        }
         private BigIntValue GetUserAmount(int pid, string user)
         {
             var result = _gandalfFarmContract.GetUserInfo(pid,user);
@@ -357,8 +423,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             //new BigIntValue(distributeTokenAfter).ShouldBe(transferDistritubeToken.Add(new BigIntValue(distributeTokenBefore)));
             new BigIntValue(distributeTokenAfter.Sub(distributeTokenBefore)).ShouldBe(transferDistritubeToken);
         }
-        
-        
+
         private void CreateToken(string symbol, int decimals, Address issuer, long totalSupply)
         {
             var t = totalSupply.Mul(Int64.Parse(new BigIntValue(10).Pow(decimals).Value));
@@ -393,6 +458,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void GetPhaseTest()
         {
             var blocknumber = NodeManager.ApiClient.GetBlockHeightAsync().Result;
+            //var blocknumber = 716989;
             var result = _gandalfFarmContract.GetPhase(blocknumber);
             Logger.Info($"Block {blocknumber} Phase is {result}");
         }
