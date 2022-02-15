@@ -29,8 +29,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private ILog Logger { get; set; }
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
-        private string tokenAddress = "62j1oMP2D8y4f6YHHL9WyhdtcFiLhMtrs7tBqXkMwJudz9AY5";
-        private string swapAddress = "2X5xuMq5fmjQ4NgYS2kH97xUVxSCXgop4mJvvRonTCyxwMcjfu";
+        private string tokenAddress = "VZCyHSPayr4PPyHqDKUTSbpR2o7MJgjXkHqMUVv9SEbTYoWqw";
+        private string swapAddress = "2wGCD2xYsXyAuHaU33PPiUqCT9LdzA6RuMCNnE4dozpxVKFWSR";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string FeeToAccount { get; } = "Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx";
         private static string RpcUrl { get; } = "http://192.168.67.166:8000";
@@ -105,18 +105,19 @@ namespace AElf.Automation.Contracts.ScenarioTest
             setFeeRate.Error.ShouldContain("No permission");
         }
 
-        //USDT-ELF：2wdDC931j1tPqhqqgPyfGpU2hQUnYXXbE39PgJJNUgamDD7Y4Q
-        //ABC-USDT: aAKgqKNPeVZGLRpUtqnyrrbcnkQrz3wJb8zyaSyFNpAEAoRwq
-        //TEST-ABC：fZMUSsRLVyP8LXkqmqcZ73owikGLEcq67KbbSN7Gpuv8XU4hV
+        //USDT-ELF：vfrEQcv4VKHzndF7JDog5Uj7Kc3eUhnbXDVvs9ivUKqFH6tzN
+        //ABC-USDT: BxXZuCEoyRBDS236q8xgzNXQ9Wj8urufZsGGDzKLikDgewF6U
+        //ETH-USDT：2TrLtiVs4ptRJqCiZEMc23uQ6j7VTrVUfaEATmu6iFByqNnBEV
+        //ABC-TEST:d7QZjmCsrN4hQmFYmiN2LSsM3VLvvdTB4T9rK9ws7rqjN4UxM
         [TestMethod]
-        public void CreatePair()
+        [DataRow("ELF",8,"USDT",6)]
+        [DataRow("ETH",8,"USDT",6)]
+        public void CreatePair(string symbolA, int dA, string symbolB, int dB)
         {
-            var symbolA = "TEST";
-            var symbolB = "ABC";
             if (CheckToken(symbolA))
-                CreateToken(symbolA, 8);
+                CreateToken(symbolA, dA);
             if (CheckToken(symbolB))
-                CreateToken(symbolB, 8);
+                CreateToken(symbolB, dB);
             var pair = GetTokenPair(symbolA, symbolB);
             var pairList = _awakenSwapContract.GetPairs();
             if (pairList.Value.Contains(pair))
@@ -208,12 +209,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void AddLiquidity()
+        [DataRow("TEST","ABC",2000_00000000,1000_00000000)]
+        [DataRow("ABC","USDT",2000_00000000,1000_000000)]
+        [DataRow("ELF","USDT",10000_00000000,3000_000000)]
+        [DataRow("ETH","USDT",10_00000000,20000_000000)]
+        public void AddLiquidity(string symbolA, string symbolB, long amountA, long amountB)
         {
-            var symbolA = "TEST";
-            var symbolB = "ABC";
-            long amountA = 2000_00000000;
-            long amountB = 1000_00000000;
             var account = InitAccount;
             var pair = GetTokenPair(symbolA, symbolB);
             var pairList = _awakenSwapContract.GetPairs();
@@ -470,11 +471,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void RemoveLiquidity()
+        [DataRow("ELF","USDT", true)]
+        public void RemoveLiquidity(string symbolA, string symbolB, bool isAll)
         {
-            var symbolA = "USDT";
-            var symbolB = "ELF";
             var account = InitAccount;
+            var pair = GetTokenPair(symbolA, symbolB);
             var sortPair = SortSymbols(symbolA, symbolB);
             symbolA = sortPair.First();
             symbolB = sortPair.Last();
@@ -490,7 +491,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             KLast = _awakenSwapContract.GetKLast(pairAddress);
             Logger.Info(KLast);
 
-            var removeLpTokenAmount = origin["UserLPBalance"] / 2;
+            var removeLpTokenAmount = isAll? origin["UserLPBalance"] : origin["UserLPBalance"] / 2;
             var approveResult = _awakenTokenContract.ApproveLPToken(_awakenSwapContract.ContractAddress, account,
                 removeLpTokenAmount,
                 pairSymbol);
@@ -521,6 +522,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var after = CheckPairData(symbolA, symbolB, account);
             after["UserLPBalance"].ShouldBe(origin["UserLPBalance"] - liquidityRemoved.LiquidityToken);
+            if (isAll) after["UserLPBalance"].ShouldBe(0);
             after["ReserveA"].ShouldBe(origin["ReserveA"] - liquidityRemoved.AmountA);
             after["ReserveB"].ShouldBe(origin["ReserveB"] - liquidityRemoved.AmountB);
 
@@ -534,85 +536,24 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var afterKLast = CheckKLast(pairAddress);
             afterKLast["KLast"]
                 .ShouldBe(new BigIntValue(after["ReserveA"]).Mul(new BigIntValue(after["ReserveB"])).Value);
-            after["UserBalanceA"].ShouldBe(origin["UserBalanceA"] + liquidityRemoved.AmountA);
-            after["UserBalanceB"].ShouldBe(origin["UserBalanceB"] + liquidityRemoved.AmountB);
-            after["ContractBalanceA"].ShouldBe(origin["ContractBalanceA"] - liquidityRemoved.AmountA);
-            after["ContractBalanceB"].ShouldBe(origin["ContractBalanceB"] - liquidityRemoved.AmountB);
-
-            var afterTokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
-            afterTokenInfo.Supply.ShouldBe(tokenInfo.Supply - removeLpTokenAmount);
-        }
-
-        [TestMethod]
-        public void RemoveLiquidity_AllLP()
-        {
-            var symbolA = "TEST";
-            var symbolB = "ABC";
-            var account = InitAccount;
-            var pair = GetTokenPair(symbolA, symbolB);
-            var sortPair = SortSymbols(symbolA, symbolB);
-            symbolA = sortPair.First();
-            symbolB = sortPair.Last();
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
-            Logger.Info(pairSymbol);
-            var origin = CheckPairData(symbolA, symbolB, account);
-            var originFeeToLpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, FeeToAccount.ConvertAddress());
-            Logger.Info($"origin FeeTo LPTokenBalance: {originFeeToLpTokenBalance.Amount}");
-
-            var tokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
-            var pairAddress = _awakenSwapContract.GetPairAddress(symbolA, symbolB);
-            var removeLpTokenAmount = origin["UserLPBalance"];
-            var approveResult = _awakenTokenContract.ApproveLPToken(_awakenSwapContract.ContractAddress, account,
-                removeLpTokenAmount,
-                pairSymbol);
-            approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var approveFee = approveResult.GetResourceTokenFee();
-
-            _awakenSwapContract.SetAccount(account);
-            var result = _awakenSwapContract.RemoveLiquidity(out var output, symbolA, symbolB, removeLpTokenAmount,
-                account.ConvertAddress());
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var logs = ByteString.FromBase64(result.Logs.First(l => l.Name.Contains("LiquidityRemoved")).NonIndexed);
-            var liquidityRemoved = LiquidityRemoved.Parser.ParseFrom(logs);
-            liquidityRemoved.SymbolA.ShouldBe(symbolA);
-            liquidityRemoved.SymbolB.ShouldBe(symbolB);
-            liquidityRemoved.LiquidityToken.ShouldBe(removeLpTokenAmount);
-            output.AmountA.ShouldBe(liquidityRemoved.AmountA);
-            output.AmountB.ShouldBe(liquidityRemoved.AmountB);
-            Logger.Info(output);
-            Logger.Info(liquidityRemoved.Pair);
-            Logger.Info(liquidityRemoved.LiquidityToken);
-            var after = CheckPairData(symbolA, symbolB, account);
-            after["UserLPBalance"].ShouldBe(origin["UserLPBalance"] - liquidityRemoved.LiquidityToken);
-            after["UserLPBalance"].ShouldBe(0);
-            after["ReserveA"].ShouldBe(origin["ReserveA"] - liquidityRemoved.AmountA);
-            after["ReserveB"].ShouldBe(origin["ReserveB"] - liquidityRemoved.AmountB);
-
-            var feeToLpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, FeeToAccount.ConvertAddress());
-            Logger.Info($"after add liquidity {feeToLpTokenBalance.Amount}");
-            var fee = originFeeToLpTokenBalance.Amount - feeToLpTokenBalance.Amount;
-            Logger.Info($"fee to account add amount : {fee}");
-
-            after["totalSupply"].ShouldBe(origin["totalSupply"] - liquidityRemoved.LiquidityToken +
-                feeToLpTokenBalance.Amount - originFeeToLpTokenBalance.Amount);
-            var afterKLast = CheckKLast(pairAddress);
-            afterKLast["KLast"]
-                .ShouldBe(new BigIntValue(after["ReserveA"]).Mul(new BigIntValue(after["ReserveB"])).Value);
             long addATxFee = 0;
             long addBTxFee = 0;
             if (approveFee.Keys.Contains(symbolA))
                 addATxFee = approveFee.First(t => t.Key.Equals(symbolA)).Value;
             else if (approveFee.Keys.Contains(symbolB))
                 addBTxFee = approveFee.First(t => t.Key.Equals(symbolB)).Value;
-
             after["UserBalanceA"].ShouldBe(origin["UserBalanceA"] + liquidityRemoved.AmountA - addATxFee);
             after["UserBalanceB"].ShouldBe(origin["UserBalanceB"] + liquidityRemoved.AmountB - addBTxFee);
+            after["ContractBalanceA"].ShouldBe(origin["ContractBalanceA"] - liquidityRemoved.AmountA);
+            after["ContractBalanceB"].ShouldBe(origin["ContractBalanceB"] - liquidityRemoved.AmountB);
 
             var afterTokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
             afterTokenInfo.Supply.ShouldBe(tokenInfo.Supply - removeLpTokenAmount + fee);
-
             var accountAsset = _awakenSwapContract.GetAccountAssets();
-            accountAsset.Value.ShouldNotContain(pair);
+            if (isAll)
+                accountAsset.Value.ShouldNotContain(pair);
+            else
+                accountAsset.Value.ShouldContain(pair);
         }
 
         //TokenA - TokenB
@@ -1117,10 +1058,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void TransferLiquidityTokens()
+        [DataRow("ELF","USDT", true)]
+        public void TransferLiquidityTokens(string symbolA, string symbolB, bool isALl)
         {
-            var symbolA = "USDT";
-            var symbolB = "ELF";
             var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
             var pair = GetTokenPair(symbolA, symbolB);
             var account = InitAccount;
@@ -1132,7 +1072,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var lpTokenAccountOriginBalance = _awakenTokenContract.GetBalance(pairSymbol, toAccount.ConvertAddress());
             var lpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, InitAccount.ConvertAddress());
-            var amount = lpTokenBalance.Amount / 4;
+            var amount = isALl ? lpTokenBalance.Amount : lpTokenBalance.Amount / 4;
             Logger.Info($"before:\n" +
                         $"{account} LP token balance: {lpTokenBalance.Amount},\n" +
                         $"{toAccount} LP token balance: {lpTokenAccountOriginBalance.Amount},\n" +
@@ -1145,46 +1085,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _awakenSwapContract.SetAccount(account);
             var result = _awakenSwapContract.TransferLiquidityTokens(pair, toAccount, amount);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var lpTokenAfterBalance = _awakenTokenContract.GetBalance(pairSymbol, InitAccount.ConvertAddress());
-            lpTokenAfterBalance.Amount.ShouldBe(lpTokenBalance.Amount - amount);
-
-            var lpTokenAccountBalance = _awakenTokenContract.GetBalance(pairSymbol, toAccount.ConvertAddress());
-            lpTokenAccountBalance.Amount.ShouldBe(lpTokenAccountOriginBalance.Amount + amount);
-            Logger.Info($"after:\n" +
-                        $"{account} LP token balance: {lpTokenAfterBalance.Amount},\n" +
-                        $"{toAccount} LP token balance: {lpTokenAccountBalance.Amount},\n" +
-                        $"Transfer amount: {amount}");
-
-            _awakenSwapContract.SetAccount(toAccount);
-            var accountAsset = _awakenSwapContract.GetAccountAssets();
-            accountAsset.Value.ShouldContain(pair);
-        }
-
-        [TestMethod]
-        public void TransferLiquidityTokens_AllLP()
-        {
-            var symbolA = "USDT";
-            var symbolB = "ELF";
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
-            var pair = GetTokenPair(symbolA, symbolB);
-            var account = InitAccount;
-            var toAccount = NodeManager.NewAccount("12345678");
-
-            var lpTokenAccountOriginBalance = _awakenTokenContract.GetBalance(pairSymbol, toAccount.ConvertAddress());
-            var lpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, InitAccount.ConvertAddress());
-            var amount = lpTokenBalance.Amount;
-            Logger.Info($"before:\n" +
-                        $"{account} LP token balance: {lpTokenBalance.Amount},\n" +
-                        $"{toAccount} LP token balance: {lpTokenAccountOriginBalance.Amount},\n" +
-                        $"Transfer amount: {amount}");
-
-            var approveResult =
-                _awakenTokenContract.ApproveLPToken(_awakenSwapContract.ContractAddress, account, amount, pairSymbol);
-            approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            _awakenSwapContract.SetAccount(account);
-            var result = _awakenSwapContract.TransferLiquidityTokens(pair, toAccount, amount);
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
             var lpTokenAfterBalance = _awakenTokenContract.GetBalance(pairSymbol, InitAccount.ConvertAddress());
             lpTokenAfterBalance.Amount.ShouldBe(lpTokenBalance.Amount - amount);
 
@@ -1201,7 +1101,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             _awakenSwapContract.SetAccount(account);
             var accountAsset = _awakenSwapContract.GetAccountAssets();
-            accountAsset.Value.ShouldNotContain(pair);
+            if (isALl)
+                accountAsset.Value.ShouldNotContain(pair);
+            else
+                accountAsset.Value.ShouldContain(pair);
+
         }
 
         [TestMethod]
