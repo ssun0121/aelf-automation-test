@@ -92,7 +92,7 @@ service PoolTwoContract {
   rpc PoolInfo(google.protobuf.Int32Value) returns(PoolInfoStruct){
     option (aelf.is_view) = true;
   }
-  
+
   rpc TotalAllocPoint(google.protobuf.Empty) returns(google.protobuf.Int64Value){
     option (aelf.is_view) = true;
   }
@@ -116,7 +116,7 @@ service PoolTwoContract {
   rpc endBlock(google.protobuf.Empty) returns(google.protobuf.Int64Value){
     option (aelf.is_view) = true;
   }
-  
+
   rpc DistributeTokenPerBlock(google.protobuf.Empty) returns(aelf.BigIntValue){
     option (aelf.is_view) = true;
   }
@@ -192,16 +192,16 @@ message PoolInfo{
 //Event
 message Deposit{
   option (aelf.is_event) = true;
-  aelf.Address user = 1 ;
-  int32 pid = 2;
-  aelf.BigIntValue amount = 3;
+  aelf.Address user = 1 [(aelf.is_indexed) = true];
+  int64 pid = 2 [(aelf.is_indexed) = true];
+  int64 amount = 3;
 }
 
 message Withdraw{
   option (aelf.is_event) = true;
-  aelf.Address user = 1;
-  int32 pid = 2;
-  aelf.BigIntValue amount = 3;
+  aelf.Address user = 1 [(aelf.is_indexed) = true];
+  int64 pid = 2 [(aelf.is_indexed) = true];
+  int64 amount = 3;
 }
 
 message ClaimRevenue{
@@ -215,14 +215,14 @@ message ClaimRevenue{
 
 message WeightSet{
   option (aelf.is_event) = true;
-  int32 pid = 1;
+  int64 pid = 1;
   int64 new_allocation_point = 2;
 }
 
 message PoolAdded{
   option (aelf.is_event) = true;
   string token = 1;
-  int32 pid = 2;
+  int64 pid = 2;
   int64 allocation_point = 3;
   int64 last_reward_block_height = 4;
   int64 pool_type = 5;

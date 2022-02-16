@@ -87,9 +87,5 @@
     <ItemGroup>
       <ProjectReference Include="..\AElfChain.Contract\AElfChain.Contract.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Compile Include="Protobuf\Generated\TokenConverterContract.g.cs" />
-    </ItemGroup>
-
+    
 </Project>
