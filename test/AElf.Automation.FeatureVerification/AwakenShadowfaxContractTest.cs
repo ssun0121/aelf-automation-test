@@ -756,7 +756,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var logs = withdraw.Logs.First(l => l.Name.Equals("Withdraw")).NonIndexed;
             var byteString = ByteString.FromBase64(logs);
             var withdrawLogs = Withdraw.Parser.ParseFrom(byteString);
-            withdrawLogs.PubilcId.ShouldBe(0);
+            withdrawLogs.PublicId.ShouldBe(0);
             withdrawLogs.To.ShouldBe(Owner.ConvertAddress());
             withdrawLogs.WantToken.ShouldBe(1_000000);
             withdrawLogs.OfferingToken.ShouldBe(90_00000000);
