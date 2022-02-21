@@ -4,7 +4,7 @@ using AElf.Client.Dto;
 using AElf.Types;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Managers;
-using Gandalf.Contracts.PoolTwoContract;
+using Awaken.Contracts.PoolTwoContract;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElfChain.Common.Contracts
@@ -29,14 +29,20 @@ namespace AElfChain.Common.Contracts
         endBlock,
         Withdraw,
         TotalAllocPoint,
-        Reward
+        Reward,
+        Set,
+        FixEndBlock,
+        SetDistributeTokenPerBlock,
+        SetHalvingPeriod,
+        FarmPoolOne,
+        GetPendingTest
     }
 
     public class GandalfFarmContract :BaseContract<FarmMethod>
     {
 
         public GandalfFarmContract(INodeManager nodeManager, string callAddress) : base(nodeManager,
-            "Gandalf.Contracts.PoolTwo", callAddress)
+            "Awaken.Contracts.PoolTwo", callAddress)
         {
         }
 
@@ -111,6 +117,18 @@ namespace AElfChain.Common.Contracts
             return result;
         }
 
+        public TransactionResultDto Set(int pid, long allocpoint, BigIntValue newperblock, bool withupdate)
+        {
+            var result = ExecuteMethodWithResult(FarmMethod.Set, new SetInput
+            {
+                Pid = pid,
+                AllocPoint = allocpoint,
+                NewPerBlock = newperblock,
+                WithUpdate = withupdate
+            });
+            return result;
+        }
+
         public TransactionResultDto Deposit(int pid, BigIntValue amount)
         {
             var result = ExecuteMethodWithResult(FarmMethod.Deposit, new DepositInput
@@ -175,5 +193,49 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<BigIntValue>(FarmMethod.Reward, new Int64Value(block));
         }
+
+        public TransactionResultDto FixEndBlock(bool input)
+        {
+            return ExecuteMethodWithResult(FarmMethod.FixEndBlock, new BoolValue
+            {
+                Value = input
+            });
+        }
+
+        public TransactionResultDto SetDistributeTokenPerBlock(long input)
+        {
+            return ExecuteMethodWithResult(FarmMethod.SetDistributeTokenPerBlock, new Int64Value
+            {
+                Value = input
+            });
+        }
+        
+        public TransactionResultDto SetHalvingPeriod(long input)
+        {
+            return ExecuteMethodWithResult(FarmMethod.SetHalvingPeriod, new Int64Value
+            {
+                Value = input
+            });
+        }
+
+        public Address FarmPoolOne()
+        {
+            return CallViewMethod<Address>(FarmMethod.FarmPoolOne, new Empty());
+        }
+
+        public TransactionResultDto SetFarmPoolOne(Address input)
+        {
+            return ExecuteMethodWithResult(FarmMethod.SetFarmPoolOne, new Address(input));
+        }
+
+        public PendingOutput GetPendingTest(int pid, string user)
+        {
+            return CallViewMethod<PendingOutput>(FarmMethod.GetPendingTest, new PendingInput
+            {
+                Pid = pid,
+                User = user.ConvertAddress()
+            });
+        }
+
     }
 }
