@@ -34,8 +34,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private ILog Logger { get; set; }
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
-        private string farmPoolTwoAddress = "";
-        //private string farmPoolTwoAddress = "2hA5WkcrKXUrubytjkWe6QcQ48c94n1zyWvgbpZX8E6dgxeuM1";
+        //private string farmPoolTwoAddress = "";
+        private string farmPoolTwoAddress = "2hqsqJndRAZGzk96fsEvyuVBTAvoBjcuwTjkuyJffBPueJFrLa";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string UserB { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
         private static string RpcUrl { get; } = "192.168.67.166:8000";
@@ -81,10 +81,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void InitializeTest()
         {
             string tokenSymbol = DISTRIBUTETOKEN;
-            var tokenPerBlock = new BigIntValue(8);
+            var tokenPerBlock = new BigIntValue(16);
             Int64 halvingPeriod = 100;
             Int64 startBlock = NodeManager.ApiClient.GetBlockHeightAsync().Result.Add(500);
-            var totalReward = new BigIntValue(1499);
+            var totalReward = new BigIntValue(3000);
             
             var result = _gandalfFarmContract.Initialize(tokenSymbol, tokenPerBlock, halvingPeriod, startBlock, totalReward);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -129,7 +129,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void AddTest()
         {
             //add pool 0
-            var addPoolOneResult = AddPool(2,LPTOKEN,false);
+            var addPoolOneResult = AddPool(0,LPTOKEN,false);
             //add pool 1
             var addPoolTwoResult = AddPool(1,LPTOKEN,false);
             var lastRewardBlock = addPoolTwoResult.BlockNumber > _gandalfFarmContract.GetStartBlock().Value
@@ -151,7 +151,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             
             //validate pool 0 info
             var poolOne = _gandalfFarmContract.GetPoolInfo(0);
-            poolOne.AllocPoint.ShouldBe(2);
+            poolOne.AllocPoint.ShouldBe(0);
             poolOne.LpToken.ShouldBe(LPTOKEN);
 
             //validate pool 1 info
@@ -742,9 +742,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             depositResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var amount = _gandalfFarmContract.GetUserInfo(1, InitAccount).Amount;
             var totalamount = _gandalfFarmContract.GetPoolInfo(1).TotalAmount;
-            var transferDistributeTokenBefore = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);*/
+            var transferDistributeTokenBefore = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
             
-            //Thread.Sleep(250 * 1000);
+            Thread.Sleep(200 * 1000);
 
             //do Set
             var setResult = _gandalfFarmContract.Set(1, allocpoint, newperblock, true);
@@ -771,6 +771,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void FixEndBlockTest()
         {
+            var isBeforeStartBlock = NodeManager.ApiClient.GetBlockHeightAsync().Result < _gandalfFarmContract.GetStartBlock().Value;
+            Assert(isBeforeStartBlock,"Case needs to be executed before mining");
+            
+            var allocpoint = _gandalfFarmContract.GetPoolInfo(1).AllocPoint;
+            var newperblock = new BigIntValue(24);
+            
             //do Approve
             var approveResult = _tokenContract.ApproveToken(InitAccount, farmPoolTwoAddress, 10000000000, LPTOKEN);
             approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -780,31 +786,56 @@ namespace AElf.Automation.Contracts.ScenarioTest
             depositResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var amount = _gandalfFarmContract.GetUserInfo(1, InitAccount).Amount;
             var totalamount = _gandalfFarmContract.GetPoolInfo(1).TotalAmount;
+            var distributeTokenBefore = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
+            Logger.Info(distributeTokenBefore);
+
+            Thread.Sleep(250 * 1000);
+            Logger.Info(_gandalfFarmContract.GetPhase(NodeManager.ApiClient.GetBlockHeightAsync().Result));
             
+            //set
+            var setResult = _gandalfFarmContract.Set(1, allocpoint, newperblock, true);
+            setResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            Logger.Info(_gandalfFarmContract.GetPhase(NodeManager.ApiClient.GetBlockHeightAsync().Result));
+            var distributeTokenAfterSet = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
+            Logger.Info(distributeTokenAfterSet);
+
             //do fixendblock
             var fixEndBlockResult = _gandalfFarmContract.FixEndBlock(true);
             fixEndBlockResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var distributeTokenBefore = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
+            var distributeTokenAfterFix = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
+            Logger.Info(distributeTokenAfterFix);
+            var issuedAfterFix = _gandalfFarmContract.IssuedReward();
 
             var endblock = _gandalfFarmContract.EndBlock().Value;
             var currentblock = NodeManager.ApiClient.GetBlockHeightAsync().Result;
             var sleep = (int)endblock.Sub(currentblock).Div(2);
+            Logger.Info(_gandalfFarmContract.GetPhase(NodeManager.ApiClient.GetBlockHeightAsync().Result));
+            Logger.Info($"new start block {fixEndBlockResult.BlockNumber}");
+            Logger.Info($"fixed end block {endblock}");
+            Logger.Info(
+                $"total reward {_gandalfFarmContract.TotalReward().Sub(_gandalfFarmContract.IssuedReward())}");
+
+            if (sleep > 0)
+            {
+                Thread.Sleep((sleep + 50) * 1000);    
+            }
             
-            Thread.Sleep(sleep * 1000);
             
             //do withdraw
             var withdrawResult = _gandalfFarmContract.Withdraw(1, amount);
             withdrawResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var distributeTokenAfter = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
+            Logger.Info(distributeTokenAfter);
 
-            var transferDistributeTokenEndBlock = GetTransferDistributeToken(1, fixEndBlockResult.BlockNumber,
-                _gandalfFarmContract.EndBlock().Value, amount, totalamount);
-            transferDistributeTokenEndBlock.ShouldBe(GetTransferDistributeToken(1, fixEndBlockResult.BlockNumber,
-                withdrawResult.BlockNumber, amount, totalamount));
-
-            var transferDistributeToken = GetTransferDistributeToken(1, fixEndBlockResult.BlockNumber,
-                _gandalfFarmContract.EndBlock().Value, amount, totalamount);
-            transferDistributeToken.ShouldBe(new BigIntValue(distributeTokenAfter - distributeTokenBefore));
+            Logger.Info(distributeTokenAfter - distributeTokenBefore);
+            Logger.Info(_gandalfFarmContract.TotalReward());
+            Logger.Info(_gandalfFarmContract.TotalReward().Sub(issuedAfterFix));
+            Logger.Info(GetTransferDistributeToken(1,
+                fixEndBlockResult.BlockNumber, _gandalfFarmContract.EndBlock().Value, amount, totalamount));
+            
+            new BigIntValue(distributeTokenAfter - distributeTokenBefore).ShouldBe(_gandalfFarmContract.TotalReward());
+            _gandalfFarmContract.TotalReward().Sub(issuedAfterFix).ShouldBe(GetTransferDistributeToken(1,
+                fixEndBlockResult.BlockNumber, _gandalfFarmContract.EndBlock().Value, amount, totalamount));
 
         }
 
@@ -1147,6 +1178,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"Successfully issue amount {amount} to {toAddress}");
         }
 
+        [TestMethod]
+        public void startblock()
+        {
+            Logger.Info(_gandalfFarmContract.GetStartBlock());
+        }
         
     }
 }
