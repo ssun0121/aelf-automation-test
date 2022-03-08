@@ -879,7 +879,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private long GetPoolLength()
         {
-            var result = _awakenFarmTwoContract.CallViewMethod<Int64Value>(FarmMethod.PoolLength, new Empty());
+            var result = _awakenFarmTwoContract.CallViewMethod<Int64Value>(FarmTwoMethod.PoolLength, new Empty());
             Logger.Info($"Pool length {result.Value}");
             return result.Value;
         }
