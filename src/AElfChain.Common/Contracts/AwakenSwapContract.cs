@@ -5,7 +5,7 @@ using AElf.Client.Dto;
 using AElf.Types;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Managers;
-using Gandalf.Contracts.Swap;
+using Awaken.Contracts.Swap;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElfChain.Common.Contracts
@@ -16,36 +16,44 @@ namespace AElfChain.Common.Contracts
         CreatePair,
         AddLiquidity,
         RemoveLiquidity,
-        SwapExactTokenForToken,
-        SwapTokenForExactToken,
+        SwapExactTokensForTokens,
+        SwapTokensForExactTokens,
+        SwapExactTokensForTokensSupportingFeeOnTransferTokens,
+        SwapExactTokensForTokensSupportingFeeOnTransferTokensVerify,
         TransferLiquidityTokens,
         SetFeeRate,
         SetFeeTo,
+        
+        ChangeOwner,
+        SetVault,
+        Take,
 
         //view
         GetPairs,
         GetReserves,
         GetTotalSupply,
-        GetLiquidityTokenBalance,
         GetAccountAssets,
         GetAmountIn,
         GetAmountOut,
+        GetAmountsIn,
+        GetAmountsOut,
         Quote,
         GetKLast,
         GetFeeTo,
         GetFeeRate,
         GetAdmin,
-        GetPairAddress
+        GetPairAddress,
+        GetVault
     }
 
-    public class GandalfSwapContract : BaseContract<SwapMethod>
+    public class AwakenSwapContract : BaseContract<SwapMethod>
     {
-        public GandalfSwapContract(INodeManager nodeManager, string callAddress) : base(nodeManager,
-            "Gandalf.Contracts.Swap", callAddress)
+        public AwakenSwapContract(INodeManager nodeManager, string callAddress) : base(nodeManager,
+            "Awaken.Contracts.Swap", callAddress)
         {
         }
 
-        public GandalfSwapContract(INodeManager nodeManager, string callAddress, string contractAddress) : base(
+        public AwakenSwapContract(INodeManager nodeManager, string callAddress, string contractAddress) : base(
             nodeManager,
             contractAddress)
         {
@@ -58,14 +66,13 @@ namespace AElfChain.Common.Contracts
             {
                 SymbolPair = symbolPair
             });
-            pairAddress = CreatePairOutput.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue))
-                .PairAddress;
+            pairAddress = Address.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
             return result;
         }
 
         public TransactionResultDto AddLiquidity(out AddLiquidityOutput output, string symbolA, string symbolB,
             long amountADesired,
-            long amountBDesired, long aMin = 1, long bMin = 1, string channel = "", Timestamp timestamp = null)
+            long amountBDesired, Address to, long aMin = 1, long bMin = 1, string channel = "", Timestamp timestamp = null)
         {
             if (timestamp == null)
                 timestamp = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(1));
@@ -77,6 +84,7 @@ namespace AElfChain.Common.Contracts
                 AmountBDesired = amountBDesired,
                 AmountAMin = aMin,
                 AmountBMin = bMin,
+                To = to,
                 Channel = channel,
                 Deadline = timestamp
             });
@@ -85,7 +93,7 @@ namespace AElfChain.Common.Contracts
         }
 
         public TransactionResultDto RemoveLiquidity(out RemoveLiquidityOutput output, string symbolA, string symbolB,
-            long liquidityRemove, long aMin = 1, long bMin = 1, string channel = "", Timestamp timestamp = null)
+            long liquidityRemove, Address account, long aMin = 1, long bMin = 1, string channel = "", Timestamp timestamp = null)
         {
             if (timestamp == null)
                 timestamp = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(1));
@@ -96,23 +104,42 @@ namespace AElfChain.Common.Contracts
                 AmountAMin = aMin,
                 AmountBMin = bMin,
                 LiquidityRemove = liquidityRemove,
-                Deadline = timestamp
+                Deadline = timestamp,
+                To = account
             });
             output = RemoveLiquidityOutput.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
             return result;
         }
 
-        public TransactionResultDto SwapTokenForExactToken(out SwapOutput output, string symbolIn, string symbolOut,
+        public TransactionResultDto SwapTokensForExactTokens(out SwapOutput output, Address toAddress, List<string> path,
             long amountOut, long amountInMax = 1000000000000000000, string channel = "", Timestamp timestamp = null)
         {
             if (timestamp == null)
                 timestamp = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(1));
-            var result = ExecuteMethodWithResult(SwapMethod.SwapTokenForExactToken, new SwapTokenForExactTokenInput
+            var result = ExecuteMethodWithResult(SwapMethod.SwapTokensForExactTokens, new SwapTokensForExactTokensInput
             {
-                SymbolIn = symbolIn,
-                SymbolOut = symbolOut,
+                Path = { path },
                 AmountOut = amountOut,
                 AmountInMax = amountInMax,
+                Channel = channel,
+                Deadline = timestamp,
+                To = toAddress
+            });
+            output = SwapOutput.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
+            return result;
+        }
+        
+        public TransactionResultDto SwapExactTokensForTokens(out SwapOutput output, Address toAddress, List<string> path,
+            long amountIn, long amountOutMin = 1, string channel = "", Timestamp timestamp = null)
+        {
+            if (timestamp == null)
+                timestamp = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(1));
+            var result = ExecuteMethodWithResult(SwapMethod.SwapExactTokensForTokens, new SwapExactTokensForTokensInput
+            {
+                Path = { path },
+                AmountIn = amountIn,
+                AmountOutMin = amountOutMin,
+                To = toAddress,
                 Channel = channel,
                 Deadline = timestamp
             });
@@ -120,21 +147,21 @@ namespace AElfChain.Common.Contracts
             return result;
         }
         
-        public TransactionResultDto SwapExactTokenForToken(out SwapOutput output, string symbolIn, string symbolOut,
+        public TransactionResultDto SwapSupportingFeeOnTransferTokens(Address toAddress, List<string> path,
             long amountIn, long amountOutMin = 1, string channel = "", Timestamp timestamp = null)
         {
             if (timestamp == null)
                 timestamp = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(1));
-            var result = ExecuteMethodWithResult(SwapMethod.SwapExactTokenForToken, new SwapExactTokenForTokenInput
+            var result = ExecuteMethodWithResult(SwapMethod.SwapExactTokensForTokensSupportingFeeOnTransferTokens, 
+                new SwapExactTokensForTokensSupportingFeeOnTransferTokensInput
             {
-                SymbolIn = symbolIn,
-                SymbolOut = symbolOut,
+                Path = { path },
                 AmountIn = amountIn,
                 AmountOutMin = amountOutMin,
+                To = toAddress,
                 Channel = channel,
                 Deadline = timestamp
             });
-            output = SwapOutput.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
             return result;
         }
 
@@ -149,11 +176,26 @@ namespace AElfChain.Common.Contracts
             return result;
         }
 
+        public TransactionResultDto Take(string token, long amount)
+        {
+            var result = ExecuteMethodWithResult(SwapMethod.Take, new TakeInput
+            {
+                Token = token,
+                Amount = amount
+            });
+            return result;
+        }
+        
+        public TransactionResultDto SetVault(Address vault)
+        {
+            var result = ExecuteMethodWithResult(SwapMethod.SetVault, vault);
+            return result;
+        }
 
         //view
-        public PairList GetPairs()
+        public StringList GetPairs()
         {
-            return CallViewMethod<PairList>(SwapMethod.GetPairs, new Empty());
+            return CallViewMethod<StringList>(SwapMethod.GetPairs, new Empty());
         }
 
         public GetReservesOutput GetReserves(string pair)
@@ -166,9 +208,9 @@ namespace AElfChain.Common.Contracts
 
         public GetTotalSupplyOutput GetTotalSupply(string pair)
         {
-            return CallViewMethod<GetTotalSupplyOutput>(SwapMethod.GetTotalSupply, new PairList
+            return CallViewMethod<GetTotalSupplyOutput>(SwapMethod.GetTotalSupply, new StringList
             {
-                SymbolPair = {pair}
+                Value = { pair }
             });
         }
 
@@ -182,18 +224,7 @@ namespace AElfChain.Common.Contracts
             });
             return amount.Value;
         }
-
-        public GetLiquidityTokenBalanceOutput GetLiquidityTokenBalance(List<string> pairs, string account)
-        {
-            SetAccount(account);
-            var result = CallViewMethod<GetLiquidityTokenBalanceOutput>(SwapMethod.GetLiquidityTokenBalance,
-                new PairList
-                {
-                    SymbolPair = {pairs}
-                });
-            return result;
-        }
-
+        
         public long GetAmountIn(string symbolIn, string symbolOut, long amountOut)
         {
             var result = CallViewMethod<Int64Value>(SwapMethod.GetAmountIn, new GetAmountInInput
@@ -215,15 +246,35 @@ namespace AElfChain.Common.Contracts
             });
             return result.Value;
         }
+        
+        public GetAmountsInOutput GetAmountsIn(List<string> path, long amountOut)
+        {
+            var result = CallViewMethod<GetAmountsInOutput>(SwapMethod.GetAmountsIn, new GetAmountsInInput
+            {
+                AmountOut = amountOut,
+                Path = { path }
+            });
+            return result;
+        }
+
+        public GetAmountsOutOutput GetAmountsOut(List<string> path, long amountIn)
+        {
+            var result = CallViewMethod<GetAmountsOutOutput>(SwapMethod.GetAmountsOut, new GetAmountsOutInput
+            {
+                AmountIn = amountIn,
+                Path = { path }
+            });
+            return result;
+        }
 
         public BigIntValue GetKLast(Address pair)
         {
             return CallViewMethod<BigIntValue>(SwapMethod.GetKLast, pair);
         }
 
-        public PairList GetAccountAssets()
+        public StringList GetAccountAssets()
         {
-            return CallViewMethod<PairList>(SwapMethod.GetAccountAssets, new Empty());
+            return CallViewMethod<StringList>(SwapMethod.GetAccountAssets, new Empty());
         }
 
         public Address GetPairAddress(string symbolA, string symbolB)
