@@ -38,15 +38,15 @@ namespace AElfChain.Common.Contracts
         GetPendingTest
     }
 
-    public class GandalfFarmContract :BaseContract<FarmMethod>
+    public class AwakenFarmTwoContract :BaseContract<FarmMethod>
     {
 
-        public GandalfFarmContract(INodeManager nodeManager, string callAddress) : base(nodeManager,
+        public AwakenFarmTwoContract(INodeManager nodeManager, string callAddress) : base(nodeManager,
             "Awaken.Contracts.PoolTwo", callAddress)
         {
         }
 
-        public GandalfFarmContract(INodeManager nodeManager, string callAddress, string contractAddress) : base(
+        public AwakenFarmTwoContract(INodeManager nodeManager, string callAddress, string contractAddress) : base(
             nodeManager,
             contractAddress)
         {
