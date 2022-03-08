@@ -27,7 +27,7 @@
         <ProtoContract Include="Protobuf\Proto\awaken_token_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_swap_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\farm_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\gandalf_shadowfax_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\awaken_shadowfax_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs5_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs8_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_events_contract.proto" />
@@ -60,6 +60,7 @@
         <ProtoContract Include="Protobuf\Proto\referendum_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\referendum_contract_impl.proto" />
         <ProtoContract Include="Protobuf\Proto\execution.proto" />
+        <ProtoContract Include="Protobuf\Proto\pool_two_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>

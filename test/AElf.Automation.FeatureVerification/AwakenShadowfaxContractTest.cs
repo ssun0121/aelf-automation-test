@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using AElf.Client.Dto;
 using AElf.Types;
@@ -7,7 +8,8 @@ using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
-using Gandalf.Contracts.Shadowfax;
+using Awaken.Contracts.Shadowfax;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -16,37 +18,37 @@ using Shouldly;
 namespace AElf.Automation.Contracts.ScenarioTest
 {
     [TestClass]
-    public class GandalfShadowfaxContractTest
+    public class AwakenShadowfaxContractTest
     {
         private ILog Logger { get; set; }
         private INodeManager NodeManager { get; set; }
         private GenesisContract _genesisContract;
         private TokenContract _tokenContract;
-        private GandalfShadowfaxContract _shadowfaxContract;
+        private AwakenShadowfaxContract _shadowfaxContract;
         private string Owner { get; } = "J6zgLjGwd1bxTBpULLXrGVeV74tnS2n74FFJJz7KNdjTYkDF6";
         private string NewPublisher { get; } = "2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4";
         private string InitAccount { get; } = "2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4";
         private string User { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
 
-        private static string RpcUrl { get; } = "192.168.66.9:8000";
+        private static string RpcUrl { get; } = "127.0.0.1:8000";
         private string ISTAR { get; } = "ISTAR";
         private string USDT { get; } = "USDT";
 
-        private string Ido = "";
+        private string AwakenShadowfax = "";
         //fMnnV7VZcSwiyDuLy5EZU1JRWCJA6HFy7qdRS3nURoiW3c1HE
 
         [TestInitialize]
         public void Initialize()
         {
-            Log4NetHelper.LogInit("IdoContractTest");
+            Log4NetHelper.LogInit("AwakenShadowfaxContractTest");
             Logger = Log4NetHelper.GetLogger();
             NodeInfoHelper.SetConfig("nodes-env2-main");
 
             NodeManager = new NodeManager(RpcUrl);
-            if (Ido.Equals(""))
-                _shadowfaxContract = new GandalfShadowfaxContract(NodeManager, Owner);
+            if (AwakenShadowfax.Equals(""))
+                _shadowfaxContract = new AwakenShadowfaxContract(NodeManager, Owner);
             else
-                _shadowfaxContract = new GandalfShadowfaxContract(NodeManager, Owner, Ido);
+                _shadowfaxContract = new AwakenShadowfaxContract(NodeManager, Owner, AwakenShadowfax);
         }
 
         [TestMethod]
@@ -137,10 +139,23 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var startTime = DateTime.UtcNow.AddSeconds(10).ToTimestamp();
             var endTime = DateTime.UtcNow.AddSeconds(10).AddSeconds(minTimeSpan).ToTimestamp();
 
-            var addPublicOffering = _shadowfaxContract.AddPublicOffering(offeringTokenSymbol, offeringTokenAmount,
+            var addPublicOfferingResult = _shadowfaxContract.AddPublicOffering(offeringTokenSymbol, offeringTokenAmount,
                 wantTokenSymbol,
                 wantTokenAmount, startTime, endTime);
-            addPublicOffering.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            addPublicOfferingResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // Check event:AddPublicOffering
+            var logs = addPublicOfferingResult.Logs.First(l => l.Name.Equals("AddPublicOffering")).NonIndexed;
+            var byteString = ByteString.FromBase64(logs);
+            var addPublicOfferingLogs = Awaken.Contracts.Shadowfax.AddPublicOffering.Parser.ParseFrom(byteString);
+            addPublicOfferingLogs.OfferingTokenSymbol.ShouldBe(offeringTokenSymbol);
+            addPublicOfferingLogs.OfferingTokenAmount.ShouldBe(offeringTokenAmount);
+            addPublicOfferingLogs.WantTokenSymbol.ShouldBe(wantTokenSymbol);
+            addPublicOfferingLogs.WantTokenAmount.ShouldBe(wantTokenAmount);
+            addPublicOfferingLogs.Publisher.ShouldBe(Owner.ConvertAddress());
+            addPublicOfferingLogs.StartTime.ShouldBe(startTime);
+            addPublicOfferingLogs.EndTime.ShouldBe(endTime);
+            addPublicOfferingLogs.PublicId.ShouldBe(0);
 
             CheckPublicOffering(new PublicOfferingOutput
             {
@@ -308,6 +323,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             changeAscription1.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
 
+            // Check event:ChangeAscription
+            var logs = changeAscription1.Logs.First(l => l.Name.Equals("ChangeAscription")).NonIndexed;
+            var byteString = ByteString.FromBase64(logs);
+            var changeAscriptionLogs = Awaken.Contracts.Shadowfax.ChangeAscription.Parser.ParseFrom(byteString);
+            changeAscriptionLogs.TokenSymbol.ShouldBe(ISTAR);
+            changeAscriptionLogs.OldPublisher.ShouldBe(Owner.ConvertAddress());
+            changeAscriptionLogs.NewPublisher.ShouldBe(NewPublisher.ConvertAddress());
+
             // owner changes twice failed
             Thread.Sleep(30 * 1000);
             var changeAscription4 = _shadowfaxContract.ChangeAscription(ISTAR, NewPublisher);
@@ -430,8 +453,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             invest1.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             invest1.Error.ShouldContain("Invalid amount.");
-            
-            var invest2 = _shadowfaxContract.Invest(0, 1_000000, "");
+
+            var invest2 = _shadowfaxContract.Invest(0, 1_000000, "1");
             invest2.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
             CheckPublicOffering(new PublicOfferingOutput
@@ -453,6 +476,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Claimed = false,
                 ObtainAmount = 10_00000000
             });
+
+            // Check event:Invest
+            var logs = invest2.Logs.First(l => l.Name.Equals("Invest")).NonIndexed;
+            var byteString = ByteString.FromBase64(logs);
+            var investLogs = Invest.Parser.ParseFrom(byteString);
+            investLogs.PublicId.ShouldBe(0);
+            investLogs.Investor.ShouldBe(User.ConvertAddress());
+            investLogs.TokenSymbol.ShouldBe(wantTokenSymbol);
+            investLogs.Income.ShouldBe(10_00000000);
+            investLogs.Spend.ShouldBe(1_000000);
+            investLogs.Channel.ShouldBe("1");
 
             // Over raising
             var invest = _shadowfaxContract.Invest(0, usdtBalanceAfter + 10_000000, "");
@@ -498,7 +532,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             // get timeSpan
             var maxTimeSpan = _shadowfaxContract.GetMaximalTimeSpan();
             var minTimeSpan = _shadowfaxContract.GetMinimalTimespan();
-            
+
             Logger.Info($"MaxTimespan is {maxTimeSpan}");
             Logger.Info($"MinTimespan is {minTimeSpan}");
 
@@ -718,6 +752,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
             ownerIstarAfter.ShouldBe(90_00000000 + ownerIstarBefore);
             ownerUsdtAfter.ShouldBe(1_000000 + ownerUsdtBefore);
 
+            // Check event:Withdraw
+            var logs = withdraw.Logs.First(l => l.Name.Equals("Withdraw")).NonIndexed;
+            var byteString = ByteString.FromBase64(logs);
+            var withdrawLogs = Withdraw.Parser.ParseFrom(byteString);
+            withdrawLogs.PublicId.ShouldBe(0);
+            withdrawLogs.To.ShouldBe(Owner.ConvertAddress());
+            withdrawLogs.WantToken.ShouldBe(1_000000);
+            withdrawLogs.OfferingToken.ShouldBe(90_00000000);
+
             // Owner withdraw twice from pool1
             Thread.Sleep(60 * 1000);
             _shadowfaxContract.SetAccount(Owner);
@@ -758,6 +801,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var userUsdt = GetBalance(User, USDT);
             userIstar.ShouldBe(10_00000000 + userIstarBefore);
             userUsdt.ShouldBe(0 + userUsdtBefore);
+
+            // Check event:Harvest
+            logs = harvest.Logs.First(l => l.Name.Equals("Harvest")).NonIndexed;
+            byteString = ByteString.FromBase64(logs);
+            var harvestLogs = Harvest.Parser.ParseFrom(byteString);
+            harvestLogs.PublicId.ShouldBe(0);
+            harvestLogs.To.ShouldBe(User.ConvertAddress());
+            harvestLogs.Amount.ShouldBe(10_00000000);
 
             // User harvest twice
             Thread.Sleep(60 * 1000);
@@ -874,32 +925,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private void CheckUserInfo(int publicId, string user, UserInfoStruct expectUserInfo)
         {
             var userInfo =
-                _shadowfaxContract.GetUserInfo(publicId, user);
+                _shadowfaxContract.UserInfo(publicId, user);
             Logger.Info($"userInfo.Claimed is {userInfo.Claimed}");
             Logger.Info($"userInfo.ObtainAmount is {userInfo.ObtainAmount}");
 
             userInfo.Claimed.ShouldBe(expectUserInfo.Claimed);
             userInfo.ObtainAmount.ShouldBe(expectUserInfo.ObtainAmount);
-        }
-
-        [TestMethod]
-        public void Transfer()
-        {
-            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, Owner);
-            _tokenContract = _genesisContract.GetTokenContract(Owner);
-            var account1BalanceBefore = _tokenContract.GetUserBalance(Owner, "ELF");
-            var targetBalanceBefore =
-                _tokenContract.GetUserBalance("2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4", "ELF");
-            Logger.Info($"account1BalanceBefore is {account1BalanceBefore}");
-            Logger.Info($"targetBalanceBefore is {targetBalanceBefore}");
-
-            _tokenContract.TransferBalance(Owner, "2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4", 10000000_00000000,
-                "ELF");
-            var account1BalanceAfter = _tokenContract.GetUserBalance(Owner, "ELF");
-            var targetBalanceAfter =
-                _tokenContract.GetUserBalance("2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4", "ELF");
-            Logger.Info($"account1BalanceAfter is {account1BalanceAfter}");
-            Logger.Info($"targetBalanceAfter is {targetBalanceAfter}");
         }
 
         private TransactionResultDto AddPublicOffering(string publisher, Timestamp startTime, Timestamp endTime)
