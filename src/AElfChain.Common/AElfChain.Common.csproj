@@ -26,7 +26,7 @@
         <ProtoContract Include="Protobuf\Proto\token_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_token_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_swap_contract.proto" />
-        <ProtoContract Include="Protobuf\Proto\gandalf_shadowfax_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\awaken_shadowfax_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs5_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs8_plugin_test_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\test_events_contract.proto" />
