@@ -224,31 +224,31 @@ message PoolInfo {
 message Deposit{
     option (aelf.is_event) = true;
     aelf.Address user = 1 [(aelf.is_indexed) = true];
-    int64 pid = 2 [(aelf.is_indexed) = true];
+    int32 pid = 2 [(aelf.is_indexed) = true];
     int64 amount = 3;
 }
 message Withdraw{
     option (aelf.is_event) = true;
     aelf.Address user = 1 [(aelf.is_indexed) = true];
-    int64 pid = 2 [(aelf.is_indexed) = true];
+    int32 pid = 2 [(aelf.is_indexed) = true];
     int64 amount = 3;
 }
 message ClaimRevenue{
     option (aelf.is_event) = true;
     aelf.Address user = 1 [(aelf.is_indexed) = true];
-    int64 pid = 2 [(aelf.is_indexed) = true];
+    int32 pid = 2 [(aelf.is_indexed) = true];
     int64 amount = 3;
     string token = 4;
 }
 message WeightSet{
     option (aelf.is_event) = true;
-    int64 pid = 1;
+    int32 pid = 1;
     int64 new_allocation_point = 2;
 }
 message PoolAdded{
     option (aelf.is_event) = true;
     string token = 1;
-    int64 pid = 2;
+    int32 pid = 2;
     int64 allocation_point = 3;
     int64 last_reward_block_height = 4;
     int64 pool_type = 5;
@@ -272,7 +272,7 @@ message NewRewardSet{
 }
 message UpdatePool{
     option (aelf.is_event) = true;
-    int64 pid = 1;
+    int32 pid = 1;
     int64 distribute_token_amount = 2;
     int64 usdt_amount = 3;
     int64 update_block_height = 4;

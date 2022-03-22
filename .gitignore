@@ -278,3 +278,4 @@ RpcResult_Thread*
 *.g.cs
 *.c.cs
 contract_csharp_plugin
+src/AElfChain.Common/config/

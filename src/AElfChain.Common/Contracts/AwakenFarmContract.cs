@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using AElf.Client.Dto;
 using AElf.Types;
 using AElfChain.Common.DtoExtension;
@@ -78,6 +77,58 @@ namespace AElfChain.Common.Contracts
             });
             return result;
         }
+
+        #region Set
+        public TransactionResultDto SetTool(string adminAddress, Address toolAddress)
+        {
+            SetAccount(adminAddress);
+            return ExecuteMethodWithResult(FarmMethod.SetTool, toolAddress);
+        }
+        
+        public TransactionResultDto SetOwner(string ownerAddress, Address newAddress)
+        {
+            SetAccount(ownerAddress);
+            return ExecuteMethodWithResult(FarmMethod.SetOwner, newAddress);
+        }
+        
+        public TransactionResultDto SetAdmin(string adminAddress, Address newAddress)
+        {
+            SetAccount(adminAddress);
+            return ExecuteMethodWithResult(FarmMethod.SetAdmin, newAddress);
+        }
+        
+        public TransactionResultDto SetHalvingPeriod(string adminAddress, long block0, long block1)
+        {
+            SetAccount(adminAddress);
+            return ExecuteMethodWithResult(FarmMethod.SetHalvingPeriod, new SetHalvingPeriodInput
+            {
+                Block0 = block0,
+                Block1 = block1
+            });
+        }
+        
+        public TransactionResultDto SetDistributeTokenPerBlock(string adminAddress, long perBlock0, long perBlock1)
+        {
+            SetAccount(adminAddress);
+            return ExecuteMethodWithResult(FarmMethod.SetDistributeTokenPerBlock, new SetDistributeTokenPerBlockInput
+            {
+                PerBlock0 = perBlock0,
+                PerBlock1 = perBlock1
+            });
+        }
+        
+        public TransactionResultDto SetReDeposit(string adminAddress, Address swapAddress, Address farmTwoAddress)
+        {
+            SetAccount(adminAddress);
+            var result = ExecuteMethodWithResult(FarmMethod.SetReDeposit, new SetReDepositInput
+            {
+                Router = swapAddress,
+                FarmTwoPool = farmTwoAddress
+            });
+            return result;
+        }
+
+        #endregion
         
         public TransactionResultDto Deposit(int pid, long amount, string depositAddress)
         {
@@ -101,9 +152,50 @@ namespace AElfChain.Common.Contracts
             return result;
         }
 
+        public TransactionResultDto UpdatePool(int pid)
+        {
+            return ExecuteMethodWithResult(FarmMethod.UpdatePool, new Int32Value {Value = pid});
+        }
+        
+        public TransactionResultDto MassUpdatePools(int pd)
+        {
+            return ExecuteMethodWithResult(FarmMethod.MassUpdatePools, new Empty());
+        }
+
+        public TransactionResultDto ReDeposit(int pid, long distributeAmount, long elfAmount, string depositAddress)
+        {
+            SetAccount(depositAddress);
+            var result = ExecuteMethodWithResult(FarmMethod.ReDeposit, new ReDepositInput
+            {
+                Pid = pid,
+                DistributeTokenAmount = distributeAmount,
+                ElfAmount = elfAmount,
+                Channel = ""
+            });
+            return result;
+        }
+
+        public TransactionResultDto NewReward(string toolAddress, long usdtAmount, long startBlock, long newPerBlock)
+        {
+            SetAccount(toolAddress);
+            var result = ExecuteMethodWithResult(FarmMethod.NewReward, new NewRewardInput
+            {
+                UsdtAmount = usdtAmount,
+                StartBlock = startBlock,
+                NewPerBlock = newPerBlock
+            });
+            return result;
+        }
+
+        public TransactionResultDto FixEndBlock(string adminAddress, bool isUpdate)
+        {
+            SetAccount(adminAddress);
+            return ExecuteMethodWithResult(FarmMethod.FixEndBlock, new BoolValue{Value = isUpdate});
+        }
+
         #region View
 
-                public Address GetAdmin()
+        public Address GetAdmin()
         {
             return CallViewMethod<Address>(FarmMethod.GetAdmin, new Empty());
         }
@@ -266,6 +358,21 @@ namespace AElfChain.Common.Contracts
             return limit.Value;
         }
 
+        public long GetUsdtPerBlock()
+        {
+            return CallViewMethod<Int64Value>(FarmMethod.GetUsdtPerBlock, new Empty()).Value;
+        }
+        
+        public long GetUsdtStartBlock()
+        {
+            return CallViewMethod<Int64Value>(FarmMethod.GetUsdtStartBlock, new Empty()).Value;
+        }
+        
+        public long GetUsdtEndBlock()
+        {
+            return CallViewMethod<Int64Value>(FarmMethod.GetUsdtEndBlock, new Empty()).Value;
+        }
+        
         #endregion
     }
 }

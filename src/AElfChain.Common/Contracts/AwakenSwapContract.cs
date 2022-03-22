@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AElf;
 using AElf.Client.Dto;
 using AElf.Types;
@@ -20,7 +21,6 @@ namespace AElfChain.Common.Contracts
         SwapTokensForExactTokens,
         SwapExactTokensForTokensSupportingFeeOnTransferTokens,
         SwapExactTokensForTokensSupportingFeeOnTransferTokensVerify,
-        TransferLiquidityTokens,
         SetFeeRate,
         SetFeeTo,
         
@@ -32,7 +32,6 @@ namespace AElfChain.Common.Contracts
         GetPairs,
         GetReserves,
         GetTotalSupply,
-        GetAccountAssets,
         GetAmountIn,
         GetAmountOut,
         GetAmountsIn,
@@ -164,18 +163,7 @@ namespace AElfChain.Common.Contracts
             });
             return result;
         }
-
-        public TransactionResultDto TransferLiquidityTokens(string pair, string to, long amount)
-        {
-            var result = ExecuteMethodWithResult(SwapMethod.TransferLiquidityTokens, new TransferLiquidityTokensInput
-            {
-                SymbolPair = pair,
-                To = to.ConvertAddress(),
-                Amount = amount
-            });
-            return result;
-        }
-
+        
         public TransactionResultDto Take(string token, long amount)
         {
             var result = ExecuteMethodWithResult(SwapMethod.Take, new TakeInput
@@ -272,11 +260,6 @@ namespace AElfChain.Common.Contracts
             return CallViewMethod<BigIntValue>(SwapMethod.GetKLast, pair);
         }
 
-        public StringList GetAccountAssets()
-        {
-            return CallViewMethod<StringList>(SwapMethod.GetAccountAssets, new Empty());
-        }
-
         public Address GetPairAddress(string symbolA, string symbolB)
         {
             return CallViewMethod<Address>(SwapMethod.GetPairAddress, new GetPairAddressInput
@@ -299,6 +282,23 @@ namespace AElfChain.Common.Contracts
         public long GetFeeRate()
         {
             return CallViewMethod<Int64Value>(SwapMethod.GetFeeRate, new Empty()).Value;
+        }
+        
+        public string GetTokenPair(string tokenA, string tokenB)
+        {
+            var symbols = SortSymbols(tokenA, tokenB);
+            return $"{symbols[0]}-{symbols[1]}";
+        }
+
+        public string GetTokenPairSymbol(string tokenA, string tokenB)
+        {
+            var symbols = SortSymbols(tokenA, tokenB);
+            return $"ALP {symbols[0]}-{symbols[1]}";
+        }
+
+        public string[] SortSymbols(params string[] symbols)
+        {
+            return symbols.OrderBy(s => s).ToArray();
         }
     }
 }
