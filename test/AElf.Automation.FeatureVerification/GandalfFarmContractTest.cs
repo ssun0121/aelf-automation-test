@@ -36,10 +36,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private ILog Logger { get; set; }
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
-        //private string farmPoolTwoAddress = "";
-        private string farmPoolTwoAddress = "uBvnFUUKG43qfnjPqoXB8S4nHkHaPXYgjMDn5B2CRPigUeM7B";
-        //private string tokenAddress = "";
-        private string tokenAddress = "2eKvgivaCmqPXhkvpS2UVo2qpYskPzFVSYsw6s93jTa9kUh44h";
+        private string farmPoolTwoAddress = "";
+        //private string farmPoolTwoAddress = "uBvnFUUKG43qfnjPqoXB8S4nHkHaPXYgjMDn5B2CRPigUeM7B";
+        private string tokenAddress = "";
+        //private string tokenAddress = "2eKvgivaCmqPXhkvpS2UVo2qpYskPzFVSYsw6s93jTa9kUh44h";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string UserB { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
         private static string RpcUrl { get; } = "192.168.67.166:8000";

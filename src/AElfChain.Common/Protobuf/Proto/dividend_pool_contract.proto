@@ -1,0 +1,262 @@
+/* This files is part of the Hello World smart contract example that is included in Boilerplate.
+ * It is only the definition of the contract, implementation is located in the "contract" folder
+ * and tests are located in the "test" folder.
+ *
+ * You can use this as a basic template for new contracts.
+ * 
+ * When building Boilerplate or the contract project located in the "../contract/Gandalf.Contracts.DividendPool/" 
+ * protoc (the protobuf compiler) will be invoked and this file will produce a .c.cs file and .g.cs file, in the 
+ * "../contract/Gandalf.Contracts.DividendPool/Protobuf/Generated/" folder. 
+ */
+
+// the version of the language, use proto3 for contracts
+syntax = "proto3";
+
+// some core imports for aelf chain types
+import "aelf/core.proto";
+import "aelf/options.proto";
+
+// import for using the google.protobuf.Empty type.
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+// the name of the C# namespace in which the contract code will be,
+// generated code will also be in this namespace.
+option csharp_namespace = "Gandalf.Contracts.DividendPoolContract";
+
+// the contract definition: a gRPC service definition.
+service DividendPoolContract {
+
+  option (aelf.csharp_state) = "Gandalf.Contracts.DividendPoolContract.DividendPoolContractState";
+
+  // Action
+  rpc Initialize(InitializeInput) returns(google.protobuf.Empty){
+  }
+
+  rpc AddToken(Token) returns (google.protobuf.Empty){}
+
+  rpc NewReward(NewRewardInput) returns(google.protobuf.Empty){}
+
+  rpc SetCycle(google.protobuf.Int32Value) returns (google.protobuf.Empty){}
+  // Add a new lp to the pool. Can only be called by the owner.
+  rpc Add(AddPoolInput) returns(google.protobuf.Empty){}
+  // Update the given pool's  allocation point. Can only be called by the owner.
+  rpc Set(SetPoolInput) returns(google.protobuf.Empty){}
+  // Update reward variables for all pools. Be careful of gas spending!
+  rpc MassUpdatePools(google.protobuf.Empty) returns (google.protobuf.Empty){}
+  // Update reward variables of the given pool to be up-to-date.
+  rpc UpdatePool(google.protobuf.Int32Value) returns (google.protobuf.Empty){}
+
+  rpc Deposit(TokenOptionInput) returns(google.protobuf.Empty) {}
+
+  rpc Withdraw(TokenOptionInput) returns(google.protobuf.Empty){}
+
+  //    View
+  rpc Pending(PendingInput) returns(PendingOutput){
+    option (aelf.is_view) = true;
+  }
+
+  rpc PoolLength(google.protobuf.Empty) returns(google.protobuf.Int32Value){
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetTokenListLength(google.protobuf.Empty) returns(google.protobuf.Int32Value){
+    option (aelf.is_view) = true;
+  }
+
+  rpc IsTokenList(Token) returns(google.protobuf.BoolValue){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc Owner(google.protobuf.Empty) returns (aelf.Address){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc TokenList(google.protobuf.Int32Value) returns (google.protobuf.StringValue){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc PerBlock(google.protobuf.StringValue) returns (aelf.BigIntValue){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc PoolInfo(google.protobuf.Int32Value) returns (PoolInfoStruct){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc UserInfo(UserInfoInput) returns(UserInfoStruct){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc TotalAllocPoint(google.protobuf.Empty) returns (google.protobuf.Int64Value){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc StartBlock(google.protobuf.Empty) returns (google.protobuf.Int64Value){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc EndBlock(google.protobuf.Empty) returns (google.protobuf.Int64Value){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc Cycle(google.protobuf.Empty) returns (google.protobuf.Int64Value){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc RewardDebt(RewardDebtInput) returns (aelf.BigIntValue){
+    option (aelf.is_view) = true;
+  }
+  
+  rpc AccPerShare(AccPerShareInput) returns (aelf.BigIntValue){
+    option (aelf.is_view) = true;
+  }
+}
+
+message AccPerShareInput{
+  int32 pid = 1;
+  string token = 2;
+}
+
+message RewardDebtInput{
+  int32 pid = 1;
+  aelf.Address user= 2;
+  string token = 3;
+}
+
+
+message UserInfoInput{
+  int32 pid = 1;
+  aelf.Address user = 2;
+}
+
+message InitializeInput{
+  int32 cycle = 1;
+  aelf.Address owner = 2;
+}
+
+message TokenOptionInput{
+  int32 pid = 1;
+  aelf.BigIntValue amount = 2;
+}
+
+message PendingOutput{
+  repeated string tokens = 1;
+  repeated aelf.BigIntValue amounts = 2;
+}
+
+message PendingInput{
+  int32 pid = 1;
+  aelf.Address user = 2;
+}
+
+message Token{
+  string token_symbol = 1;
+}
+
+message NewRewardInput{
+  repeated string tokens = 1;
+  repeated aelf.BigIntValue per_blocks = 2;
+  repeated aelf.BigIntValue amounts = 3;
+  int64 start_block = 4;
+}
+
+message AddPoolInput{
+  int64 allocation_point = 1;
+  string token_symbol = 2;
+  bool with_update = 3;
+}
+
+message SetPoolInput{
+  int32 pid = 1;
+  int64 allocation_point = 2;
+  bool with_update = 3;
+}
+
+// Event
+
+message UpdatePool{
+  option (aelf.is_event) = true;
+  int32 pid = 1;
+  string token =2;
+  aelf.BigIntValue reward =3;
+  aelf.BigIntValue acc_per_share = 4;
+  int64 block_heigh=5;
+}
+
+message Harvest{
+  option (aelf.is_event) = true;
+  aelf.Address to = 1;
+  aelf.BigIntValue amount = 2;
+  string token = 3;
+  int32 pid = 4;
+}
+
+message Deposit{
+  option (aelf.is_event) = true;
+  aelf.Address user = 1;
+  int32  pid = 2;
+  aelf.BigIntValue amount = 3;
+}
+
+message Withdraw{
+  option (aelf.is_event) = true;
+  aelf.Address user = 1;
+  int32 pid = 2;
+  aelf.BigIntValue amount = 3;
+}
+
+message SetCycle{
+  option (aelf.is_event) = true;
+  int32 cycle = 1;
+}
+
+message AddToken{
+  option (aelf.is_event) = true;
+  string token_symbol = 1;
+  int32 index = 2;
+}
+
+message NewReward{
+  option (aelf.is_event) = true;
+  string token = 1;
+  aelf.BigIntValue per_blocks = 2;
+  aelf.BigIntValue amount = 3;
+  int64 start_block = 4;
+  int64 end_block = 5;
+}
+
+message AddPool{
+  option (aelf.is_event) = true;
+  string token = 1;
+  int64 alloc_point = 2;
+  int64 last_reward_block = 3;
+  int32 pid = 4;
+}
+
+message SetPool{
+  option (aelf.is_event) = true;
+  int32 pid = 1;
+  aelf.BigIntValue allocation_point = 2;
+}
+
+//struct
+message UserInfoStruct{
+  aelf.BigIntValue amount = 1;
+}
+
+message PoolInfoStruct{
+  string lp_token = 1 ;
+  int64 alloc_point = 2;
+  int64 last_reward_block = 3;
+  aelf.BigIntValue total_amount = 4;
+//  map<string, int64> acc_per_share = 5;
+}
+
+message TokenList{
+  repeated string tokens = 1;
+}
+
+message PoolInfo{
+  repeated PoolInfoStruct pool_list = 1;
+}
