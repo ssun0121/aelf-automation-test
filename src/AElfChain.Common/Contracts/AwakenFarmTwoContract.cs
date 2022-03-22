@@ -1,4 +1,3 @@
-
 using System;
 using AElf.Client.Dto;
 using AElf.Types;
@@ -26,7 +25,7 @@ namespace AElfChain.Common.Contracts
         UserInfo,
         IssuedReward,
         Pending,
-        endBlock,
+        EndBlock,
         Withdraw,
         TotalAllocPoint,
         Reward,
@@ -35,7 +34,7 @@ namespace AElfChain.Common.Contracts
         SetDistributeTokenPerBlock,
         SetHalvingPeriod,
         FarmPoolOne,
-        GetPendingTest
+        PendingTest
     }
 
     public class AwakenFarmTwoContract :BaseContract<FarmTwoMethod>
@@ -53,7 +52,7 @@ namespace AElfChain.Common.Contracts
             SetAccount(callAddress);
         }
 
-        public TransactionResultDto Initialize(string tokenSymbol, BigIntValue tokenPerBlock, long halvingPeriod, long startBlock, BigIntValue totalReward )
+        public TransactionResultDto Initialize(string tokenSymbol, BigIntValue tokenPerBlock, long halvingPeriod, long startBlock, BigIntValue totalReward, string tokenContract)
         {
             var result = ExecuteMethodWithResult(FarmTwoMethod.Initialize, new InitializeInput
             {
@@ -61,7 +60,8 @@ namespace AElfChain.Common.Contracts
                 DistributeTokenPerBlock = tokenPerBlock,
                 HalvingPeriod = halvingPeriod,
                 StartBlock = startBlock,
-                TotalReward = totalReward
+                TotalReward = totalReward,
+                AwakenTokenContract = tokenContract.ConvertAddress()
             });
             return result;
         }
@@ -166,7 +166,7 @@ namespace AElfChain.Common.Contracts
 
         public Int64Value EndBlock()
         {
-            return CallViewMethod<Int64Value>(FarmTwoMethod.endBlock, new Empty());
+            return CallViewMethod<Int64Value>(FarmTwoMethod.EndBlock, new Empty());
         }
 
         public BigIntValue TotalReward()
@@ -230,7 +230,7 @@ namespace AElfChain.Common.Contracts
 
         public PendingOutput GetPendingTest(int pid, string user)
         {
-            return CallViewMethod<PendingOutput>(FarmTwoMethod.GetPendingTest, new PendingInput
+            return CallViewMethod<PendingOutput>(FarmTwoMethod.PendingTest, new PendingInput
             {
                 Pid = pid,
                 User = user.ConvertAddress()

@@ -45,7 +45,9 @@ service PoolTwoContract {
   rpc Withdraw(WithdrawInput) returns(google.protobuf.Empty){}
 
   rpc FixEndBlock(google.protobuf.BoolValue) returns(google.protobuf.Empty){}
-
+  
+  rpc SetLpTokenAddress(SetLpTokenAddressInput) returns(google.protobuf.Empty){}
+  
   //  View
   rpc PoolLength(google.protobuf.Empty) returns(google.protobuf.Int64Value){
     option (aelf.is_view) = true;
@@ -67,10 +69,10 @@ service PoolTwoContract {
     option (aelf.is_view) = true;
   }
 
-  rpc GetPendingTest(PendingInput) returns(PendingOutput){
+  rpc PendingTest(PendingInput) returns(PendingOutput){
     option (aelf.is_view) = true;
   }
-    
+
   rpc UserInfo(UserInfoInput) returns(UserInfoStruct){
     option (aelf.is_view) = true;
   }
@@ -117,6 +119,10 @@ service PoolTwoContract {
 }
 
 //Input&Output
+message SetLpTokenAddressInput{
+  aelf.Address awaken_token_contract_address =1;
+}
+
 message UserInfoInput{
   int32 pid = 1;
   aelf.Address user = 2;
@@ -142,6 +148,11 @@ message PendingInput{
   aelf.Address user = 2;
 }
 
+message PendingOutput{
+  aelf.BigIntValue amount = 1;
+  int64 PendingBlockHeight =2;
+}
+
 message SetInput{
   int32 pid = 1;
   int64 alloc_point = 2;
@@ -162,12 +173,9 @@ message InitializeInput{
   int64 start_block = 4;
   aelf.BigIntValue  total_reward = 5;
   aelf.Address owner = 6;
+  aelf.Address awaken_token_contract =7;
 }
 
-message PendingOutput{
-  aelf.BigIntValue pending = 1;
-  int64 pending_block = 2;
-}
 
 //Struct
 message UserInfoStruct{
