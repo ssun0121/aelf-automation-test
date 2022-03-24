@@ -24,8 +24,6 @@ service AwakenSwapContract {
   }
   rpc SwapTokensForExactTokens (SwapTokensForExactTokensInput) returns (SwapOutput) {
   }
-  rpc TransferLiquidityTokens (TransferLiquidityTokensInput) returns (google.protobuf.Empty) {
-  }
   rpc SetFeeRate (google.protobuf.Int64Value) returns (google.protobuf.Empty) {
   }
   rpc SetFeeTo (aelf.Address) returns (google.protobuf.Empty) {
@@ -55,9 +53,6 @@ service AwakenSwapContract {
     option (aelf.is_view) = true;
   }
   rpc GetTotalSupply (StringList) returns (GetTotalSupplyOutput) {
-    option (aelf.is_view) = true;
-  }
-  rpc GetAccountAssets (google.protobuf.Empty) returns (StringList){
     option (aelf.is_view) = true;
   }
   rpc GetAmountIn (GetAmountInInput) returns (google.protobuf.Int64Value) {
@@ -180,12 +175,6 @@ message QuoteInput {
   string symbol_a = 1;
   string symbol_b = 2;
   int64 amount_a = 3;
-}
-
-message TransferLiquidityTokensInput {
-  aelf.Address to = 1;
-  string symbol_pair = 2;
-  int64 amount = 3;
 }
 
 message GetPairAddressInput {

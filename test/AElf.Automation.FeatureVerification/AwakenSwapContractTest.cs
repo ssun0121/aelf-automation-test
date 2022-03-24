@@ -32,6 +32,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private string tokenAddress = "VZCyHSPayr4PPyHqDKUTSbpR2o7MJgjXkHqMUVv9SEbTYoWqw";
         private string swapAddress = "2wGCD2xYsXyAuHaU33PPiUqCT9LdzA6RuMCNnE4dozpxVKFWSR";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
+        private string TestAccount { get; } = "";
         private string FeeToAccount { get; } = "Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx";
         private static string RpcUrl { get; } = "http://192.168.67.166:8000";
         private long FeeRate { get; } = 30;
@@ -45,7 +46,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             NodeInfoHelper.SetConfig("nodes-new-env-main");
 
             NodeManager = new NodeManager(RpcUrl);
-            AuthorityManager = new AuthorityManager(NodeManager, InitAccount);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
             _tokenContract = _genesisContract.GetTokenContract(InitAccount);
             _awakenTokenContract = tokenAddress == ""
@@ -118,7 +118,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 CreateToken(symbolA, dA);
             if (CheckToken(symbolB))
                 CreateToken(symbolB, dB);
-            var pair = GetTokenPair(symbolA, symbolB);
+            var pair = _awakenSwapContract.GetTokenPair(symbolA, symbolB);
             var pairList = _awakenSwapContract.GetPairs();
             if (pairList.Value.Contains(pair))
             {
@@ -126,8 +126,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 return;
             }
 
-            var orderPair = SortSymbols(symbolA, symbolB);
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
+            var orderPair = _awakenSwapContract.SortSymbols(symbolA, symbolB);
+            var pairSymbol = _awakenSwapContract.GetTokenPairSymbol(symbolA, symbolB);
             var create = _awakenSwapContract.CreatePair(pair, out var pairAddress);
             create.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var logs = ByteString.FromBase64(create.Logs.First(l => l.Name.Contains("PairCreated")).NonIndexed);
@@ -139,7 +139,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var lpLogs = ByteString.FromBase64(create.Logs.First(l => l.Name.Contains("TokenCreated")).NonIndexed);
             var tokenCreated = TokenCreated.Parser.ParseFrom(lpLogs);
-            tokenCreated.Decimals.ShouldBe(0);
+            tokenCreated.Decimals.ShouldBe(8);
             tokenCreated.Symbol.ShouldBe(pairSymbol);
             tokenCreated.Issuer.ShouldBe(_awakenSwapContract.Contract);
             tokenCreated.TokenName.ShouldBe($"Awaken {pair} LP Token");
@@ -158,9 +158,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             getPairAddress.ShouldBe(pairAddress);
 
             var tokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
-            tokenInfo.Decimals.ShouldBe(0);
+            tokenInfo.Decimals.ShouldBe(8);
             tokenInfo.Issuer.ShouldBe(_awakenSwapContract.Contract);
             tokenInfo.IsBurnable.ShouldBeTrue();
+            Logger.Info(pairSymbol);
         }
 
         [TestMethod]
@@ -169,8 +170,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 var symbolA = "ELF";
                 var symbolB = "USDT";
-                var pair = GetTokenPair(symbolA, symbolB);
-                var create = _awakenSwapContract.CreatePair(pair, out var pairAddress);
+                var pair = _awakenSwapContract.GetTokenPair(symbolA, symbolB);
+                var create = _awakenSwapContract.CreatePair(pair, out _);
                 create.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 create.Error.ShouldContain($"Pair {pair} Already Exist.");
             }
@@ -178,7 +179,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var symbolA = "ELF";
                 var symbolB = "ABC";
                 var pair = $"{symbolA}-{symbolB}";
-                var create = _awakenSwapContract.CreatePair(pair, out var pairAddress);
+                var create = _awakenSwapContract.CreatePair(pair, out _);
                 create.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 create.Error.ShouldContain("Token ABC not exists.");
             }
@@ -186,7 +187,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var symbolA = "ABC";
                 var symbolB = "ELF";
                 var pair = $"{symbolA}-{symbolB}";
-                var create = _awakenSwapContract.CreatePair(pair, out var pairAddress);
+                var create = _awakenSwapContract.CreatePair(pair, out _);
                 create.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 create.Error.ShouldContain("Token ABC not exists.");
             }
@@ -194,7 +195,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var symbolA = "ELF";
                 var symbolB = "ELF";
                 var pair = $"{symbolA}-{symbolB}";
-                var create = _awakenSwapContract.CreatePair(pair, out var pairAddress);
+                var create = _awakenSwapContract.CreatePair(pair, out _);
                 create.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 create.Error.ShouldContain("Identical Tokens");
             }
@@ -202,7 +203,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var symbolA = "ELF";
                 var symbolB = "ETH";
                 var pair = $"{symbolA}{symbolB}";
-                var create = _awakenSwapContract.CreatePair(pair, out var pairAddress);
+                var create = _awakenSwapContract.CreatePair(pair, out _);
                 create.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 create.Error.ShouldContain("PairVirtualAddressMap");
             }
@@ -215,8 +216,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [DataRow("ETH","USDT",10_00000000,20000_000000)]
         public void AddLiquidity(string symbolA, string symbolB, long amountA, long amountB)
         {
-            var account = InitAccount;
-            var pair = GetTokenPair(symbolA, symbolB);
+            var account = TestAccount;
+            _tokenContract.TransferBalance(InitAccount, TestAccount, 10000_00000000);
+            var pair = _awakenSwapContract.GetTokenPair(symbolA, symbolB);
             var pairList = _awakenSwapContract.GetPairs();
             if (!pairList.Value.Contains(pair))
             {
@@ -224,7 +226,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 return;
             }
 
-            var sortPair = SortSymbols(symbolA, symbolB);
+            var sortPair = _awakenSwapContract.SortSymbols(symbolA, symbolB);
             var newAmountA = sortPair.First().Equals(symbolA) ? amountA : amountB;
             var newAmountB = sortPair.Last().Equals(symbolB) ? amountB : amountA;
             symbolA = sortPair.First();
@@ -232,13 +234,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             amountA = newAmountA;
             amountB = newAmountB;
 
-            var origin = CheckPairData(symbolA, symbolB);
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
+            var origin = CheckPairData(symbolA, symbolB, account);
+            var pairSymbol = _awakenSwapContract.GetTokenPairSymbol(symbolA, symbolB);
             Logger.Info(pairSymbol);
             var pairAddress = _awakenSwapContract.GetPairAddress(symbolA, symbolB);
             var originFeeToLpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, FeeToAccount.ConvertAddress());
             Logger.Info($"origin FeeTo LPTokenBalance: {originFeeToLpTokenBalance.Amount}");
-
+            var originTokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
+            Logger.Info(originTokenInfo);
             if (origin["totalSupply"] != 0)
             {
                 amountB = _awakenSwapContract.Quote(symbolA, symbolB, amountA);
@@ -247,9 +250,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             CheckBalance(symbolA, amountA, account);
             CheckBalance(symbolB, amountB, account);
-            Approve(account, amountA, symbolA);
-            Approve(account, amountB, symbolB);
-            origin = CheckPairData(symbolA, symbolB);
+            Approve(account, amountA * 2, symbolA);
+            Approve(account, amountB * 2, symbolB);
+            origin = CheckPairData(symbolA, symbolB,account);
 
             _awakenSwapContract.SetAccount(account);
             var result = _awakenSwapContract.AddLiquidity(out var output, symbolA, symbolB, amountA, amountB,
@@ -276,14 +279,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
             CheckSyncEvent(sync, symbolA, symbolB, pairAddress, origin["ReserveA"],
                 origin["ReserveB"], liquidityAdded.AmountA, liquidityAdded.AmountB, "add");
 
-            var after = CheckPairData(symbolA, symbolB);
+            var after = CheckPairData(symbolA, symbolB,account);
             after["UserLPBalance"].ShouldBe(origin["UserLPBalance"] + liquidityAdded.LiquidityToken);
             after["ReserveA"].ShouldBe(origin["ReserveA"] + liquidityAdded.AmountA);
             after["ReserveB"].ShouldBe(origin["ReserveB"] + liquidityAdded.AmountB);
-
+            
+            _awakenSwapContract.SetAccount(account);
+            var afterTokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
+            Logger.Info(afterTokenInfo);
+            
             if (origin["totalSupply"] == 0)
             {
                 after["totalSupply"].ShouldBe(origin["totalSupply"] + liquidityAdded.LiquidityToken + 1);
+                afterTokenInfo.Supply.ShouldBe(originTokenInfo.Supply + liquidityAdded.LiquidityToken + 1);
+
                 var feeToLpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, FeeToAccount.ConvertAddress());
                 feeToLpTokenBalance.Amount.ShouldBe(0);
             }
@@ -295,6 +304,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Logger.Info($"actual fee: {fee}");
                 after["totalSupply"].ShouldBe(origin["totalSupply"] + liquidityAdded.LiquidityToken +
                     feeToLpTokenBalance.Amount - originFeeToLpTokenBalance.Amount);
+                afterTokenInfo.Supply.ShouldBe(originTokenInfo.Supply + liquidityAdded.LiquidityToken);
             }
 
             var afterKLast = CheckKLast(pairAddress);
@@ -306,10 +316,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             after["ReserveB"].ShouldBe(origin["ReserveB"] + amountB);
             after["ContractBalanceA"].ShouldBe(origin["ContractBalanceA"] + amountA);
             after["ContractBalanceB"].ShouldBe(origin["ContractBalanceB"] + amountB);
-
-            _awakenSwapContract.SetAccount(account);
-            var accountAssets = _awakenSwapContract.GetAccountAssets();
-            accountAssets.Value.ShouldContain(pair);
         }
 
         [TestMethod]
@@ -321,7 +327,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var account = InitAccount;
             var amountIn = 200000000;
             var pairAddress = _awakenSwapContract.GetPairAddress(symbolIn, symbolOut);
-            var origin = CheckPairData(symbolIn, symbolOut);
 
             Approve(account, amountIn, symbolIn);
             CheckBalance(symbolIn, amountIn, account);
@@ -340,13 +345,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             long amountA = 2000_00000000;
             long amountB = 1000_00000000;
-            var pair = GetTokenPair(symbolIn, symbolOut);
-            var sortPair = SortSymbols(symbolIn, symbolOut);
+            var sortPair = _awakenSwapContract.SortSymbols(symbolIn, symbolOut);
             var newAmountA = sortPair.First().Equals(symbolIn) ? amountA : amountB;
             var symbolA = sortPair.First();
             var symbolB = sortPair.Last();
             amountA = newAmountA;
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
+            var pairSymbol = _awakenSwapContract.GetTokenPairSymbol(symbolA, symbolB);
             Logger.Info(pairSymbol);
             var originFeeToLpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, FeeToAccount.ConvertAddress());
             Logger.Info($"origin FeeTo LPTokenBalance: {originFeeToLpTokenBalance.Amount}");
@@ -357,7 +361,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             CheckBalance(symbolB, amountB, account);
             Approve(account, amountA, symbolA);
             Approve(account, amountB, symbolB);
-            origin = CheckPairData(symbolA, symbolB);
+            var origin = CheckPairData(symbolA, symbolB);
 
             _awakenSwapContract.SetAccount(account);
             var result = _awakenSwapContract.AddLiquidity(out var output, symbolA, symbolB, amountA, amountB,
@@ -402,10 +406,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             after["ReserveB"].ShouldBe(origin["ReserveB"] + amountB);
             after["ContractBalanceA"].ShouldBe(origin["ContractBalanceA"] + amountA);
             after["ContractBalanceB"].ShouldBe(origin["ContractBalanceB"] + amountB);
-
-            _awakenSwapContract.SetAccount(account);
-            var accountAssets = _awakenSwapContract.GetAccountAssets();
-            accountAssets.Value.ShouldContain(pair);
         }
     
 
@@ -417,9 +417,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var symbolB = "ELF";
                 var amountA = 10_000000;
                 var amountB = 300_00000000;
-                var pair = $"{symbolA}-{symbolB}";
                 var result =
-                    _awakenSwapContract.AddLiquidity(out var output, symbolA, symbolB, amountA, amountB,
+                    _awakenSwapContract.AddLiquidity(out _, symbolA, symbolB, amountA, amountB,
                         InitAccount.ConvertAddress(), -1, -1);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result.Error.ShouldContain("Invalid Input");
@@ -429,7 +428,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var symbolB = "ETH";
                 var amountA = 10_000000;
                 var amountB = 300_00000000;
-                var result = _awakenSwapContract.AddLiquidity(out var output, symbolA, symbolB, amountA, amountB,
+                var result = _awakenSwapContract.AddLiquidity(out _, symbolA, symbolB, amountA, amountB,
                     InitAccount.ConvertAddress());
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result.Error.ShouldContain("Pair ABC-ETH does not exist.");
@@ -440,7 +439,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var amountA = 10_000000;
                 var amountB = 300_00000000;
                 var timestamp = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(-1));
-                var result = _awakenSwapContract.AddLiquidity(out var output, symbolA, symbolB, amountA, amountB,
+                var result = _awakenSwapContract.AddLiquidity(out _, symbolA, symbolB, amountA, amountB,
                     InitAccount.ConvertAddress(), 1, 1
                     , "", timestamp);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
@@ -452,7 +451,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var amountA = 10_000000000;
                 var amountBOptimal = _awakenSwapContract.Quote(symbolA, symbolB, amountA);
                 var amountBMin = amountBOptimal + 100000000000;
-                var result = _awakenSwapContract.AddLiquidity(out var output, symbolA, symbolB, amountA,
+                var result = _awakenSwapContract.AddLiquidity(out _, symbolA, symbolB, amountA,
                     amountBOptimal, InitAccount.ConvertAddress(), 1, amountBMin);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result.Error.ShouldContain("Insufficient amount of tokenB");
@@ -463,7 +462,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var amountA = 10000;
                 var amountBOptimal = _awakenSwapContract.Quote(symbolA, symbolB, amountA);
                 var amountAMin = amountA.Add(1000000);
-                var result = _awakenSwapContract.AddLiquidity(out var output, symbolA, symbolB, amountAMin,
+                var result = _awakenSwapContract.AddLiquidity(out _, symbolA, symbolB, amountAMin,
                     amountBOptimal, InitAccount.ConvertAddress(), amountAMin);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result.Error.ShouldContain("Insufficient amount of tokenA");
@@ -475,11 +474,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void RemoveLiquidity(string symbolA, string symbolB, bool isAll)
         {
             var account = InitAccount;
-            var pair = GetTokenPair(symbolA, symbolB);
-            var sortPair = SortSymbols(symbolA, symbolB);
+            var sortPair = _awakenSwapContract.SortSymbols(symbolA, symbolB);
             symbolA = sortPair.First();
             symbolB = sortPair.Last();
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
+            var pairSymbol = _awakenSwapContract.GetTokenPairSymbol(symbolA, symbolB);
             Logger.Info(pairSymbol);
             var origin = CheckPairData(symbolA, symbolB, account);
             var originFeeToLpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, FeeToAccount.ConvertAddress());
@@ -487,9 +485,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var tokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
             var pairAddress = _awakenSwapContract.GetPairAddress(symbolA, symbolB);
-            BigIntValue KLast = 0;
-            KLast = _awakenSwapContract.GetKLast(pairAddress);
-            Logger.Info(KLast);
+            var kLast = _awakenSwapContract.GetKLast(pairAddress);
+            Logger.Info(kLast);
 
             var removeLpTokenAmount = isAll? origin["UserLPBalance"] : origin["UserLPBalance"] / 2;
             var approveResult = _awakenTokenContract.ApproveLPToken(_awakenSwapContract.ContractAddress, account,
@@ -527,8 +524,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             after["ReserveB"].ShouldBe(origin["ReserveB"] - liquidityRemoved.AmountB);
 
             var feeToLpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, FeeToAccount.ConvertAddress());
-            Logger.Info($"after add liquidity {feeToLpTokenBalance.Amount}");
-            var fee = originFeeToLpTokenBalance.Amount - feeToLpTokenBalance.Amount;
+            Logger.Info($"after remove liquidity {feeToLpTokenBalance.Amount}");
+            var fee = feeToLpTokenBalance.Amount - originFeeToLpTokenBalance.Amount;
             Logger.Info(fee);
 
             after["totalSupply"].ShouldBe(origin["totalSupply"] - liquidityRemoved.LiquidityToken +
@@ -549,11 +546,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var afterTokenInfo = _awakenTokenContract.GetTokenInfo(pairSymbol);
             afterTokenInfo.Supply.ShouldBe(tokenInfo.Supply - removeLpTokenAmount + fee);
-            var accountAsset = _awakenSwapContract.GetAccountAssets();
-            if (isAll)
-                accountAsset.Value.ShouldNotContain(pair);
-            else
-                accountAsset.Value.ShouldContain(pair);
+            Logger.Info(afterTokenInfo);
         }
 
         //TokenA - TokenB
@@ -1014,12 +1007,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 var path = new List<string> {"ABC", "DEF"};
                 var result1 =
-                    _awakenSwapContract.SwapExactTokensForTokens(out var output1, InitAccount.ConvertAddress(), path,
+                    _awakenSwapContract.SwapExactTokensForTokens(out _, InitAccount.ConvertAddress(), path,
                         1);
                 result1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result1.Error.ShouldContain("Pair ABC-DEF does not exist.");
                 var result2 =
-                    _awakenSwapContract.SwapTokensForExactTokens(out var output2, InitAccount.ConvertAddress(), path,
+                    _awakenSwapContract.SwapTokensForExactTokens(out _, InitAccount.ConvertAddress(), path,
                         1);
                 result2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result2.Error.ShouldContain("Pair ABC-DEF does not exist.");
@@ -1027,14 +1020,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 var amountIn = 10000000;
                 var path = new List<string> {symbolIn, symbolOut};
-                var result1 = _awakenSwapContract.SwapExactTokensForTokens(out var output1,
+                var result1 = _awakenSwapContract.SwapExactTokensForTokens(out _,
                     InitAccount.ConvertAddress(), path, amountIn, 100000000000000000);
                 result1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result1.Error.ShouldContain("Insufficient Output amount");
 
                 var amountOut = 100000000;
                 var getAmountIn = _awakenSwapContract.GetAmountIn(symbolIn, symbolOut, amountOut);
-                var result2 = _awakenSwapContract.SwapTokensForExactTokens(out var output2,
+                var result2 = _awakenSwapContract.SwapTokensForExactTokens(out _,
                     InitAccount.ConvertAddress(), path, amountOut, getAmountIn / 2);
                 result2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result2.Error.ShouldContain("Excessive Input amount");
@@ -1045,107 +1038,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 // var getAmountIn = _awakenSwapContract.GetAmountIn(symbolIn, symbolOut, amountOut - 1);
                 Approve(InitAccount, origin["ReserveB"].Mul(10), symbolOut);
 
-                var result1 = _awakenSwapContract.SwapExactTokensForTokens(out var output1,
+                var result1 = _awakenSwapContract.SwapExactTokensForTokens(out _,
                     InitAccount.ConvertAddress(), path, origin["ReserveB"].Mul(10));
                 result1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result1.Error.ShouldContain("Insufficient reserve");
 
-                var result2 = _awakenSwapContract.SwapTokensForExactTokens(out var output2,
+                var result2 = _awakenSwapContract.SwapTokensForExactTokens(out _,
                     InitAccount.ConvertAddress(), path, amountOut);
                 result2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result2.Error.ShouldContain("Insufficient reserve");
-            }
-        }
-
-        [TestMethod]
-        [DataRow("ELF","USDT", true)]
-        public void TransferLiquidityTokens(string symbolA, string symbolB, bool isALl)
-        {
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
-            var pair = GetTokenPair(symbolA, symbolB);
-            var account = InitAccount;
-            var toAccount = NodeManager.NewAccount("12345678");
-
-            _awakenSwapContract.SetAccount(toAccount);
-            var beforeAccountAsset = _awakenSwapContract.GetAccountAssets();
-            beforeAccountAsset.Value.ShouldNotContain(pair);
-
-            var lpTokenAccountOriginBalance = _awakenTokenContract.GetBalance(pairSymbol, toAccount.ConvertAddress());
-            var lpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, InitAccount.ConvertAddress());
-            var amount = isALl ? lpTokenBalance.Amount : lpTokenBalance.Amount / 4;
-            Logger.Info($"before:\n" +
-                        $"{account} LP token balance: {lpTokenBalance.Amount},\n" +
-                        $"{toAccount} LP token balance: {lpTokenAccountOriginBalance.Amount},\n" +
-                        $"Transfer amount: {amount}");
-
-            var approveResult =
-                _awakenTokenContract.ApproveLPToken(_awakenSwapContract.ContractAddress, account, amount, pairSymbol);
-            approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            _awakenSwapContract.SetAccount(account);
-            var result = _awakenSwapContract.TransferLiquidityTokens(pair, toAccount, amount);
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var lpTokenAfterBalance = _awakenTokenContract.GetBalance(pairSymbol, InitAccount.ConvertAddress());
-            lpTokenAfterBalance.Amount.ShouldBe(lpTokenBalance.Amount - amount);
-
-            var lpTokenAccountBalance = _awakenTokenContract.GetBalance(pairSymbol, toAccount.ConvertAddress());
-            lpTokenAccountBalance.Amount.ShouldBe(lpTokenAccountOriginBalance.Amount + amount);
-            Logger.Info($"after:\n" +
-                        $"{account} LP token balance: {lpTokenAfterBalance.Amount},\n" +
-                        $"{toAccount} LP token balance: {lpTokenAccountBalance.Amount},\n" +
-                        $"Transfer amount: {amount}");
-
-            _awakenSwapContract.SetAccount(toAccount);
-            var toAccountAsset = _awakenSwapContract.GetAccountAssets();
-            toAccountAsset.Value.ShouldContain(pair);
-
-            _awakenSwapContract.SetAccount(account);
-            var accountAsset = _awakenSwapContract.GetAccountAssets();
-            if (isALl)
-                accountAsset.Value.ShouldNotContain(pair);
-            else
-                accountAsset.Value.ShouldContain(pair);
-
-        }
-
-        [TestMethod]
-        public void TransferLiquidityTokens_Error()
-        {
-            var symbolA = "USDT";
-            var symbolB = "ELF";
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
-            var pair = GetTokenPair(symbolA, symbolB);
-            var account = InitAccount;
-            var toAccount = NodeManager.NewAccount("12345678");
-
-            var lpTokenAccountOriginBalance = _awakenTokenContract.GetBalance(pairSymbol, toAccount.ConvertAddress());
-            var accountBalance = lpTokenAccountOriginBalance.Amount;
-            var lpTokenBalance = _awakenTokenContract.GetBalance(pairSymbol, account.ConvertAddress());
-            var balanceResults = lpTokenBalance.Amount;
-            {
-                var amount = balanceResults.Mul(4);
-                _awakenSwapContract.SetAccount(InitAccount);
-                var result = _awakenSwapContract.TransferLiquidityTokens(pair, toAccount, amount);
-                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-                result.Error.ShouldContain($"Insufficient balance of {pairSymbol}.");
-
-                var lpTokenAfterBalance = _awakenTokenContract.GetBalance(pairSymbol, account.ConvertAddress());
-                lpTokenAfterBalance.Amount.ShouldBe(balanceResults);
-                var lpTokenAccountBalance = _awakenTokenContract.GetBalance(pairSymbol, toAccount.ConvertAddress());
-                lpTokenAccountBalance.Amount.ShouldBe(accountBalance);
-            }
-            {
-                var notExistsPair = "ABC-ABC";
-                _awakenSwapContract.SetAccount(InitAccount);
-                var result = _awakenSwapContract.TransferLiquidityTokens(notExistsPair, toAccount, 1);
-                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-                result.Error.ShouldContain($"Pair {notExistsPair} does not exist.");
-            }
-            {
-                _awakenSwapContract.SetAccount(InitAccount);
-                var result = _awakenSwapContract.TransferLiquidityTokens(pair, toAccount, 0);
-                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-                result.Error.ShouldContain(" Invalid amount.");
             }
         }
 
@@ -1277,7 +1178,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var resultsList = new Dictionary<string, long>();
             _awakenSwapContract.SetAccount(account);
             var pair = $"{symbolA}-{symbolB}";
-            var pairSymbol = GetTokenPairSymbol(symbolA, symbolB);
+            var pairSymbol = _awakenSwapContract.GetTokenPairSymbol(symbolA, symbolB);
             var totalSupply = _awakenSwapContract.GetTotalSupply(pair);
             var result = totalSupply.Results.First(r => r.SymbolPair.Equals(pair));
             resultsList["totalSupply"] = result.TotalSupply;
@@ -1318,11 +1219,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private Dictionary<string, string> CheckKLast(Address pairAddress)
         {
-            var KLastInfo = new Dictionary<string, string>();
-            var KLast = _awakenSwapContract.GetKLast(pairAddress);
-            Logger.Info($"KLast: {KLast.Value}");
-            KLastInfo["KLast"] = KLast.Value;
-            return KLastInfo;
+            var kLastInfo = new Dictionary<string, string>();
+            var kLast = _awakenSwapContract.GetKLast(pairAddress);
+            Logger.Info($"KLast: {kLast.Value}");
+            kLastInfo["KLast"] = kLast.Value;
+            return kLastInfo;
         }
 
         private bool CheckAmountIn(long amountOut, long reserveIn, long reserveOut, string symbolIn, string symbolOut)
@@ -1409,23 +1310,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     sync.ReserveB.ShouldBe(originReserveB - amountOut);
                     break;
             }
-        }
-
-        private string GetTokenPair(string tokenA, string tokenB)
-        {
-            var symbols = SortSymbols(tokenA, tokenB);
-            return $"{symbols[0]}-{symbols[1]}";
-        }
-
-        private string GetTokenPairSymbol(string tokenA, string tokenB)
-        {
-            var symbols = SortSymbols(tokenA, tokenB);
-            return $"ALP {symbols[0]}-{symbols[1]}";
-        }
-
-        private string[] SortSymbols(params string[] symbols)
-        {
-            return symbols.OrderBy(s => s).ToArray();
         }
 
         #endregion

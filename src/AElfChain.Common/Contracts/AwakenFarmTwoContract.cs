@@ -8,7 +8,7 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace AElfChain.Common.Contracts
 {
-    public enum FarmMethod
+    public enum FarmTwoMethod
     {
         Initialize,
         PoolInfo,
@@ -37,15 +37,15 @@ namespace AElfChain.Common.Contracts
         PendingTest
     }
 
-    public class GandalfFarmContract :BaseContract<FarmMethod>
+    public class AwakenFarmTwoContract :BaseContract<FarmTwoMethod>
     {
 
-        public GandalfFarmContract(INodeManager nodeManager, string callAddress) : base(nodeManager,
+        public AwakenFarmTwoContract(INodeManager nodeManager, string callAddress) : base(nodeManager,
             "Awaken.Contracts.PoolTwo", callAddress)
         {
         }
 
-        public GandalfFarmContract(INodeManager nodeManager, string callAddress, string contractAddress) : base(
+        public AwakenFarmTwoContract(INodeManager nodeManager, string callAddress, string contractAddress) : base(
             nodeManager,
             contractAddress)
         {
@@ -54,7 +54,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto Initialize(string tokenSymbol, BigIntValue tokenPerBlock, long halvingPeriod, long startBlock, BigIntValue totalReward, string tokenContract)
         {
-            var result = ExecuteMethodWithResult(FarmMethod.Initialize, new InitializeInput
+            var result = ExecuteMethodWithResult(FarmTwoMethod.Initialize, new InitializeInput
             {
                 DistributeToken = tokenSymbol,
                 DistributeTokenPerBlock = tokenPerBlock,
@@ -68,7 +68,7 @@ namespace AElfChain.Common.Contracts
 
         public UserInfoStruct GetUserInfo(int pid, string user)
         {
-            return CallViewMethod<UserInfoStruct>(FarmMethod.UserInfo, new UserInfoInput
+            return CallViewMethod<UserInfoStruct>(FarmTwoMethod.UserInfo, new UserInfoInput
             {
                 Pid = pid,
                 User = user.ConvertAddress()
@@ -77,39 +77,39 @@ namespace AElfChain.Common.Contracts
         
         public PoolInfoStruct GetPoolInfo(Int32 pid)
         {
-            return CallViewMethod<PoolInfoStruct>(FarmMethod.PoolInfo, new Int32Value {Value = pid});
+            return CallViewMethod<PoolInfoStruct>(FarmTwoMethod.PoolInfo, new Int32Value {Value = pid});
         }
 
         public Int64Value GetPhase(Int64 blockNum)
         {
-            return CallViewMethod<Int64Value>(FarmMethod.Phase, new Int64Value {Value = blockNum});
+            return CallViewMethod<Int64Value>(FarmTwoMethod.Phase, new Int64Value {Value = blockNum});
             
         }
 
 
         public Int64Value GetStartBlock()
         {
-            return CallViewMethod<Int64Value>(FarmMethod.StartBlock, new Empty());
+            return CallViewMethod<Int64Value>(FarmTwoMethod.StartBlock, new Empty());
         }
 
         public Int64Value GetHalvingPeriod()
         {
-            return CallViewMethod<Int64Value>(FarmMethod.HalvingPeriod, new Empty());
+            return CallViewMethod<Int64Value>(FarmTwoMethod.HalvingPeriod, new Empty());
         }
 
         public BigIntValue GetTotalReward()
         {
-            return CallViewMethod<BigIntValue>(FarmMethod.TotalReward, new Empty());
+            return CallViewMethod<BigIntValue>(FarmTwoMethod.TotalReward, new Empty());
         }
 
         public BigIntValue GetDistributeTokenBlockReward()
         {
-            return CallViewMethod<BigIntValue>(FarmMethod.DistributeTokenPerBlock, new Empty());
+            return CallViewMethod<BigIntValue>(FarmTwoMethod.DistributeTokenPerBlock, new Empty());
         }
 
         public TransactionResultDto Add(long allocpoint, string lptoken, bool withupdate)
         {
-            var result = ExecuteMethodWithResult(FarmMethod.Add, new AddInput{
+            var result = ExecuteMethodWithResult(FarmTwoMethod.Add, new AddInput{
                 AllocPoint = allocpoint,
                 LpToken = lptoken,
                 WithUpdate = withupdate
@@ -119,7 +119,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto Set(int pid, long allocpoint, BigIntValue newperblock, bool withupdate)
         {
-            var result = ExecuteMethodWithResult(FarmMethod.Set, new SetInput
+            var result = ExecuteMethodWithResult(FarmTwoMethod.Set, new SetInput
             {
                 Pid = pid,
                 AllocPoint = allocpoint,
@@ -131,7 +131,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto Deposit(int pid, BigIntValue amount)
         {
-            var result = ExecuteMethodWithResult(FarmMethod.Deposit, new DepositInput
+            var result = ExecuteMethodWithResult(FarmTwoMethod.Deposit, new DepositInput
             {
                 Pid = pid,
                 Amount = amount
@@ -142,7 +142,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto Redeposit(int amount, Address user)
         {
-            var result = ExecuteMethodWithResult(FarmMethod.ReDeposit, new ReDepositInput
+            var result = ExecuteMethodWithResult(FarmTwoMethod.ReDeposit, new ReDepositInput
             {
                 Amount = amount,
                 User = user
@@ -152,12 +152,12 @@ namespace AElfChain.Common.Contracts
 
         public BigIntValue IssuedReward()
         {
-            return CallViewMethod<BigIntValue>(FarmMethod.IssuedReward, new Empty());
+            return CallViewMethod<BigIntValue>(FarmTwoMethod.IssuedReward, new Empty());
         }
         
         public BigIntValue PendingAmount(int pid, Address user)
         {
-            return CallViewMethod<BigIntValue>(FarmMethod.Pending, new PendingInput
+            return CallViewMethod<BigIntValue>(FarmTwoMethod.Pending, new PendingInput
             {
                 Pid = pid,
                 User = user
@@ -166,17 +166,17 @@ namespace AElfChain.Common.Contracts
 
         public Int64Value EndBlock()
         {
-            return CallViewMethod<Int64Value>(FarmMethod.EndBlock, new Empty());
+            return CallViewMethod<Int64Value>(FarmTwoMethod.EndBlock, new Empty());
         }
 
         public BigIntValue TotalReward()
         {
-            return CallViewMethod<BigIntValue>(FarmMethod.TotalReward, new Empty());
+            return CallViewMethod<BigIntValue>(FarmTwoMethod.TotalReward, new Empty());
         }
 
         public TransactionResultDto Withdraw(int pid, BigIntValue amount)
         {
-            var result = ExecuteMethodWithResult(FarmMethod.Withdraw, new WithdrawInput
+            var result = ExecuteMethodWithResult(FarmTwoMethod.Withdraw, new WithdrawInput
             {
                 Pid = pid,
                 Amount = amount
@@ -186,17 +186,17 @@ namespace AElfChain.Common.Contracts
 
         public Int64Value TotalAllocPoint()
         {
-            return CallViewMethod<Int64Value>(FarmMethod.TotalAllocPoint, new Empty());
+            return CallViewMethod<Int64Value>(FarmTwoMethod.TotalAllocPoint, new Empty());
         }
 
         public BigIntValue Reward(Int64Value block)
         {
-            return CallViewMethod<BigIntValue>(FarmMethod.Reward, new Int64Value(block));
+            return CallViewMethod<BigIntValue>(FarmTwoMethod.Reward, new Int64Value(block));
         }
 
         public TransactionResultDto FixEndBlock(bool input)
         {
-            return ExecuteMethodWithResult(FarmMethod.FixEndBlock, new BoolValue
+            return ExecuteMethodWithResult(FarmTwoMethod.FixEndBlock, new BoolValue
             {
                 Value = input
             });
@@ -204,7 +204,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto SetDistributeTokenPerBlock(long input)
         {
-            return ExecuteMethodWithResult(FarmMethod.SetDistributeTokenPerBlock, new Int64Value
+            return ExecuteMethodWithResult(FarmTwoMethod.SetDistributeTokenPerBlock, new Int64Value
             {
                 Value = input
             });
@@ -212,7 +212,7 @@ namespace AElfChain.Common.Contracts
         
         public TransactionResultDto SetHalvingPeriod(long input)
         {
-            return ExecuteMethodWithResult(FarmMethod.SetHalvingPeriod, new Int64Value
+            return ExecuteMethodWithResult(FarmTwoMethod.SetHalvingPeriod, new Int64Value
             {
                 Value = input
             });
@@ -220,17 +220,17 @@ namespace AElfChain.Common.Contracts
 
         public Address FarmPoolOne()
         {
-            return CallViewMethod<Address>(FarmMethod.FarmPoolOne, new Empty());
+            return CallViewMethod<Address>(FarmTwoMethod.FarmPoolOne, new Empty());
         }
 
         public TransactionResultDto SetFarmPoolOne(Address input)
         {
-            return ExecuteMethodWithResult(FarmMethod.SetFarmPoolOne, new Address(input));
+            return ExecuteMethodWithResult(FarmTwoMethod.SetFarmPoolOne, new Address(input));
         }
 
         public PendingOutput GetPendingTest(int pid, string user)
         {
-            return CallViewMethod<PendingOutput>(FarmMethod.PendingTest, new PendingInput
+            return CallViewMethod<PendingOutput>(FarmTwoMethod.PendingTest, new PendingInput
             {
                 Pid = pid,
                 User = user.ConvertAddress()
