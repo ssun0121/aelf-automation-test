@@ -31,15 +31,25 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private AwakenFarmContract _awakenFarmContract;
         private ILog Logger { get; set; }
         private INodeManager NodeManager { get; set; }
-        private string tokenAddress = "2nyC8hqq3pGnRu8gJzCsTaxXB6snfGxmL2viimKXgEfYWGtjEh";
-        private string swapAddress = "2u6Dd139bHvZJdZ835XnNKL5y6cxqzV9PEWD5fZdQXdFZLgevc";
-        private string farmAddress = "DHo2K7oUXXq3kJRs1JpuwqBJP56gqoaeSKFfuvr9x8svf3vEJ";
-        private string farmTwoAddress = "2hqsqJndRAZGzk96fsEvyuVBTAvoBjcuwTjkuyJffBPueJFrLa";
+        private string tokenAddress = "URyXBKB47QXW8TAXqJBGVt9edz2Ev5QzR6T2V6YV1hn14mVPp";
+        private string swapAddress = "iUY5CLwzU8L8vjVgH95vx3ZRuvD5d9hVK3EdPMVD8v9EaQT75";
+        private string farmAddress = "62j1oMP2D8y4f6YHHL9WyhdtcFiLhMtrs7tBqXkMwJudz9AY5";
+        private string farmTwoAddress = "2X5xuMq5fmjQ4NgYS2kH97xUVxSCXgop4mJvvRonTCyxwMcjfu";
+
+        //ZsRNtZxq6hjkHkCRBYtAMfe1APBxdcY6rhmtQLSGeSpmNTfkf -- 0 
+        //YjyjN2aEH8Fc1FJa6AHB2dfyN6wQZzGcFU5XA8Sp7Mjzr4CPu -- 0 after start block
+        //yLYKdPpCzSew2THWYYh6xSGzxpRAPTCwMWh5iE7xUTFMpzvie -- 1
+        //Xer4r1PaMe4MxbVdYPoNWpjuaWfM9pPoF5XLBdrtb2wBMjGxd -- 1 after start block
+        //Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx -- 2 d w
+        //TfPAEeWTwiKduo2dV3Sx3zfvvkFNGwoAirZvmqTymbcw9EvKv -- 3
+        //tb4qsxbzi4HLwSS4PM19yF89ww4nA1ELJXHP1mXB4ZPnNjCYc -- 3 after start block
+        //SPQ1XPea4rT7H93oj2dMqV1YyAiqH4QLZqBQQirWNe3EvsVKi --4 
+        //sjzNpr5bku3ZyvMqQrXeBkXGEvG2CTLA2cuNDfcDMaPTTAqEy --4 after start block
         private string InitAccount { get; } = "J6zgLjGwd1bxTBpULLXrGVeV74tnS2n74FFJJz7KNdjTYkDF6";
         private string ToolAddress { get; } = "J6zgLjGwd1bxTBpULLXrGVeV74tnS2n74FFJJz7KNdjTYkDF6";
         private string AdminAddress { get; } = "yy71DP4pMvGAqnohHPJ3rzmxoi1qxHk4uXg8kdRvgXjnYcE1G";
-        private string TestAddress { get; } = "ZgM2YJtoLQNLqCTAFHwzu7bo77sk6NGuvVaq6ccCHxQkknhpD";
-        private static string RpcUrl { get; } = "http://192.168.67.166:8000";
+        private string TestAddress { get; } = "Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx";
+        private static string RpcUrl { get; } = "http://192.168.66.9:8000";
         private const long Digits = 1_00000000;
         private const string Multiplier = "1000000000000";
         private const long Block0 = 10000;
@@ -202,6 +212,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var originUserDistributeBalance = _tokenContract.GetUserBalance(depositAddress, DistributeToken);
             var originContractDistributeBalance =
                 _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, DistributeToken);
+            var originUserUsdtBalance = _tokenContract.GetUserBalance(depositAddress, NewRewardToken);
+            var originContractUsdtBalance =
+                _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, NewRewardToken);
             var originPending = _awakenFarmContract.Pending(pid, depositAddress);
 
             ApproveLpToken(symbol, amount, _awakenFarmContract.ContractAddress, depositAddress);
@@ -234,6 +247,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var afterUserDistributeBalance = _tokenContract.GetUserBalance(depositAddress, DistributeToken);
             var afterContractDistributeBalance =
                 _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, DistributeToken);
+            var afterUserUsdtBalance = _tokenContract.GetUserBalance(depositAddress, NewRewardToken);
+            var afterContractUsdtBalance =
+                _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, NewRewardToken);
 
             var afterPoolInfo = CheckPoolInfo(pid);
             // 在startBlock之前进行抵押，LastRewardBlock == startBlock
@@ -304,11 +320,34 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     userReward.Add(claimReward).ShouldBe(claimInfo.Amount);
                     claimInfo.Amount.ShouldBe(afterUserInfo.ClaimedAmount.Sub(originUserInfo.ClaimedAmount));
                     Logger.Info($"Claim amount: {claimInfo.Amount}");
-                    claimInfo.Token.ShouldBe(DistributeToken);
+                    claimInfo.TokenType.ShouldBe(0);
 
-                    afterUserDistributeBalance.ShouldBe(originUserDistributeBalance.Add(claimInfo.Amount));
-                    afterContractDistributeBalance.ShouldBe(originContractDistributeBalance.Sub(claimInfo.Amount)
+                    afterUserDistributeBalance.ShouldBe(
+                        originUserDistributeBalance.Add(long.Parse(claimInfo.Amount.Value)));
+                    afterContractDistributeBalance.ShouldBe(originContractDistributeBalance
+                        .Sub(long.Parse(claimInfo.Amount.Value))
                         .Add(total));
+                }
+
+                if (originPending.UsdtAmount > 0)
+                {
+                    var claimLogDto = depositResult.Logs.Last(l => l.Name.Equals("ClaimRevenue"));
+                    foreach (var l in claimLogDto.Indexed)
+                    {
+                        var d = ClaimRevenue.Parser.ParseFrom(ByteString.FromBase64(l));
+                        if (d.User != null)
+                            d.User.ShouldBe(depositAddress.ConvertAddress());
+                        else
+                            d.Pid.ShouldBe(pid);
+                    }
+
+                    var claimInfo = ClaimRevenue.Parser.ParseFrom(ByteString.FromBase64(claimLogDto.NonIndexed));
+                    Logger.Info($"Usdt claim amount: {claimInfo.Amount}");
+                    claimInfo.TokenType.ShouldBe(1);
+
+                    afterUserUsdtBalance.ShouldBe(originUserUsdtBalance.Add(long.Parse(claimInfo.Amount.Value)));
+                    afterContractUsdtBalance.ShouldBe(
+                        originContractUsdtBalance.Sub(long.Parse(claimInfo.Amount.Value)));
                 }
 
                 afterTokenInfo.Issued.ShouldBe(originTokenInfo.Issued.Add(total));
@@ -332,8 +371,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow(0, 0)]
-        [DataRow(1, 0)]
         [DataRow(2, 0)]
         public void WithdrawTest(int pid, long firstDepositHeight)
         {
@@ -424,11 +461,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     claimInfo.Amount.ShouldBe(afterUserInfo.ClaimedAmount.Sub(originUserInfo.ClaimedAmount));
                     Logger.Info($"Claim amount: {claimInfo.Amount}");
                     Logger.Info($"Except claim amount: {userReward.Add(claimReward)}");
-                    claimInfo.Token.ShouldBe(DistributeToken);
+                    claimInfo.TokenType.ShouldBe(0);
 
-                    afterUserDistributeBalance.ShouldBe(originUserDistributeBalance.Add(claimInfo.Amount));
-                    afterContractDistributeBalance.ShouldBe(originContractDistributeBalance.Sub(claimInfo.Amount)
-                    .Add(total));
+                    afterUserDistributeBalance.ShouldBe(
+                        originUserDistributeBalance.Add(long.Parse(claimInfo.Amount.Value)));
+                    afterContractDistributeBalance.ShouldBe(originContractDistributeBalance
+                        .Sub(long.Parse(claimInfo.Amount.Value))
+                        .Add(total));
                 }
 
                 if (originPending.UsdtAmount > 0)
@@ -445,10 +484,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
                     var claimInfo = ClaimRevenue.Parser.ParseFrom(ByteString.FromBase64(claimLogDto.NonIndexed));
                     Logger.Info($"Usdt claim amount: {claimInfo.Amount}");
-                    claimInfo.Token.ShouldBe(NewRewardToken);
+                    claimInfo.TokenType.ShouldBe(1);
 
-                    afterUserUsdtBalance.ShouldBe(originUserUsdtBalance.Add(claimInfo.Amount));
-                    afterContractUsdtBalance.ShouldBe(originContractUsdtBalance.Sub(claimInfo.Amount));
+                    afterUserUsdtBalance.ShouldBe(originUserUsdtBalance.Add(long.Parse(claimInfo.Amount.Value)));
+                    afterContractUsdtBalance.ShouldBe(
+                        originContractUsdtBalance.Sub(long.Parse(claimInfo.Amount.Value)));
                 }
 
                 afterTokenInfo.Issued.ShouldBe(originTokenInfo.Issued.Add(total));
@@ -461,7 +501,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             }
 
             afterPoolInfo.LastRewardBlock.ShouldBe(
-                originPoolInfo.LastRewardBlock >= withdrawResult.BlockNumber || originPoolInfo.LastRewardBlock > endBlock
+                originPoolInfo.LastRewardBlock >= withdrawResult.BlockNumber ||
+                originPoolInfo.LastRewardBlock > endBlock
                     ? originPoolInfo.LastRewardBlock
                     : withdrawResult.BlockNumber);
             afterUserInfo.LastRewardBlock.ShouldBe(originPoolInfo.LastRewardBlock >= withdrawResult.BlockNumber
@@ -486,6 +527,218 @@ namespace AElf.Automation.Contracts.ScenarioTest
                         $"{afterContractDistributeBalance}\n" +
                         $"change: {originContractDistributeBalance - afterContractDistributeBalance}");
         }
+
+
+        [TestMethod]
+        [DataRow(4, 100000000)]
+        public void TwoUserDeposit(int pid, long amount)
+        {
+            var user = "sjzNpr5bku3ZyvMqQrXeBkXGEvG2CTLA2cuNDfcDMaPTTAqEy";
+            var depositAddress = "SPQ1XPea4rT7H93oj2dMqV1YyAiqH4QLZqBQQirWNe3EvsVKi";
+
+            var originDepositUserInfo = _awakenFarmContract.GetUserInfo(pid, depositAddress);
+            var userInfo = _awakenFarmContract.GetUserInfo(pid, user);
+            var originPoolInfo = CheckPoolInfo(pid);
+            var symbol = originPoolInfo.LpToken;
+            var originTokenInfo = _tokenContract.GetTokenInfo(DistributeToken);
+            var issuedReward = _awakenFarmContract.GetIssuedReward();
+            var originUserBalance = _awakenTokenContract.GetBalance(symbol, depositAddress.ConvertAddress());
+            var originContractBalance = _awakenTokenContract.GetBalance(symbol, _awakenFarmContract.Contract);
+            var originUserDistributeBalance = _tokenContract.GetUserBalance(depositAddress, DistributeToken);
+            var originContractDistributeBalance =
+                _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, DistributeToken);
+            var originPending = _awakenFarmContract.Pending(pid, depositAddress);
+
+            ApproveLpToken(symbol, amount, _awakenFarmContract.ContractAddress, depositAddress);
+            var pending = _awakenFarmContract.Pending(pid, depositAddress);
+            Logger.Info($"Pending: {pending}");
+            var lockPending = _awakenFarmContract.PendingLockDistributeToken(pid, depositAddress);
+            Logger.Info($"PendingLock: {lockPending}");
+
+            var depositResult = _awakenFarmContract.Deposit(pid, amount, depositAddress);
+            depositResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            Logger.Info(depositResult.BlockNumber);
+            var depositLogs = depositResult.Logs.First(l => l.Name.Equals("Deposit"));
+            foreach (var l in depositLogs.Indexed)
+            {
+                var d = Deposit.Parser.ParseFrom(ByteString.FromBase64(l));
+                if (d.User != null)
+                    d.User.ShouldBe(depositAddress.ConvertAddress());
+                else
+                    d.Pid.ShouldBe(pid);
+            }
+
+            var depositAmount = Deposit.Parser.ParseFrom(ByteString.FromBase64(depositLogs.NonIndexed)).Amount;
+            depositAmount.ShouldBe(amount);
+
+            var afterTokenInfo = _tokenContract.GetTokenInfo(DistributeToken);
+            var afterIssuedReward = _awakenFarmContract.GetIssuedReward();
+            var afterDepositUserInfo = _awakenFarmContract.GetUserInfo(pid, depositAddress);
+            var afterUserBalance = _awakenTokenContract.GetBalance(symbol, depositAddress.ConvertAddress());
+            var afterContractBalance = _awakenTokenContract.GetBalance(symbol, _awakenFarmContract.Contract);
+            var afterUserDistributeBalance = _tokenContract.GetUserBalance(depositAddress, DistributeToken);
+            var afterContractDistributeBalance =
+                _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, DistributeToken);
+
+            // change the share
+            if (userInfo.LastRewardBlock > originDepositUserInfo.LastRewardBlock)
+            {
+                var total = CheckTwoUsersReward(
+                    out var userReward,
+                    out var userLockReward,
+                    out var currentPeriodBlockUserLockReward,
+                    out var lastRewardHeight,
+                    userInfo, originDepositUserInfo, afterDepositUserInfo, originPoolInfo);
+                var stillLockReward = GetUserLockReward(out var claimReward, originDepositUserInfo.LastRewardBlock,
+                    lastRewardHeight, depositResult.BlockNumber, currentPeriodBlockUserLockReward);
+                // stillLockReward.ShouldBe(afterDepositUserInfo.LockPending);
+                
+                Logger.Info($"\n UserReward: {userReward}\n " +
+                            $"UserLockReward: {currentPeriodBlockUserLockReward}\n " +
+                            $"StillLockReward: {stillLockReward}\n " +
+                            $"ClaimLockAmount: {claimReward}\n" +
+                            $"LockePending: {afterDepositUserInfo.LockPending}\n" +
+                            $"Total: {total}");
+
+                if (originPending.DistributeTokenAmount > 0)
+                {
+                    var claimLogDto = depositResult.Logs.First(l => l.Name.Equals("ClaimRevenue"));
+                    foreach (var l in claimLogDto.Indexed)
+                    {
+                        var d = ClaimRevenue.Parser.ParseFrom(ByteString.FromBase64(l));
+                        if (d.User != null)
+                            d.User.ShouldBe(depositAddress.ConvertAddress());
+                        else
+                            d.Pid.ShouldBe(pid);
+                    }
+
+                    var claimInfo = ClaimRevenue.Parser.ParseFrom(ByteString.FromBase64(claimLogDto.NonIndexed));
+                    userReward.Add(claimReward).ShouldBe(claimInfo.Amount);
+                    claimInfo.Amount.ShouldBe(
+                        afterDepositUserInfo.ClaimedAmount.Sub(originDepositUserInfo.ClaimedAmount));
+                    Logger.Info($"Claim amount: {claimInfo.Amount}");
+                    claimInfo.TokenType.ShouldBe(0);
+
+                    afterUserDistributeBalance.ShouldBe(
+                        originUserDistributeBalance.Add(long.Parse(claimInfo.Amount.Value)));
+                    afterContractDistributeBalance.ShouldBe(originContractDistributeBalance
+                        .Sub(long.Parse(claimInfo.Amount.Value))
+                        .Add(total));
+                }
+
+                afterTokenInfo.Issued.ShouldBe(originTokenInfo.Issued.Add(total));
+                afterIssuedReward.ShouldBe(issuedReward.Add(total));
+                var updatePoolLogDto = depositResult.Logs.First(l => l.Name.Equals("UpdatePool"));
+                var updateInfo = UpdatePool.Parser.ParseFrom(ByteString.FromBase64(updatePoolLogDto.NonIndexed));
+                updateInfo.Pid.ShouldBe(pid);
+                updateInfo.DistributeTokenAmount.ShouldBe(total);
+                updateInfo.UpdateBlockHeight.ShouldBe(depositResult.BlockNumber);
+            }
+
+            afterUserBalance.Amount.ShouldBe(originUserBalance.Amount.Sub(amount));
+            afterContractBalance.Amount.ShouldBe(originContractBalance.Amount.Add(amount));
+        }
+
+        [TestMethod]
+        [DataRow(1710202, 100000000, 2, 100000000)]
+        public void DepositAndWithdrawAllOnConcentrated(long firstDepositHeight, long userAmount, int pid, long amount)
+        {
+            //deposit in continue period
+            var depositAddress = "Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx";
+            var originDepositUserInfo = _awakenFarmContract.GetUserInfo(pid, depositAddress);
+            var originPoolInfo = CheckPoolInfo(pid);
+            var symbol = originPoolInfo.LpToken;
+            var originTokenInfo = _tokenContract.GetTokenInfo(DistributeToken);
+            var issuedReward = _awakenFarmContract.GetIssuedReward();
+            var originUserBalance = _awakenTokenContract.GetBalance(symbol, depositAddress.ConvertAddress());
+            var originContractBalance = _awakenTokenContract.GetBalance(symbol, _awakenFarmContract.Contract);
+            var originUserDistributeBalance = _tokenContract.GetUserBalance(depositAddress, DistributeToken);
+            var originContractDistributeBalance =
+                _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, DistributeToken);
+            var originPending = _awakenFarmContract.Pending(pid, depositAddress);
+
+            ApproveLpToken(symbol, amount, _awakenFarmContract.ContractAddress, depositAddress);
+            var pending = _awakenFarmContract.Pending(pid, depositAddress);
+            Logger.Info($"Pending: {pending}");
+            var lockPending = _awakenFarmContract.PendingLockDistributeToken(pid, depositAddress);
+            Logger.Info($"PendingLock: {lockPending}");
+
+            var depositResult = _awakenFarmContract.Deposit(pid, amount, depositAddress);
+            depositResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            Logger.Info(depositResult.BlockNumber);
+            var depositLogs = depositResult.Logs.First(l => l.Name.Equals("Deposit"));
+            foreach (var l in depositLogs.Indexed)
+            {
+                var d = Deposit.Parser.ParseFrom(ByteString.FromBase64(l));
+                if (d.User != null)
+                    d.User.ShouldBe(depositAddress.ConvertAddress());
+                else
+                    d.Pid.ShouldBe(pid);
+            }
+
+            var depositAmount = Deposit.Parser.ParseFrom(ByteString.FromBase64(depositLogs.NonIndexed)).Amount;
+            depositAmount.ShouldBe(amount);
+
+            var afterDepositUserInfo = _awakenFarmContract.GetUserInfo(pid, depositAddress);
+            var afterTokenInfo = _tokenContract.GetTokenInfo(DistributeToken);
+            var afterIssuedReward = _awakenFarmContract.GetIssuedReward();
+            var afterUserBalance = _awakenTokenContract.GetBalance(symbol, depositAddress.ConvertAddress());
+            var afterContractBalance = _awakenTokenContract.GetBalance(symbol, _awakenFarmContract.Contract);
+            var afterUserDistributeBalance = _tokenContract.GetUserBalance(depositAddress, DistributeToken);
+            var afterContractDistributeBalance =
+                _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, DistributeToken);
+
+            var reward = CheckReward(firstDepositHeight, originDepositUserInfo.LastRewardBlock);
+            var all = _awakenFarmContract.GetTotalAllocPoint();
+            var poolLockReward = new BigIntValue(reward["CurrentPeriodBlockLockReward"]).Mul(originPoolInfo.AllocPoint)
+                .Div(all);
+            var userLockReward = new BigIntValue(poolLockReward).Mul(userAmount)
+                .Div(originPoolInfo.TotalAmount.Add(userAmount));
+            var stillLockReward = GetUserLockReward(out var claimReward, originDepositUserInfo.LastRewardBlock,
+                originDepositUserInfo.LastRewardBlock, depositResult.BlockNumber, userLockReward);
+            stillLockReward.ShouldBe(afterDepositUserInfo.LockPending);
+
+            Logger.Info($"UserLockReward: {userLockReward}\n " +
+                        $"StillLockReward: {stillLockReward}\n " +
+                        $"ClaimLockAmount: {claimReward}\n" +
+                        $"LockePending: {afterDepositUserInfo.LockPending}");
+
+            if (originPending.DistributeTokenAmount > 0)
+            {
+                var claimLogDto = depositResult.Logs.First(l => l.Name.Equals("ClaimRevenue"));
+                foreach (var l in claimLogDto.Indexed)
+                {
+                    var d = ClaimRevenue.Parser.ParseFrom(ByteString.FromBase64(l));
+                    if (d.User != null)
+                        d.User.ShouldBe(depositAddress.ConvertAddress());
+                    else
+                        d.Pid.ShouldBe(pid);
+                }
+
+                var claimInfo = ClaimRevenue.Parser.ParseFrom(ByteString.FromBase64(claimLogDto.NonIndexed));
+                claimReward.ShouldBe(claimInfo.Amount);
+                claimInfo.Amount.ShouldBe(afterDepositUserInfo.ClaimedAmount.Sub(originDepositUserInfo.ClaimedAmount));
+                Logger.Info($"Claim amount: {claimInfo.Amount}");
+                claimInfo.TokenType.ShouldBe(0);
+
+                afterUserDistributeBalance.ShouldBe(
+                    originUserDistributeBalance.Add(long.Parse(claimInfo.Amount.Value)));
+                Logger.Info(afterContractDistributeBalance);
+                Logger.Info(originContractDistributeBalance);
+            }
+
+            afterTokenInfo.Issued.ShouldBe(originTokenInfo.Issued);
+            afterIssuedReward.ShouldBe(issuedReward);
+            var updatePoolLogDto = depositResult.Logs.First(l => l.Name.Equals("UpdatePool"));
+            var updateInfo = UpdatePool.Parser.ParseFrom(ByteString.FromBase64(updatePoolLogDto.NonIndexed));
+            updateInfo.Pid.ShouldBe(pid);
+            updateInfo.UpdateBlockHeight.ShouldBe(depositResult.BlockNumber);
+            Logger.Info(updateInfo.DistributeTokenAmount);
+
+            afterUserBalance.Amount.ShouldBe(originUserBalance.Amount.Sub(amount));
+            afterContractBalance.Amount.ShouldBe(originContractBalance.Amount.Add(amount));
+        }
+
 
         [TestMethod]
         [DataRow(1)]
@@ -550,7 +803,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             afterRedepositAmount.ShouldBe(getRedepositAmount.Add(amount));
         }
 
-
         [TestMethod]
         public void NewReward()
         {
@@ -595,14 +847,40 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void FixEndBlock()
         {
+            var startBlock = _awakenFarmContract.GetStartBlockOfDistributeToken();
             var endBlock = _awakenFarmContract.GetEndBlock();
             var currentBlockHeight = AsyncHelper.RunSync(() => NodeManager.ApiClient.GetBlockHeightAsync());
 
+            //change DistributePerBlock
+            var totalReward = _awakenFarmContract.GetTotalReward();
+            var changeBlock = _awakenFarmContract.SetHalvingPeriod(AdminAddress, Block0.Add(400), Block1);
+            changeBlock.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var afterEndBlock = _awakenFarmContract.GetEndBlock();
+            Logger.Info(afterEndBlock);
+            // var changePerBlock = _awakenFarmContract.SetDistributeTokenPerBlock(AdminAddress, PerBlock0, PerBlock1);
+            // changePerBlock.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            // Logger.Info(changeBlock.BlockNumber);
+            // Logger.Info(changePerBlock.BlockNumber);
+
+            Logger.Info(_awakenFarmContract.GetHalvingPeriod0());
+            Logger.Info(_awakenFarmContract.GetHalvingPeriod1());
+            Logger.Info(_awakenFarmContract.GetDistributeTokenPerBlockConcentratedMining());
+            Logger.Info(_awakenFarmContract.GetDistributeTokenPerBlockContinuousMining());
+
+            // var periodInfo = CheckPeriod(change.BlockNumber);
+            var changeBlockHeight = changeBlock.BlockNumber;
+            var issued = _awakenFarmContract.GetIssuedReward();
+            var unReward = totalReward.Sub(issued);
+            CalculatedEndBlock(totalReward, unReward, startBlock, changeBlockHeight, out var calculatedEndBlock);
+            Logger.Info(calculatedEndBlock);
+
             var result = _awakenFarmContract.FixEndBlock(InitAccount, true);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var afterEndBlock = _awakenFarmContract.GetEndBlock();
+            afterEndBlock = _awakenFarmContract.GetEndBlock();
+            Logger.Info(afterEndBlock);
 
-            var exceptEndBlock = currentBlockHeight >= endBlock ? endBlock : 0;
+            var exceptEndBlock = currentBlockHeight >= endBlock ? endBlock : calculatedEndBlock;
             afterEndBlock.ShouldBe(exceptEndBlock);
         }
 
@@ -635,41 +913,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             getCycle.ShouldBe(Cycle);
             getTotalReward.ShouldBe(totalReward);
             endBlock.ShouldBe(startBlock + (Block0 + Block1) * 4);
-        }
-
-        [TestMethod]
-        public void CheckAllPool()
-        {
-            var poolLenght = _awakenFarmContract.GetPoolLength();
-            for (int i = 0; i < poolLenght; i++)
-                CheckPoolInfo(i);
-        }
-
-        [TestMethod]
-        public void CheckPeriod()
-        {
-            var height = AsyncHelper.RunSync(() => NodeManager.ApiClient.GetBlockHeightAsync());
-            // var height = 0;
-            CheckPeriod(height);
-        }
-
-        [TestMethod]
-        public void CheckPending()
-        {
-            var depositAddress = TestAddress;
-            var poolLength = _awakenFarmContract.GetPoolLength();
-            for (var i = 0; i < poolLength; i++)
-            {
-                Logger.Info($"\nPool id: {i}");
-                var pending = _awakenFarmContract.Pending(i, depositAddress);
-                Logger.Info($"\nPending: {pending}");
-                var pendingLock = _awakenFarmContract.PendingLockDistributeToken(i, depositAddress);
-                Logger.Info($"\nPendingLock: {pendingLock}");
-                var userInfo = _awakenFarmContract.GetUserInfo(i, depositAddress);
-                var poolInfo = CheckPoolInfo(i);
-                CheckRewardInfo(out _, out _, out _, out _, userInfo,
-                    poolInfo);
-            }
         }
 
         [TestMethod]
@@ -737,6 +980,121 @@ namespace AElf.Automation.Contracts.ScenarioTest
                         $"{NewRewardToken}: {contractUsdtBalance}");
             Logger.Info(allBalance);
             Logger.Info(allUsdtBalance);
+        }
+
+        [TestMethod]
+        public void CheckAllPool()
+        {
+            var poolLenght = _awakenFarmContract.GetPoolLength();
+            for (int i = 0; i < poolLenght; i++)
+                CheckPoolInfo(i);
+        }
+
+        [TestMethod]
+        public void CheckPeriod()
+        {
+            var height = AsyncHelper.RunSync(() => NodeManager.ApiClient.GetBlockHeightAsync());
+            // var height = 0;
+            CheckPeriod(height);
+        }
+
+        [TestMethod]
+        public void CheckPending()
+        {
+            var depositAddress = TestAddress;
+            var poolLength = _awakenFarmContract.GetPoolLength();
+            for (var i = 0; i < poolLength; i++)
+            {
+                Logger.Info($"\nPool id: {i}");
+                var pending = _awakenFarmContract.Pending(i, depositAddress);
+                Logger.Info($"\nPending: {pending}");
+                var pendingLock = _awakenFarmContract.PendingLockDistributeToken(i, depositAddress);
+                Logger.Info($"\nPendingLock: {pendingLock}");
+                var userInfo = _awakenFarmContract.GetUserInfo(i, depositAddress);
+                var poolInfo = CheckPoolInfo(i);
+                CheckRewardInfo(out _, out _, out _, out _, userInfo,
+                    poolInfo);
+            }
+        }
+
+        //depositHeight > userDepositHeight > originDepositHeight
+        private long CheckTwoUsersReward(out BigIntValue userReward,
+            out BigIntValue userLockReward,
+            out BigIntValue currentPeriodBlockUserLockReward,
+            out long lastRewardHeight,
+            UserInfo userInfo,
+            UserInfo originDepositInfo,
+            UserInfo currentDepositInfo,
+            PoolInfo poolInfo)
+        {
+            if (poolInfo.TotalAmount.Equals(0))
+            {
+                userReward = 0;
+                userLockReward = 0;
+                currentPeriodBlockUserLockReward = 0;
+                lastRewardHeight = originDepositInfo.LastRewardBlock;
+                return 0;
+            }
+
+            var checkRewardFirst = CheckReward(originDepositInfo.LastRewardBlock,
+                userInfo.LastRewardBlock); //用户上一次抵押高度到另一个用户抵押的高度
+            var checkRewardSecond = CheckReward(userInfo.LastRewardBlock,
+                currentDepositInfo.LastRewardBlock); //另一个用户抵押的高度到用户这次抵押的高度
+
+            var point = poolInfo.AllocPoint;
+            var all = _awakenFarmContract.GetTotalAllocPoint();
+
+            var poolBlockRewardFirst = checkRewardFirst["BlockReward"].Mul(point).Div(all);
+            var previousPoolBlockLockRewardFirst =
+                checkRewardFirst["PreviousPeriodBlockLockReward"].Mul(point).Div(all);
+            var poolLockRewardFirst = checkRewardFirst["BlockLockReward"].Mul(point).Div(all);
+            var currentPeriodBlockLockRewardFirst =
+                checkRewardFirst["CurrentPeriodBlockLockReward"].Mul(point).Div(all);
+
+            var poolBlockRewardSecond = checkRewardSecond["BlockReward"].Mul(point).Div(all);
+            var previousPoolBlockLockRewardSecond =
+                checkRewardSecond["PreviousPeriodBlockLockReward"].Mul(point).Div(all);
+            var poolLockRewardSecond = checkRewardSecond["BlockLockReward"].Mul(point).Div(all);
+            var currentPeriodBlockLockRewardSecond =
+                checkRewardSecond["CurrentPeriodBlockLockReward"].Mul(point).Div(all);
+
+            var total = userInfo.LastRewardBlock > checkRewardSecond["SwitchBlock"]
+                ? poolBlockRewardFirst.Add(poolBlockRewardSecond).Add(poolLockRewardFirst)
+                : poolBlockRewardFirst.Add(poolBlockRewardSecond).Add(poolLockRewardFirst)
+                    .Add(currentPeriodBlockLockRewardSecond);
+            var currentPeriodBlockUserLockRewardFirst = new BigIntValue(currentPeriodBlockLockRewardFirst)
+                .Mul(originDepositInfo.Amount)
+                .Div(poolInfo.TotalAmount.Sub(userInfo.Amount));
+            var userRewardFirst = new BigIntValue(poolBlockRewardFirst.Add(previousPoolBlockLockRewardFirst))
+                .Mul(originDepositInfo.Amount)
+                .Div(poolInfo.TotalAmount.Sub(userInfo.Amount));
+            var userLockRewardFirst = new BigIntValue(poolLockRewardFirst)
+                .Mul(originDepositInfo.Amount).Div(poolInfo.TotalAmount.Sub(userInfo.Amount));
+
+            var currentPeriodBlockUserLockRewardSecond = new BigIntValue(currentPeriodBlockLockRewardSecond)
+                .Mul(originDepositInfo.Amount)
+                .Div(poolInfo.TotalAmount);
+            var userRewardSecond = new BigIntValue(poolBlockRewardSecond.Add(previousPoolBlockLockRewardSecond))
+                .Mul(originDepositInfo.Amount)
+                .Div(poolInfo.TotalAmount);
+            var userLockRewardSecond = userInfo.LastRewardBlock > checkRewardSecond["SwitchBlock"]
+                ? 0
+                : new BigIntValue(poolLockRewardSecond)
+                    .Mul(originDepositInfo.Amount).Div(poolInfo.TotalAmount);
+
+            userReward = userRewardFirst.Add(userRewardSecond);
+            userLockReward = userLockRewardFirst.Add(userLockRewardSecond);
+            currentPeriodBlockUserLockReward =
+                currentPeriodBlockUserLockRewardFirst.Add(currentPeriodBlockUserLockRewardSecond);
+            lastRewardHeight = checkRewardSecond["LastRewardBlock"];
+
+            Logger.Info($"\nPoolBlackReward: {poolBlockRewardFirst.Add(poolBlockRewardSecond)}\n" +
+                        $"PoolLockReward: {poolLockRewardFirst.Add(poolLockRewardSecond)}\n" +
+                        $"TotalReward: {total}\n" +
+                        $"UserReward: {userReward}\n" +
+                        $"UserLockReward: {userLockReward}\n" +
+                        $"UserCurrentPeriodLockReward: {currentPeriodBlockUserLockReward}");
+            return total;
         }
 
         private long CheckRewardInfo(out BigIntValue userReward, out BigIntValue userLockReward,
@@ -858,6 +1216,110 @@ namespace AElf.Automation.Contracts.ScenarioTest
             return periodInfo;
         }
 
+        private void CalculatedEndBlock(long total, long reward, long startBlock, long changeBlock, out long endBlock)
+        {
+            
+            var begin = reward.Equals(total) ? startBlock : Math.Max(changeBlock, startBlock);
+            var block0 = _awakenFarmContract.GetHalvingPeriod0();
+            var block1 = _awakenFarmContract.GetHalvingPeriod1();
+            var perBlock0 = _awakenFarmContract.GetDistributeTokenPerBlockConcentratedMining();
+            var perBlock1 = _awakenFarmContract.GetDistributeTokenPerBlockContinuousMining();
+            endBlock = 0;
+            //确定当前所在期
+            var phase = Phase(begin);
+            //在startBlock之前做更改，或者没有抵押
+            if (phase == 0 && changeBlock <= startBlock)
+            {
+                while (reward > 0)
+                {
+                    _CalculatedEndBlock(
+                        out var rewardRest, out endBlock, 
+                        reward, block0, block1, perBlock0, perBlock1, begin);
+                    begin = endBlock;
+                    reward = rewardRest;
+                }
+            }
+            //在startBlock之后做更改
+            else
+            {
+                while (reward > 0)
+                {
+                    _CalculatedEndBlock(
+                        out var rewardRest, out endBlock, 
+                        reward, block0, block1, perBlock0, perBlock1, begin, startBlock);
+                    begin = endBlock;
+                    reward = rewardRest;
+                }
+            }
+        }
+
+        private void _CalculatedEndBlock(
+            out long rewardRest, out long blockEnd, long reward, 
+            long block0, long block1, long perBlock0, long perBlock1, long begin)
+        {
+            var phase = Phase(begin);
+            var halfLevel = (2 << Convert.ToInt32(phase)).Div(2);
+            var currentPeriodReward = block0.Mul(perBlock0.Div(halfLevel)).Add(block1.Mul(perBlock1.Div(halfLevel)));
+            if (currentPeriodReward < reward)
+            {
+                rewardRest = reward.Sub(currentPeriodReward);
+                blockEnd = begin.Add(block0.Add(block1));
+                return;
+            }
+
+            var switchBlock = begin.Add(block0);
+            var period0Reward = block0.Mul(perBlock0.Div(halfLevel));
+            var endBlock = reward > period0Reward ? switchBlock : 0;
+            blockEnd = endBlock != 0
+                ? reward.Sub(period0Reward).Div(perBlock1.Div(halfLevel)).Add(begin.Add(block0))
+                : reward.Div(perBlock0.Div(halfLevel)).Add(begin);
+            rewardRest = 0;
+        }
+        
+        private void _CalculatedEndBlock(
+            out long rewardRest, out long blockEnd, long reward, 
+            long block0, long block1, long perBlock0, long perBlock1, long begin, long startBlock)
+        {
+            var phase = Phase(begin);
+            var onePeriod = block0.Add(block1);
+            var halfLevel = (2 << Convert.ToInt32(phase)).Div(2);
+            var switchBlock = startBlock.Add(onePeriod.Mul(phase)).Add(block0);
+            if (switchBlock > begin)
+            {
+                var period0Reward = switchBlock.Sub(begin).Mul(perBlock0.Div(halfLevel));
+                if (period0Reward > reward)
+                {
+                    blockEnd = reward.Div(perBlock0.Div(halfLevel)).Add(begin);
+                    rewardRest = 0;
+                    return;
+                }
+
+                var rewardLast = reward.Sub(period0Reward);
+                var period1Reward = block1.Mul(perBlock1.Div(halfLevel));
+                if (period1Reward > rewardLast)
+                {
+                    blockEnd = rewardLast.Div(perBlock1.Div(halfLevel)).Add(switchBlock);
+                    rewardRest = 0;
+                    return;
+                }
+
+                rewardRest = reward.Sub(period0Reward.Add(period1Reward));
+                blockEnd = switchBlock.Add(block1);
+            }
+            else
+            {
+                var period1Reward = switchBlock.Add(block1).Sub(begin).Mul(perBlock1.Div(halfLevel));
+                if (period1Reward > reward)
+                {
+                    blockEnd = reward.Div(perBlock1.Div(halfLevel)).Add(begin);
+                    rewardRest = 0;
+                    return;
+                }
+                rewardRest = reward.Sub(period1Reward);
+                blockEnd = switchBlock.Add(block1);
+            }
+        }
+
         private long CheckUsdtReward(long currentHeight)
         {
             var usdtStartBlock = _awakenFarmContract.GetUsdtStartBlock();
@@ -871,12 +1333,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             return usdtReward;
         }
 
-        private Dictionary<string, long> CheckReward(long lastRewardBlock, long currentHeight,
+        private Dictionary<string, long> CheckReward(long lastRewardBlockHeight, long currentHeight,
             long firstDepositHeight = 0)
         {
             var periodInfo = new Dictionary<string, long>();
             var startBlockHeight = _awakenFarmContract.GetStartBlockOfDistributeToken();
             //确定周期
+            var lastRewardBlock = lastRewardBlockHeight > startBlockHeight ? lastRewardBlockHeight : startBlockHeight;
             var l = Phase(lastRewardBlock);
             var p = Phase(currentHeight) > 3 ? 3 : Phase(currentHeight);
 
@@ -885,13 +1348,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             long allBlockLockReward = 0; //本次高度到开始高度所有集中挖矿收益
             long blockLockReward = 0; //本次高度到上次高度集中挖矿收益/当前期集中挖矿收益
             long previousPeriodBlockLockReward = 0; //上几期集中挖矿收益 --跨期
+            long switchBlock = 0;
 
             //上次抵押/赎回和这次抵押/赎回在同一期
             if (l == p)
             {
                 var halfLevel = (2 << Convert.ToInt32(l)).Div(2);
                 //集中挖矿和持续挖矿的交接
-                var switchBlock = startBlockHeight + Block0 + (Block0 + Block1) * l;
+                switchBlock = startBlockHeight + Block0 + (Block0 + Block1) * l;
                 //当前周期第一个块
                 //如果用户在startBlock开始之后进行抵押
                 var currentPeriodStartBlock = firstDepositHeight < startBlockHeight + (Block0 + Block1) * l
@@ -936,7 +1400,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     var currentEndBlock = (i + 1).Mul(onePeriod).Add(startBlockHeight);
                     var halfLevel = (2 << Convert.ToInt32(i)).Div(2);
                     //每一期的切换阶段的Block
-                    var switchBlock = startBlockHeight + Block0 + (Block0 + Block1) * i;
+                    switchBlock = startBlockHeight + Block0 + (Block0 + Block1) * i;
                     if (i != p)
                     {
                         if (switchBlock > lastRewardBlock)
@@ -980,6 +1444,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
 
             periodInfo["StartHeight"] = startBlockHeight;
+            periodInfo["SwitchBlock"] = switchBlock;
             periodInfo["CurrentHeight"] = currentHeight;
             periodInfo["LastRewardBlock"] = lastRewardBlock;
             periodInfo["CurrentPeriod"] = p;
@@ -1036,8 +1501,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private long Phase(long blockHeight)
         {
             var startBlockHeight = _awakenFarmContract.GetStartBlockOfDistributeToken();
+            var block0 = _awakenFarmContract.GetHalvingPeriod0();
+            var block1 = _awakenFarmContract.GetHalvingPeriod1();
             if (blockHeight <= startBlockHeight) return 0;
-            var p = (blockHeight - startBlockHeight - 1) / (Block0 + Block1);
+            var p = (blockHeight - startBlockHeight) / (block0 + block1);
             return p;
         }
 

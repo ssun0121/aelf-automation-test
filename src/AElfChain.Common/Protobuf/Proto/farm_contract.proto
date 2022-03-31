@@ -237,8 +237,8 @@ message ClaimRevenue{
     option (aelf.is_event) = true;
     aelf.Address user = 1 [(aelf.is_indexed) = true];
     int32 pid = 2 [(aelf.is_indexed) = true];
-    int64 amount = 3;
-    string token = 4;
+    aelf.BigIntValue amount = 3;
+    int64 token_type = 4;
 }
 message WeightSet{
     option (aelf.is_event) = true;
