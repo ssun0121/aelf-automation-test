@@ -35,7 +35,7 @@ namespace AElfChain.Common.Contracts
         GetPagedRankingList,
         GetRoundInfo,
         GetVotingCost,
-        GetGrandsOf,
+        GetGrantsOf,
         GetProjectOf,
         CalculateProjectId,
         GetCurrentRound,
@@ -117,9 +117,9 @@ namespace AElfChain.Common.Contracts
             return ExecuteMethodWithResult(QuadraticFundingMethod.ChangeOwner, address.ConvertAddress());
         }
         
-        public TransactionResultDto UploadProject() 
+        public TransactionResultDto UploadProject(long pid) 
         {
-            return ExecuteMethodWithResult(QuadraticFundingMethod.UploadProject, new Empty());
+            return ExecuteMethodWithResult(QuadraticFundingMethod.UploadProject, new Int64Value{Value = pid});
         }
 
         public TransactionResultDto Donate(long amount)
@@ -161,9 +161,13 @@ namespace AElfChain.Common.Contracts
             });
         }
         
-        public StringValue CalculateProjectId(string address)
+        public StringValue CalculateProjectId(int bid, string address)
         {
-            return CallViewMethod<StringValue>(QuadraticFundingMethod.CalculateProjectId, address.ConvertAddress());
+            return CallViewMethod<StringValue>(QuadraticFundingMethod.CalculateProjectId, new CalculateProjectIdInput
+            {
+                Address = address.ConvertAddress(),
+                Bid = bid
+            });
         }
 
         public Project GetProjectOf(string projectId)
@@ -178,9 +182,9 @@ namespace AElfChain.Common.Contracts
             return list;
         }
 
-        public Grands GetGrandsOf(string projectId)
+        public Grants GetGrantsOf(string projectId)
         {
-            return CallViewMethod<Grands>(QuadraticFundingMethod.GetGrandsOf, new StringValue{Value = projectId});
+            return CallViewMethod<Grants>(QuadraticFundingMethod.GetGrantsOf, new StringValue{Value = projectId});
         }
 
         public RankingList GetRankingList(long round)

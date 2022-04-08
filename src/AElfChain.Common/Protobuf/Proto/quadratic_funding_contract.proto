@@ -40,11 +40,14 @@ service QuadraticFundingContract {
     }
     rpc Withdraw (google.protobuf.Empty) returns (google.protobuf.Empty) {
     }
+    rpc DangerSetTime (DangerSetTimeInput) returns (google.protobuf.Empty) {
+    }
+    // Add DangerSetTime & DangerSetEndTime
 
     // Others.
     rpc Donate (google.protobuf.Int64Value) returns (google.protobuf.Empty) {
     }
-    rpc UploadProject (google.protobuf.Empty) returns (google.protobuf.StringValue) {
+    rpc UploadProject (google.protobuf.Int64Value) returns (google.protobuf.StringValue) {
     }
     rpc Vote (VoteInput) returns (google.protobuf.Empty) {
     }
@@ -66,7 +69,7 @@ service QuadraticFundingContract {
     rpc GetVotingCost (GetVotingCostInput) returns (VotingCost) {
         option (aelf.is_view) = true;
     }
-    rpc GetGrandsOf (google.protobuf.StringValue) returns (Grands) {
+    rpc GetGrantsOf (google.protobuf.StringValue) returns (Grants) {
         option (aelf.is_view) = true;
     }
     rpc GetProjectOf (google.protobuf.StringValue) returns (Project) {
@@ -87,7 +90,10 @@ service QuadraticFundingContract {
     rpc GetVotingUnit (google.protobuf.Empty) returns (google.protobuf.Int64Value) {
         option (aelf.is_view) = true;
     }
-    rpc CalculateProjectId (aelf.Address) returns (google.protobuf.StringValue) {
+    rpc CalculateProjectId (CalculateProjectIdInput) returns (google.protobuf.StringValue) {
+        option (aelf.is_view) = true;
+    }
+    rpc IsProjectBanned (google.protobuf.StringValue) returns (google.protobuf.BoolValue) {
         option (aelf.is_view) = true;
     }
 }
@@ -160,9 +166,19 @@ message VotingCost {
     bool votable = 2;
 }
 
-message Grands {
+message Grants {
     int64 rest = 1;
     int64 total = 2;
+}
+
+message CalculateProjectIdInput {
+    aelf.Address address = 1;
+    int32 bid = 2;
+}
+
+message DangerSetTimeInput {
+    google.protobuf.Timestamp start = 1;
+    google.protobuf.Timestamp end = 2;
 }
 
 // Events
@@ -171,6 +187,7 @@ message ProjectBanned {
     option (aelf.is_event) = true;
     string project = 1;
     bool ban = 2;
+    int64 round = 3;
 }
 
 message TaxPointChanged {
@@ -193,6 +210,10 @@ message Voted {
     aelf.Address account = 1;
     string project = 2;
     int64 vote = 3;
+    int64 round = 4;
+    int64 grants = 5;
+    int64 support_area = 6;
+    int64 cost = 7;
 }
 
 message ProjectUploaded {
@@ -200,4 +221,15 @@ message ProjectUploaded {
     aelf.Address uploader = 1;
     string project_id = 2;
     int64 round = 3;
+}
+
+message SupportUpdated {
+    option (aelf.is_event) = true;
+    int64 support = 1;
+    int64 round = 2;
+}
+
+message RoundStarted {
+    option (aelf.is_event) = true;
+    int64 round = 1;
 }

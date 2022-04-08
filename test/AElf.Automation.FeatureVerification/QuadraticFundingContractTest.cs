@@ -29,14 +29,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private TokenContract _tokenContract;
         private QuadraticFundingContract _quadraticFundingContract;
 
-        //2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ
-        //2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo
-        //sr4zX6E7yVVL7HevExVcWv2ru3HSZakhsJMXfzxzfpnXofnZw
-        //SsSqZWLf7Dk9NWyWyvDwuuY5nzn5n99jiscKZgRPaajZP5p8y
-        private string quadratic = "iUY5CLwzU8L8vjVgH95vx3ZRuvD5d9hVK3EdPMVD8v9EaQT75"; //合约地址
 
-        private string RpcUrl { get; } = "192.168.66.9:8000";
-        private string InitAccount { get; } = "J6zgLjGwd1bxTBpULLXrGVeV74tnS2n74FFJJz7KNdjTYkDF6";
+        private string quadratic = "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG"; //合约地址
+
+        private string RpcUrl { get; } = "192.168.67.166:8000";
+        private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string TestAccount1 { get; } = "2bs2uYMECtHWjB57RqgqQ3X2LrxgptWHtzCqGEU11y45aWimh4";
         private string TestAccount2 { get; } = "tb4qsxbzi4HLwSS4PM19yF89ww4nA1ELJXHP1mXB4ZPnNjCYc";
 
@@ -49,7 +46,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             Log4NetHelper.LogInit("TokenContractTest");
             Logger = Log4NetHelper.GetLogger();
-            NodeInfoHelper.SetConfig("nodes-env2-main");
+            NodeInfoHelper.SetConfig("nodes-new-env-main");
             // NodeInfoHelper.SetConfig("nodes-online-stage-main");
             NodeManager = new NodeManager(RpcUrl);
             AuthorityManager = new AuthorityManager(NodeManager, InitAccount);
@@ -61,9 +58,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
+        public void Transfer()
+        {
+            var account = "RctxRiJUytdyzqNZWqm1PpYGw2eNR83bknn17c1p2bbmVBLQy";
+            _tokenContract.TransferBalance(InitAccount, account, 10000_00000000);
+        }
+
+        [TestMethod]
         public void InitializeContract()
         {
-            var interval = 3600;
+            var interval =  86400;
             var basicVoting = 100000000;
 
             var result =
@@ -232,40 +236,39 @@ namespace AElf.Automation.Contracts.ScenarioTest
         //Vote
         //TakeOutGrants
 
-        //WWT9kvSggRCoSEy2Fp3yEH1APP5Y8HtJGD2pTY1juw8mfB4h
-        //24yCPh2g1WWNn93a7PWiUBNnRchmiCfuJt78mqWnQ2BoKCwq2s
-        //bP7RkGBN5vK1wDFjuUbWh49QVLMWAWMuccYK1RSh9hRrVcP7v
-        //2oaFuHzA66uZ987gZLY7XFpmqWauKNe8jppGtVUFjCZdNburxK
-        //RP3hV1wknbpJkeoxdiUtE6czvs11LqE7sLjNSGJaJ2z8TMJT5
+        //WukLYH288b18RB8meqcsSfRPVf2vr51mHggYF95FZPvJEB2y8
         [TestMethod]
         public void UploadProject()
         {
             var round = _quadraticFundingContract.GetCurrentRound();
             var roundInfo = _quadraticFundingContract.GetRoundInfo(round);
             var uploader = NodeManager.NewAccount();
+            var bid = CommonHelper.GenerateRandomNumber(10000, 99999);
+            var calculateProjectId = _quadraticFundingContract.CalculateProjectId(bid, uploader);
+            var index = long.Parse(calculateProjectId.Value);
             _quadraticFundingContract.SetAccount(uploader);
             if (roundInfo.EndAt == null)
             {
-                var result = _quadraticFundingContract.UploadProject();
+                var result = _quadraticFundingContract.UploadProject(index);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result.Error.ShouldContain($"Round {round} not started.");
             }
             else if (roundInfo.EndAt < Timestamp.FromDateTime(DateTime.UtcNow))
             {
-                var result = _quadraticFundingContract.UploadProject();
+                var result = _quadraticFundingContract.UploadProject(index);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result.Error.ShouldContain($"Round {round} already ended.");
             }
             else
             {
-                var result = _quadraticFundingContract.UploadProject();
+                var result = _quadraticFundingContract.UploadProject(index);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
                 var logEvent =
                     ProjectUploaded.Parser.ParseFrom(
                         ByteString.FromBase64(result.Logs.First(l => l.Name.Equals("ProjectUploaded")).NonIndexed));
                 logEvent.Round.ShouldBe(round);
                 logEvent.Uploader.ShouldBe(uploader.ConvertAddress());
-                var projectId = _quadraticFundingContract.CalculateProjectId(uploader);
+                var projectId = _quadraticFundingContract.CalculateProjectId(bid, uploader);
                 logEvent.ProjectId.ShouldBe(projectId.Value);
                 Logger.Info(projectId);
 
@@ -287,6 +290,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var donateAmount = 10000_00000000;
             var taxPoint = _quadraticFundingContract.GetTaxPoint();
             var fee = donateAmount.Mul(taxPoint).Div(10000);
+            _tokenContract.ApproveToken(InitAccount, _quadraticFundingContract.ContractAddress, donateAmount);
             var result = _quadraticFundingContract.Donate(donateAmount);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -330,11 +334,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var round = _quadraticFundingContract.GetCurrentRound();
             var allProject = _quadraticFundingContract.GetAllProjects(round);
-            var projectId = allProject[2];
+            var projectId = allProject[1];
             var originProjectOf = _quadraticFundingContract.GetProjectOf(projectId);
             var originTax = _quadraticFundingContract.GetTax();
             var voter = NodeManager.NewAccount("12345678");
-            long votesAmount = 1;
+            long votesAmount = 2;
             var votingUnit = _quadraticFundingContract.GetVotingUnit();
             var txPoints = _quadraticFundingContract.GetTaxPoint();
             var balance = _tokenContract.GetUserBalance(voter);
@@ -417,7 +421,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var tax = _quadraticFundingContract.GetTax();
             tax.ShouldBe(originTax + voteFee);
 
-            var grandsOf = _quadraticFundingContract.GetGrandsOf(projectId);
+            var grandsOf = _quadraticFundingContract.GetGrantsOf(projectId);
             Logger.Info(grandsOf);
             grandsOf.Total.ShouldBe(projectOf.Grants);
         }
@@ -468,7 +472,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var tax = _quadraticFundingContract.GetTax();
                 tax.ShouldBe(originTax + voteFee);
 
-                var grandsOf = _quadraticFundingContract.GetGrandsOf(projectId);
+                var grandsOf = _quadraticFundingContract.GetGrantsOf(projectId);
                 Logger.Info(grandsOf);
                 grandsOf.Total.ShouldBe(projectOf.Grants);
                 i++;
@@ -482,7 +486,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var allProject = _quadraticFundingContract.GetAllProjects(round);
             var projectId = allProject.Last();
             var projectOf = _quadraticFundingContract.GetProjectOf(projectId);
-            var grandsOf = _quadraticFundingContract.GetGrandsOf(projectId);
+            var grandsOf = _quadraticFundingContract.GetGrantsOf(projectId);
             Logger.Info(grandsOf);
 
             var uploader = "FC14nceada3uYPLXG2bSrFEDPntkw3rdnWpebzt7Svdvt7J6e";
@@ -496,7 +500,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var afterBalance = _tokenContract.GetUserBalance(uploader);
             afterBalance.ShouldBe(balance + takeAmount);
 
-            var afterGrandsOf = _quadraticFundingContract.GetGrandsOf(projectId);
+            var afterGrandsOf = _quadraticFundingContract.GetGrantsOf(projectId);
             Logger.Info(afterGrandsOf);
             afterGrandsOf.Rest.ShouldBe(grandsOf.Rest - takeAmount);
         }
@@ -507,7 +511,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var round = _quadraticFundingContract.GetCurrentRound();
             var allProject = _quadraticFundingContract.GetAllProjects(round);
             var projectId = allProject.First();
-            var grandsOf = _quadraticFundingContract.GetGrandsOf(projectId);
+            var grandsOf = _quadraticFundingContract.GetGrantsOf(projectId);
             Logger.Info(grandsOf);
         }
 
