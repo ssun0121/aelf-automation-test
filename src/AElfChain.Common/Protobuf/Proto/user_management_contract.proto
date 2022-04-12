@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+import "aelf/core.proto";
+import "aelf/options.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "AElf.Contracts.UserManagement";
+
+service UserManagementContract {
+  option (aelf.csharp_state) = "UserManagementContractState";
+
+  // owner
+  rpc Initialize (InitializeInput) returns (google.protobuf.Empty) { }
+  rpc SetOwner(aelf.Address) returns (google.protobuf.Empty) { }
+  rpc SetDelegatorContract (aelf.Address) returns (google.protobuf.Empty) { }
+  rpc SetAdminDelegators (AddressList) returns (google.protobuf.Empty) { }
+  rpc SetUserDelegators (AddressList) returns (google.protobuf.Empty) { }
+  
+  // admin
+  rpc Approve(aelf.Hash) returns (google.protobuf.BoolValue) { }
+  rpc Reject(aelf.Hash) returns (google.protobuf.Empty) { }
+  
+  // user
+  rpc Register(UserInfo) returns (aelf.Hash) { }
+  rpc ChangeUserInfo(UserInfo) returns (google.protobuf.Empty) { }
+
+  // view
+  rpc GetAdminDelegators (google.protobuf.Empty) returns (AddressList) {
+    option (aelf.is_view) = true;
+  }
+  rpc GetUserDelegators (google.protobuf.Empty) returns (AddressList) {
+    option (aelf.is_view) = true;
+  }
+  rpc GetApprovalList (google.protobuf.Empty) returns (UserApprovalList) {
+    option (aelf.is_view) = true;
+  }
+  rpc GetUser (google.protobuf.StringValue) returns (UserInfo) {
+    option (aelf.is_view) = true;
+  }
+}
+
+message InitializeInput {
+  aelf.Address owner = 1;
+}
+
+message UserApprovalList{
+  repeated UserApproval value =1;
+}
+
+message UserApproval{
+  aelf.Hash id = 1;
+  string user_name =2;
+  string name =3;
+  string email =4;
+}
+
+message UserInfoList{
+  repeated UserInfo value =1;
+}
+
+message UserInfo{
+  string user_name =1;
+  string name =2;
+  string email =3;
+}
+
+message AddressList {
+  repeated aelf.Address value = 1;
+}
+
