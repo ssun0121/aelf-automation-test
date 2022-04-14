@@ -37,11 +37,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
         //private string dividendPoolAddress = "";
-        private string dividendPoolAddress = "2CUt9QP4SH25GubsBiVvW17nAwfyHRSMkk8GQ6r7Ez5aUJttG5";
-        private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
-        private string UserA { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
-        private string UserB { get; } = "FHdcx45K5kovWsAKSb3rrdyNPFus8eoJ1XTQE7aXFHTgfpgzN";
-        private static string RpcUrl { get; } = "192.168.67.166:8000";
+        //private string dividendPoolAddress = "2imqjpkCwnvYzfnr61Lp2XQVN2JU17LPkA9AZzmRZzV5LRRWmR";
+        private string dividendPoolAddress = "2WFKQSCSfqSC8raW8R1YnL3HxvhVhwmQLjmk31L4ds5R8tikET";
+        private string InitAccount { get; } = "J6zgLjGwd1bxTBpULLXrGVeV74tnS2n74FFJJz7KNdjTYkDF6";
+        private string UserA { get; } = "2oKcAgFCi2FxwyQFzCVnmNYdKZzJLyA983gEwUmyuuaVUX2d1P";
+        private string UserB { get; } = "zptx91dhHVJjJRxf5Wg5KAoMrDrWX6i1H2FAyKAiv2q8VZfbg";
+        private static string RpcUrl { get; } = "192.168.66.9:8000";
         private static readonly string[] DISTRIBUTETOKEN = {"APPLE","PEACH","BANANA"};
         private static readonly string[] DEPOSITTOKEN = {"D","ABC"};
 
@@ -51,7 +52,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             Log4NetHelper.LogInit("DividendPoolContractTest");
             Logger = Log4NetHelper.GetLogger();
-            NodeInfoHelper.SetConfig("nodes-new-env-main");
+            NodeInfoHelper.SetConfig("nodes-env2-main");
 
             NodeManager = new NodeManager(RpcUrl);
             AuthorityManager = new AuthorityManager(NodeManager, InitAccount);
@@ -99,11 +100,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     IssueBalance(DEPOSITTOKEN[i], 1000000000000, UserA.ConvertAddress());
                     IssueBalance(DEPOSITTOKEN[i], 1000000000000, UserB.ConvertAddress());
                 }
-                else if (_tokenContract.GetUserBalance(UserA,DEPOSITTOKEN[i]) <= 1000000000000)
+                if (_tokenContract.GetUserBalance(UserA,DEPOSITTOKEN[i]) <= 1000000000000)
                 {
                     IssueBalance(DEPOSITTOKEN[i], 1000000000000, UserA.ConvertAddress());
                 }
-                else if (_tokenContract.GetUserBalance(UserB,DEPOSITTOKEN[i]) <= 1000000000000)
+                if (_tokenContract.GetUserBalance(UserB,DEPOSITTOKEN[i]) <= 1000000000000)
                 {
                     IssueBalance(DEPOSITTOKEN[i], 1000000000000, UserB.ConvertAddress());
                 }
@@ -222,6 +223,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             long.Parse(newRewardLogs.Amount.Value).ShouldBe(50000000000);
             long.Parse(newRewardLogs.PerBlocks.Value).ShouldBe(100000000);
             
+            
             var newRewardLogSecStr = newRewardResult.Logs.Last(l => l.Name.Equals("NewReward")).NonIndexed;
             var newRewardLogsSec =
                 Gandalf.Contracts.DividendPoolContract.NewReward.Parser.ParseFrom(ByteString.FromBase64(newRewardLogSecStr));
@@ -230,6 +232,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             newRewardLogsSec.EndBlock.ShouldBe(startBlock.Value.Add(cycle));
             long.Parse(newRewardLogsSec.Amount.Value).ShouldBe(50000000000);
             long.Parse(newRewardLogsSec.PerBlocks.Value).ShouldBe(100000000);
+            
         }
 
         [TestMethod]
@@ -400,21 +403,21 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void DepositWithdrawWithOneRoundReward()
         {
             //pre-check user amount
-            var useraAmountBefore = _dividendPoolContract.UserInfo(0, UserA).Amount ?? new BigIntValue(0);
-            var userbAmountBefore = _dividendPoolContract.UserInfo(0, UserB).Amount ?? new BigIntValue(0);
-            var useraBalanceBefore = _tokenContract.GetUserBalance(UserA, DEPOSITTOKEN[0]);
-            var userbBalanceBefore = _tokenContract.GetUserBalance(UserB, DEPOSITTOKEN[0]);
+            var useraAmountBefore = _dividendPoolContract.UserInfo(1, UserA).Amount ?? new BigIntValue(0);
+            var userbAmountBefore = _dividendPoolContract.UserInfo(1, UserB).Amount ?? new BigIntValue(0);
+            var useraBalanceBefore = _tokenContract.GetUserBalance(UserA, DEPOSITTOKEN[1]);
+            var userbBalanceBefore = _tokenContract.GetUserBalance(UserB, DEPOSITTOKEN[1]);
             
             //usera deposit
             _dividendPoolContract.SetAccount(UserA);
             var useraapproveResult = _tokenContract.ApproveToken(UserA,
-                _dividendPoolContract.ContractAddress, 1000000000,DEPOSITTOKEN[0]);
+                _dividendPoolContract.ContractAddress, 1000000000,DEPOSITTOKEN[1]);
             useraapproveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var useraDeposit = _dividendPoolContract.Deposit(0, 1000000000);
+            var useraDeposit = _dividendPoolContract.Deposit(1, 1000000000);
             useraDeposit.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var useraAmountAfterDeposit = _dividendPoolContract.UserInfo(0, UserA).Amount;
-            var useraBalanceAfterDeposit = _tokenContract.GetUserBalance(UserA, DEPOSITTOKEN[0]);
-            var totalAmountAfterUserADeposit = _dividendPoolContract.PoolInfo(0).TotalAmount;
+            var useraAmountAfterDeposit = _dividendPoolContract.UserInfo(1, UserA).Amount;
+            var useraBalanceAfterDeposit = _tokenContract.GetUserBalance(UserA, DEPOSITTOKEN[1]);
+            var totalAmountAfterUserADeposit = _dividendPoolContract.PoolInfo(1).TotalAmount;
             var useraDistributeTokenAfterDeposit = _tokenContract.GetUserBalance(UserA, DISTRIBUTETOKEN[0]);
 
             //newreward
@@ -436,29 +439,29 @@ namespace AElf.Automation.Contracts.ScenarioTest
             //userb deposit    
             _dividendPoolContract.SetAccount(UserB);
             var userbapproveResult = _tokenContract.ApproveToken(UserB,
-                _dividendPoolContract.ContractAddress, 1000000000,DEPOSITTOKEN[0]);
+                _dividendPoolContract.ContractAddress, 1000000000,DEPOSITTOKEN[1]);
             userbapproveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var userbDeposit = _dividendPoolContract.Deposit(0, 1000000000);
+            var userbDeposit = _dividendPoolContract.Deposit(1, 1000000000);
             userbDeposit.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             //post-check 
-            var userbAmountAfterDeposit = _dividendPoolContract.UserInfo(0, UserB).Amount;
-            var userbBalanceAfterDeposit = _tokenContract.GetUserBalance(UserB, DEPOSITTOKEN[0]);
-            var totalAmountAfterUserbDeposit = _dividendPoolContract.PoolInfo(0).TotalAmount;
+            var userbAmountAfterDeposit = _dividendPoolContract.UserInfo(1, UserB).Amount;
+            var userbBalanceAfterDeposit = _tokenContract.GetUserBalance(UserB, DEPOSITTOKEN[1]);
+            var totalAmountAfterUserbDeposit = _dividendPoolContract.PoolInfo(1).TotalAmount;
             var userbDistributeTokenAfterDeposit = _tokenContract.GetUserBalance(UserB, DISTRIBUTETOKEN[0]);
             
             //usera withdraw
             _dividendPoolContract.SetAccount(UserA);
-            var useraAmount = _dividendPoolContract.UserInfo(0, UserA).Amount;
-            var useraWithdraw = _dividendPoolContract.Withdraw(0, useraAmount);
+            var useraAmount = _dividendPoolContract.UserInfo(1, UserA).Amount;
+            var useraWithdraw = _dividendPoolContract.Withdraw(1, useraAmount);
             useraWithdraw.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             //post-check usera
-            var useraAmountAfterWithdraw = _dividendPoolContract.UserInfo(0, UserA).Amount;
-            var useraBalanceAfterWithdraw = _tokenContract.GetUserBalance(UserA, DEPOSITTOKEN[0]);
+            var useraAmountAfterWithdraw = _dividendPoolContract.UserInfo(1, UserA).Amount;
+            var useraBalanceAfterWithdraw = _tokenContract.GetUserBalance(UserA, DEPOSITTOKEN[1]);
             var useraDistributeTokenAfterWithdraw = _tokenContract.GetUserBalance(UserA, DISTRIBUTETOKEN[0]);
-            var totalAmountAfterUseraWithdraw = _dividendPoolContract.PoolInfo(0).TotalAmount;
+            var totalAmountAfterUseraWithdraw = _dividendPoolContract.PoolInfo(1).TotalAmount;
 
             //verify accpershare after usera withdraw
-            var accpershareafteruserawithdraw = _dividendPoolContract.AccPerShare(0, DISTRIBUTETOKEN[0]);
+            var accpershareafteruserawithdraw = _dividendPoolContract.AccPerShare(1, DISTRIBUTETOKEN[0]);
     
             //wait till the end
             var endlbock = _dividendPoolContract.EndBlock().Value;
@@ -466,16 +469,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Thread.Sleep((sleeptime + 30) * 1000);
             
             //check pending
-            var pendingresult = _dividendPoolContract.Pending(0, UserB);
+            var pendingresult = _dividendPoolContract.Pending(1, UserB);
 
             //userb withdraw
             _dividendPoolContract.SetAccount(UserB);
-            var userbAmount = _dividendPoolContract.UserInfo(0, UserB).Amount;
-            var userbWithdraw = _dividendPoolContract.Withdraw(0, userbAmount);
+            var userbAmount = _dividendPoolContract.UserInfo(1, UserB).Amount;
+            var userbWithdraw = _dividendPoolContract.Withdraw(1, userbAmount);
             userbWithdraw.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             //post-check userb 
-            var userbAmountAfterWithdraw = _dividendPoolContract.UserInfo(0, UserB).Amount;
-            var userbBalanceAfterWithdraw = _tokenContract.GetUserBalance(UserB, DEPOSITTOKEN[0]);
+            var userbAmountAfterWithdraw = _dividendPoolContract.UserInfo(1, UserB).Amount;
+            var userbBalanceAfterWithdraw = _tokenContract.GetUserBalance(UserB, DEPOSITTOKEN[1]);
             var userbDistributeTokenAfterWithdraw = _tokenContract.GetUserBalance(UserB, DISTRIBUTETOKEN[0]);
             
             //verify usera amount and token
@@ -496,18 +499,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
             //verify usera reward
             var useraReward =
                 Reward(useraDeposit.BlockNumber, userbDeposit.BlockNumber, DISTRIBUTETOKEN[0],
-                    totalAmountAfterUserADeposit, useraAmountAfterDeposit, 0).Add(Reward(userbDeposit.BlockNumber,
+                    totalAmountAfterUserADeposit, useraAmountAfterDeposit, 1).Add(Reward(userbDeposit.BlockNumber,
                     useraWithdraw.BlockNumber, DISTRIBUTETOKEN[0], totalAmountAfterUserbDeposit,
-                    useraAmountAfterDeposit, 0, out var accpershare, out var pendingtotalreward));
+                    useraAmountAfterDeposit, 1, out var accpershare, out var pendingtotalreward));
             Logger.Info($"usera reward ({useraReward})");
             useraReward.ShouldBe(new BigIntValue(useraDistributeTokenAfterWithdraw.Sub(useraDistributeTokenAfterDeposit)));
 
             //verfify userb reward
             var userbReward =
                 Reward(userbDeposit.BlockNumber, useraWithdraw.BlockNumber, DISTRIBUTETOKEN[0],
-                    totalAmountAfterUserbDeposit, userbAmountAfterDeposit, 0).Add(Reward(useraWithdraw.BlockNumber,
+                    totalAmountAfterUserbDeposit, userbAmountAfterDeposit, 1).Add(Reward(useraWithdraw.BlockNumber,
                     userbWithdraw.BlockNumber, DISTRIBUTETOKEN[0], totalAmountAfterUseraWithdraw,
-                    userbAmountAfterDeposit, 0));
+                    userbAmountAfterDeposit, 1));
             Logger.Info($"userb reward ({userbReward})");
             userbReward.ShouldBe(new BigIntValue(userbDistributeTokenAfterWithdraw.Sub(userbDistributeTokenAfterDeposit)));
             
@@ -521,20 +524,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var useraDepositLogStr = useraDeposit.Logs.First(l => l.Name.Equals("Deposit")).NonIndexed;
             var useraDepositLogs = Deposit.Parser.ParseFrom(ByteString.FromBase64(useraDepositLogStr));
             useraDepositLogs.Amount.ShouldBe(new BigIntValue(1000000000));
-            useraDepositLogs.Pid.ShouldBe(0);
+            useraDepositLogs.Pid.ShouldBe(1);
             useraDepositLogs.User.ShouldBe(UserA.ConvertAddress());
             
             //verify withdraw event
             var useraWithdrawLogStr = useraWithdraw.Logs.First(l => l.Name.Equals("Withdraw")).NonIndexed;
             var useraWithdrawLogs = Withdraw.Parser.ParseFrom(ByteString.FromBase64(useraWithdrawLogStr));
             useraWithdrawLogs.Amount.ShouldBe(useraAmount);
-            useraWithdrawLogs.Pid.ShouldBe(0);
+            useraWithdrawLogs.Pid.ShouldBe(1);
             useraWithdrawLogs.User.ShouldBe(UserA.ConvertAddress());
             
             //verify updatepool event
             var updatePoolLogStr = useraWithdraw.Logs.First(l => l.Name.Equals("UpdatePool")).NonIndexed;
             var updatePoolLogs = UpdatePool.Parser.ParseFrom(ByteString.FromBase64(updatePoolLogStr));
-            updatePoolLogs.Pid.ShouldBe(0);
+            updatePoolLogs.Pid.ShouldBe(1);
             updatePoolLogs.Reward.ShouldBe(pendingtotalreward);
             updatePoolLogs.Token.ShouldBe(DISTRIBUTETOKEN[0]);
             updatePoolLogs.BlockHeigh.ShouldBe(useraWithdraw.BlockNumber);
@@ -544,7 +547,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var harvestLogStr = useraWithdraw.Logs.First(l => l.Name.Equals("Harvest")).NonIndexed;
             var harvestLogs = Harvest.Parser.ParseFrom(ByteString.FromBase64(harvestLogStr));
             harvestLogs.Amount.ShouldBe(useraReward);
-            harvestLogs.Pid.ShouldBe(0);
+            harvestLogs.Pid.ShouldBe(1);
             harvestLogs.To.ShouldBe(UserA.ConvertAddress());
             harvestLogs.Token.ShouldBe(DISTRIBUTETOKEN[0]);
         }
@@ -592,11 +595,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var dt0TotalRewardRoundOne = _dividendPoolContract.PerBlock(DISTRIBUTETOKEN[0])
                 .Mul(oricycle)
                 .Mul(_dividendPoolContract.PoolInfo(0).AllocPoint)
-                .Div(_dividendPoolContract.TotalAllocPoint());
+                .Mul(useraAmountAfterDeposit)
+                .Div(_dividendPoolContract.PoolInfo(0).TotalAmount.Mul(_dividendPoolContract.TotalAllocPoint()));
             var dt1TotalRewardRoundOne = _dividendPoolContract.PerBlock(DISTRIBUTETOKEN[1])
                 .Mul(oricycle)
                 .Mul(_dividendPoolContract.PoolInfo(0).AllocPoint)
-                .Div(_dividendPoolContract.TotalAllocPoint());
+                .Div(_dividendPoolContract.PoolInfo(0).TotalAmount.Mul(_dividendPoolContract.TotalAllocPoint()));
             //set cycle during round one
             var setcycle = _dividendPoolContract.SetCycle(300);
 
@@ -634,18 +638,22 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var dt0TotalRewardRoundTwo = _dividendPoolContract.PerBlock(DISTRIBUTETOKEN[0])
                 .Mul(cycle)
                 .Mul(_dividendPoolContract.PoolInfo(0).AllocPoint)
-                .Div(_dividendPoolContract.TotalAllocPoint());
+                .Mul(useraAmountAfterDeposit)
+                .Div(_dividendPoolContract.PoolInfo(0).TotalAmount.Mul(_dividendPoolContract.TotalAllocPoint()));
             
             var dt1TotalRewardRoundTwo = _dividendPoolContract.PerBlock(DISTRIBUTETOKEN[1])
                 .Mul(cycle)
                 .Mul(_dividendPoolContract.PoolInfo(0).AllocPoint)
-                .Div(_dividendPoolContract.TotalAllocPoint());
+                .Mul(useraAmountAfterDeposit)
+                .Div(_dividendPoolContract.PoolInfo(0).TotalAmount.Mul(_dividendPoolContract.TotalAllocPoint()));
             
             //sleep till the end
             var endblockroundtwo = _dividendPoolContract.EndBlock().Value;
             var sleeptimeroundtwo = (int)endblockroundtwo.Sub(NodeManager.ApiClient.GetBlockHeightAsync().Result).Div(2);
             Thread.Sleep((sleeptimeroundtwo + 30) * 1000);
 
+            //get pending
+            Logger.Info(_dividendPoolContract.Pending(1,UserA));
             //usera withdraw
             _dividendPoolContract.SetAccount(UserA);
             var useraAmount = _dividendPoolContract.UserInfo(0, UserA).Amount;
@@ -661,8 +669,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 0));
 
             var dt0ExactReward = new BigIntValue(dt0AfterWithdraw.Sub(dt0AfterDeposit));
-            dt0ExactReward.ShouldBe(dt0Reward);
-            dt0ExactReward.ShouldBe(dt0TotalRewardRoundOne.Add(dt0TotalRewardRoundTwo));
+            dt0ExactReward.ShouldBeInRange(dt0Reward.Sub(1), dt0Reward.Add(1));
+            dt0ExactReward.ShouldBeInRange(dt0TotalRewardRoundOne.Add(dt0TotalRewardRoundTwo).Sub(2),
+                dt0TotalRewardRoundOne.Add(dt0TotalRewardRoundTwo).Add(2));
             
             Logger.Info(dt0Reward);
             Logger.Info(dt0TotalRewardRoundOne);
@@ -674,8 +683,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 0));
 
             var dt1ExactReward = new BigIntValue(dt1AfterWithdraw.Sub(dt1AfterDeposit));
-            dt1ExactReward.ShouldBe(dt1Reward);
-            dt1ExactReward.ShouldBe(dt1TotalRewardRoundOne.Add(dt1TotalRewardRoundTwo));
+            dt1ExactReward.ShouldBeInRange(dt1Reward.Sub(1),dt1Reward.Add(1));
+            dt1ExactReward.ShouldBeInRange(dt1TotalRewardRoundOne.Add(dt1TotalRewardRoundTwo).Sub(2),
+                dt1TotalRewardRoundOne.Add(dt1TotalRewardRoundTwo).Add(2));
             
             Logger.Info(dt1Reward);
             Logger.Info(dt1TotalRewardRoundOne);
@@ -705,9 +715,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             newRewardInput.StartBlock = currentBlock.Add(100);
             newRewardInput.Tokens.Add(DISTRIBUTETOKEN[0]);
             newRewardInput.PerBlocks.Add(100000000);
-            newRewardInput.Amounts.Add(50000000000);
+            newRewardInput.Amounts.Add(20000000000);
             var approveResult = _tokenContract.ApproveToken(InitAccount,
-                _dividendPoolContract.ContractAddress, 50000000000,DISTRIBUTETOKEN[0]);
+                _dividendPoolContract.ContractAddress, 20000000000,DISTRIBUTETOKEN[0]);
             approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var newreward = _dividendPoolContract.NewReward(newRewardInput);
             newreward.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -754,7 +764,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _dividendPoolContract.SetAccount(InitAccount);
             newRewardInput.StartBlock = NodeManager.ApiClient.GetBlockHeightAsync().Result.Add(100);
             var approveResultRound2 = _tokenContract.ApproveToken(InitAccount,
-                _dividendPoolContract.ContractAddress, 50000000000,DISTRIBUTETOKEN[0]);
+                _dividendPoolContract.ContractAddress, 20000000000,DISTRIBUTETOKEN[0]);
             approveResultRound2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var newrewardResultRound2 = _dividendPoolContract.NewReward(newRewardInput);
             newrewardResultRound2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -792,19 +802,24 @@ namespace AElf.Automation.Contracts.ScenarioTest
             //verify reward
             useraReward.ShouldBe(useraDistributeTokenAfterWithdraw.Sub(useraDistributeTokenAfterDeposit));
             userbReward.ShouldBe(userbDistributeTokenAfterWithdraw.Sub(userbDistributeTokenAfterDeposit));
+            Logger.Info(useraReward);
+            Logger.Info(userbReward);
+            
         }
 
         [TestMethod]
         public void UserRewardDebtTest()
         {
-            _dividendPoolContract.SetAccount(UserA);
-            _tokenContract.ApproveToken(UserA, _dividendPoolContract.ContractAddress, 1000000000, DEPOSITTOKEN[0]);
+            _dividendPoolContract.SetAccount(UserB);
+            _tokenContract.ApproveToken(UserB, _dividendPoolContract.ContractAddress, 100000000, DEPOSITTOKEN[0]);
             
             //first deposit
+            Logger.Info(_tokenContract.GetUserBalance(UserB,DEPOSITTOKEN[0]));
             var firstdeposit = _dividendPoolContract.Deposit(0, 100000000);
+            firstdeposit.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var totalamountbefore = _dividendPoolContract.PoolInfo(0).TotalAmount;
-            var useramountbefore = _dividendPoolContract.UserInfo(0, UserA).Amount;
-            var distributeTokenBalanceBefore = _tokenContract.GetUserBalance(UserA, DISTRIBUTETOKEN[0]);
+            var useramountbefore = _dividendPoolContract.UserInfo(0, UserB).Amount;
+            var distributeTokenBalanceBefore = _tokenContract.GetUserBalance(UserB, DISTRIBUTETOKEN[0]);
 
             //new reward
             _dividendPoolContract.SetAccount(InitAccount);
@@ -814,20 +829,29 @@ namespace AElf.Automation.Contracts.ScenarioTest
             newRewardInput.Tokens.Add(DISTRIBUTETOKEN[0]);
             newRewardInput.PerBlocks.Add(100000000);
             newRewardInput.Amounts.Add(50000000000);
-            var approveResult = _tokenContract.ApproveToken(InitAccount,
+            newRewardInput.Tokens.Add(DISTRIBUTETOKEN[1]);
+            newRewardInput.PerBlocks.Add(200000000);
+            newRewardInput.Amounts.Add(100000000000);
+            var token0ApproveResult = _tokenContract.ApproveToken(InitAccount,
                 _dividendPoolContract.ContractAddress, 50000000000,DISTRIBUTETOKEN[0]);
-            approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            var token1ApproveResult = _tokenContract.ApproveToken(InitAccount,
+                _dividendPoolContract.ContractAddress, 100000000000,DISTRIBUTETOKEN[1]);
+            token0ApproveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            token1ApproveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var newreward = _dividendPoolContract.NewReward(newRewardInput);
             newreward.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             
             Thread.Sleep(60 * 1000);
             
-            _dividendPoolContract.SetAccount(UserA);
+            _dividendPoolContract.SetAccount(UserB);
 
             //second deposit
+            _tokenContract.ApproveToken(UserB, _dividendPoolContract.ContractAddress, 500000000, DEPOSITTOKEN[0]);
             var seconddeposit = _dividendPoolContract.Deposit(0, 500000000);
+            seconddeposit.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var midtotalamount = _dividendPoolContract.PoolInfo(0).TotalAmount;
-            var miduseramount = _dividendPoolContract.UserInfo(0, UserA).Amount;
+            var miduseramount = _dividendPoolContract.UserInfo(0, UserB).Amount;
 
             //verify user reward debt
             var debt = _dividendPoolContract.CallViewMethod<BigIntValue>(DividendPoolMethod.RewardDebt, new RewardDebtInput
@@ -838,8 +862,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
             });
             
             //third deposit
+            _tokenContract.ApproveToken(UserB, _dividendPoolContract.ContractAddress, 400000000, DEPOSITTOKEN[0]);
             var thirddeposit = _dividendPoolContract.Deposit(0, 400000000);
-            var distributeTokenBalanceAfter = _tokenContract.GetUserBalance(UserA, DISTRIBUTETOKEN[0]);
+            thirddeposit.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var distributeTokenBalanceAfter = _tokenContract.GetUserBalance(UserB, DISTRIBUTETOKEN[0]);
             
             var midreward = Reward(_dividendPoolContract.StartBlock().Value, seconddeposit.BlockNumber,
                 DISTRIBUTETOKEN[0], totalamountbefore, useramountbefore, 0);
@@ -847,6 +874,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var reward = Reward(seconddeposit.BlockNumber, thirddeposit.BlockNumber, DISTRIBUTETOKEN[0], midtotalamount,
                 miduseramount, 0);
             
+            Logger.Info(reward);
+            Logger.Info(midreward);
+   
             reward.Add(midreward).ShouldBe(distributeTokenBalanceAfter.Sub(distributeTokenBalanceBefore));
             
         }
@@ -885,7 +915,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 .Mul(new BigIntValue(rewardblock.Sub(lastrewardblock)))
                 .Mul(new BigIntValue(poolalloc))
                 .Div(new BigIntValue(totalalloc));
-            
+
             return perblock
                 .Mul(new BigIntValue(rewardblock.Sub(lastrewardblock)))
                 .Mul(useramount)
@@ -918,7 +948,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var poolalloc = _dividendPoolContract.PoolInfo(pid).AllocPoint;
             var totalalloc =
                 _dividendPoolContract.CallViewMethod<Int64Value>(DividendPoolMethod.TotalAllocPoint, new Empty()).Value;
-
+            Logger.Info(perblock);
+            Logger.Info(new BigIntValue(rewardblock.Sub(lastrewardblock)));
+            Logger.Info(rewardblock);
+            Logger.Info(lastrewardblock);
+            Logger.Info(useramount);
+            Logger.Info(new BigIntValue(poolalloc));
+            Logger.Info(totalamount.Mul(totalalloc));
+            Logger.Info(totalamount);
+            Logger.Info(totalalloc);
             return perblock
                 .Mul(new BigIntValue(rewardblock.Sub(lastrewardblock)))
                 .Mul(useramount)
