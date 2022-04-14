@@ -34,7 +34,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string TestAccount { get; } = "";
         private string FeeToAccount { get; } = "Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx";
-        private static string RpcUrl { get; } = "http://192.168.67.166:8000";
+        private static string RpcUrl { get; } = "http://192.168.66.9:8000";
         private long FeeRate { get; } = 30;
 
 
@@ -43,7 +43,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             Log4NetHelper.LogInit("AwakenSwapContractTest");
             Logger = Log4NetHelper.GetLogger();
-            NodeInfoHelper.SetConfig("nodes-new-env-main");
+            NodeInfoHelper.SetConfig("nodes-env2-main");
 
             NodeManager = new NodeManager(RpcUrl);
             _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
@@ -217,7 +217,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void AddLiquidity(string symbolA, string symbolB, long amountA, long amountB)
         {
             var account = TestAccount;
-            _tokenContract.TransferBalance(InitAccount, TestAccount, 10000_00000000);
+            _tokenContract.TransferBalance(InitAccount, account, 10000_00000000);
             var pair = _awakenSwapContract.GetTokenPair(symbolA, symbolB);
             var pairList = _awakenSwapContract.GetPairs();
             if (!pairList.Value.Contains(pair))
@@ -304,7 +304,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 Logger.Info($"actual fee: {fee}");
                 after["totalSupply"].ShouldBe(origin["totalSupply"] + liquidityAdded.LiquidityToken +
                     feeToLpTokenBalance.Amount - originFeeToLpTokenBalance.Amount);
-                afterTokenInfo.Supply.ShouldBe(originTokenInfo.Supply + liquidityAdded.LiquidityToken);
+                afterTokenInfo.Supply.ShouldBe(originTokenInfo.Supply + liquidityAdded.LiquidityToken + fee);
             }
 
             var afterKLast = CheckKLast(pairAddress);
@@ -473,7 +473,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [DataRow("ELF","USDT", true)]
         public void RemoveLiquidity(string symbolA, string symbolB, bool isAll)
         {
-            var account = InitAccount;
+            var account = TestAccount;
             var sortPair = _awakenSwapContract.SortSymbols(symbolA, symbolB);
             symbolA = sortPair.First();
             symbolB = sortPair.Last();
@@ -488,7 +488,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var kLast = _awakenSwapContract.GetKLast(pairAddress);
             Logger.Info(kLast);
 
-            var removeLpTokenAmount = isAll? origin["UserLPBalance"] : origin["UserLPBalance"] / 2;
+            var removeLpTokenAmount = isAll? origin["UserLPBalance"] : origin["UserLPBalance"] / 10;
             var approveResult = _awakenTokenContract.ApproveLPToken(_awakenSwapContract.ContractAddress, account,
                 removeLpTokenAmount,
                 pairSymbol);
@@ -551,7 +551,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         //TokenA - TokenB
         [TestMethod]
-        public void SwapExactTokenForToken()
+        public void SwapExactTokenForToken() 
         {
             var symbolIn = "USDT";
             var symbolOut = "ELF";
@@ -595,7 +595,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             CheckSyncEvent(sync, symbolIn, symbolOut, pairAddress, origin["ReserveA"], origin["ReserveB"], amountIn,
                 amountOut, "swap");
 
-            var after = CheckPairData(symbolIn, symbolOut);
+            var after = CheckPairData(symbolIn, symbolOut, account);
             after["ReserveA"].ShouldBe(origin["ReserveA"] + amountIn);
             after["ReserveB"].ShouldBe(origin["ReserveB"] - amountOut);
             after["UserBalanceA"].ShouldBe(origin["UserBalanceA"] - amountIn);
