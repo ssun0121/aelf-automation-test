@@ -1,0 +1,694 @@
+syntax = "proto3";
+
+import "aelf/core.proto";
+import "aelf/options.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+option csharp_namespace = "Sinodac.Contracts.Delegator";
+
+service DelegatorContract {
+    option (aelf.csharp_state) = "DelegatorContractState";
+
+    rpc Initialize (InitializeInput) returns (google.protobuf.Empty) { }
+    rpc RegisterSenders (RegisterSendersInput) returns (google.protobuf.Empty) { }
+    rpc RegisterMethods (RegisterMethodsInput) returns (google.protobuf.Empty) { }
+    rpc Forward (ForwardInput) returns (google.protobuf.Empty) { }
+    rpc ForwardCheck (aelf.Hash) returns (google.protobuf.Empty) { }
+
+    // Roles Management
+    rpc CreateRole (CreateRoleInput) returns (google.protobuf.Empty) { }
+    rpc UpdateRole (UpdateRoleInput) returns (google.protobuf.Empty) { }
+    rpc DisableRole (DisableRoleInput) returns (google.protobuf.Empty) { }
+
+    // Organization Units Management
+    rpc CreateOrganizationUnit (CreateOrganizationUnitInput) returns (google.protobuf.Empty) { }
+    rpc UpdateOrganizationUnit (UpdateOrganizationUnitInput) returns (google.protobuf.Empty) { }
+    rpc DisableOrganizationUnit (DisableOrganizationUnitInput) returns (google.protobuf.Empty) { }
+    rpc CreateDepartment (CreateDepartmentInput) returns (google.protobuf.Empty) { }
+    rpc UpdateDepartment (UpdateDepartmentInput) returns (google.protobuf.Empty) { }
+    rpc DeleteDepartment (DeleteDepartmentInput) returns (google.protobuf.Empty) { }
+
+    // Users Management
+    rpc CreateUser (CreateUserInput) returns (google.protobuf.Empty) { }
+    rpc UpdateUser (UpdateUserInput) returns (google.protobuf.Empty) { }
+    rpc DisableUser (DisableUserInput) returns (google.protobuf.Empty) { }
+
+    // Certificate Management
+    rpc CreateOrganizationCertificate (CreateOrganizationCertificateInput) returns (google.protobuf.Empty) { }
+    rpc UpdateOrganizationCertificate (UpdateOrganizationCertificateInput) returns (google.protobuf.Empty) { }
+    rpc CreateIndependentCertificate (CreateIndependentCertificateInput) returns (google.protobuf.Empty) { }
+    rpc UpdateIndependentCertificate (UpdateIndependentCertificateInput) returns (google.protobuf.Empty) { }
+    
+    // Independent Artist Management
+    rpc CreateIndependentArtist (CreateIndependentArtistInput) returns (google.protobuf.Empty) { }
+    rpc UpdateIndependentArtist (UpdateIndependentArtistInput) returns (google.protobuf.Empty) { }
+    rpc DisableIndependentArtist (DisableIndependentArtistInput) returns (google.protobuf.Empty) { }
+
+    rpc EnablePermissionCheck (EnablePermissionCheckInput) returns (google.protobuf.Empty) { }
+    
+    // DAC Specific
+    rpc CreateDAC (CreateDACInput) returns (google.protobuf.Empty) { }
+    rpc CreateSeries (CreateSeriesInput) returns (google.protobuf.Empty) { }
+    rpc AddProtocolToSeries (AddProtocolToSeriesInput) returns (google.protobuf.Empty) { }
+    rpc AuditDAC (AuditDACInput) returns (google.protobuf.Empty) { }
+    rpc ListDAC (ListDACInput) returns (google.protobuf.Empty) { }
+    rpc MintDAC (MintDACInput) returns (google.protobuf.Empty) { }
+    rpc DelistDAC (DelistDACInput) returns (google.protobuf.Empty) { }
+    rpc BindRedeemCode (BindRedeemCodeInput) returns (google.protobuf.Empty) { }
+    rpc Buy (BuyInput) returns (google.protobuf.Empty) { }
+    rpc Redeem (RedeemInput) returns (google.protobuf.Empty) { }
+    rpc Box (BoxInput) returns (google.protobuf.Empty) { }
+    rpc Unbox (UnboxInput) returns (google.protobuf.Empty) { }
+    rpc Give (GiveInput) returns (google.protobuf.Empty) { }
+
+    rpc IsPermittedAddress (IsPermittedAddressInput) returns (google.protobuf.BoolValue) {
+        option (aelf.is_view) = true;
+    }
+    rpc IsPermittedMethod (IsPermittedMethodInput) returns (google.protobuf.BoolValue) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetForwardRecord (aelf.Hash) returns (ForwardRecord) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetRole (google.protobuf.StringValue) returns (Role) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetOrganizationUnit (google.protobuf.StringValue) returns (OrganizationUnit) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetOrganizationDepartment (google.protobuf.StringValue) returns (OrganizationDepartment) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetUser (google.protobuf.StringValue) returns (User) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetOrganizationCertificate (google.protobuf.StringValue) returns (OrganizationCertificate) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetIndependentCertificate (google.protobuf.StringValue) returns (IndependentCertificate) {
+        option (aelf.is_view) = true;
+    }
+    rpc CalculateUserAddress (google.protobuf.StringValue) returns (aelf.Address) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetRolePermissionList (google.protobuf.StringValue) returns (StringList) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetOrganizationDepartmentIgnoredPermissionList (GetOrganizationDepartmentIgnoredPermissionListInput) returns (StringList) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetUserPermissionList (google.protobuf.StringValue) returns (StringList) {
+        option (aelf.is_view) = true;
+    }
+}
+
+message InitializeInput {
+    aelf.Address admin_address = 1;
+    aelf.Address dac_contract_address = 2;
+    aelf.Address dac_market_contract_address = 3;
+}
+
+message RegisterSendersInput {
+    string scope_id = 1;
+    AddressList address_list = 2;
+    bool is_remove = 3;
+}
+
+message RegisterMethodsInput {
+    string scope_id = 1;
+    StringList method_name_list = 2;
+    bool is_remove = 3;
+}
+
+message CreateDACInput {
+    string from_id = 1;
+    string creator_id = 2;
+    string dac_name = 3;
+    int64 price = 4;
+    int64 circulation = 5;
+    string dac_type = 6;
+    string dac_shape = 7;
+    int64 reserve_for_lottery = 8;
+    string series_name = 9;
+}
+
+message CreateSeriesInput {
+    string from_id = 1;
+    string series_name = 2;
+    string series_description = 3;
+    string creator_id = 4;
+}
+
+message AddProtocolToSeriesInput {
+    string from_id = 1;
+    string series_name = 2;
+    string dac_name = 3;
+}
+
+message AuditDACInput {
+    string from_id = 1;
+    string dac_name = 2;
+    bool is_approve = 3;
+}
+
+message ListDACInput {
+    string from_id = 1;
+    string dac_name = 2;
+    google.protobuf.Timestamp public_time = 3;
+}
+
+message MintDACInput {
+    string from_id = 1;
+    string dac_name = 2;
+    int64 from_dac_id = 3;
+    int64 quantity = 4;
+}
+
+message DelistDACInput {
+    string from_id = 1;
+    string dac_name = 2;
+}
+
+message BindRedeemCodeInput {
+    string from_id = 1;
+    string dac_name = 2;
+    repeated aelf.Hash redeem_code_hash_list = 3;
+    int64 skip = 4;
+}
+
+message BuyInput {
+    string from_id = 1;
+    string dac_name = 2;
+    int64 dac_id = 3;
+    int64 price = 4;
+}
+
+message RedeemInput {
+    string from_id = 1;
+    string redeem_code = 2;
+}
+
+message BoxInput {
+    string from_id = 1;
+    string dac_name = 2;
+}
+
+message UnboxInput {
+    string from_id = 1;
+    string dac_name = 2;
+    string box_id = 3;
+}
+
+message GiveInput {
+    string from_id = 1;
+    string to_id = 2;
+    string dac_name = 3;
+    int64 dac_id = 4;
+}
+
+message CreateRoleInput {
+    string from_id = 1;
+    string role_name = 2;
+    bool enable = 3;
+    string role_description = 4;
+    repeated string permission_list = 5;
+}
+message UpdateRoleInput {
+    string from_id = 1;
+    string role_name = 2;
+    string role_description = 3;
+    repeated string enable_permission_list = 4;
+    repeated string disable_permission_list = 5;
+}
+message DisableRoleInput {
+    string from_id = 1;
+    string role_name = 2;
+    bool enable = 3;
+}
+message GetRoleListInput {
+    string role_name = 1;
+    string role_creator = 2;
+    google.protobuf.Timestamp create_time_min = 3;
+    google.protobuf.Timestamp create_time_max = 4;
+}
+
+message CreateOrganizationUnitInput {
+    string from_id = 1;
+    string organization_name = 2;
+    string role_name = 3;
+    bool enable = 4;
+    bool is_approve = 5;
+}
+message UpdateOrganizationUnitInput {
+    string from_id = 1;
+    string organization_name = 2;
+    string role_name = 3;
+}
+message DisableOrganizationUnitInput {
+    string from_id = 1;
+    string organization_name = 2;
+    bool enable = 3;
+}
+message GetOrganizationUnitListInput {
+    string organization_name = 1;
+    bool enabled = 2;
+    string organization_creator = 3;
+}
+
+message CreateIndependentArtistInput {
+    string from_id = 1;
+    string artist_user_name = 2;
+    bool enable = 3;
+    bool is_approve = 4;
+}
+message UpdateIndependentArtistInput {
+    string from_id = 1;
+    string artist_user_name = 2;
+    string artist_name = 3;
+}
+message DisableIndependentArtistInput {
+    string from_id = 1;
+    string artist_user_name = 2;
+    bool enable = 3;
+}
+message GetIndependentArtistListInput {
+    string name = 1;
+    bool enabled = 2;
+}
+
+message CreateUserInput {
+    string from_id = 1;
+    string user_name = 2;
+    string organization_name = 3;
+    bool enable = 4;
+    string department_name = 5;
+}
+message UpdateUserInput {
+    string from_id = 1;
+    string user_name = 2;
+    string organization_name = 3;
+    bool enable = 4;
+    string organization_department_name = 5;
+}
+message DisableUserInput {
+    string from_id = 1;
+    string user_name = 2;
+    bool enable = 3;
+}
+message GetUserListInput {
+    string user_name = 1;
+    bool enabled = 2;
+    string user_creator = 3;
+}
+
+message CreateOrganizationCertificateInput {
+    string from_id = 1;
+    string organization_name = 2;
+    int32 organization_type = 3;
+    int32 organization_level = 4;
+    string organization_location = 5;
+    string organization_credit_code = 6;
+    string organization_artificial_person = 7;// 机构法人
+    google.protobuf.Timestamp organization_established_time = 8;
+    string registration_authority = 9;// 登记机关
+    string organization_phone_number = 10;
+    string organization_email = 11;
+    string organization_description = 12;
+    repeated string photo_ids = 13;
+}
+message UpdateOrganizationCertificateInput {
+    string from_id = 1;
+    string organization_name = 2;
+    int32 organization_type = 3;
+    int32 organization_level = 4;
+    string organization_location = 5;
+    string organization_credit_code = 6;
+    string organization_artificial_person = 7;// 机构法人
+    google.protobuf.Timestamp organization_established_time = 8;
+    string registration_authority = 9;// 登记机关
+    string organization_phone_number = 10;
+    string organization_email = 11;
+    string organization_description = 12;
+    repeated string photo_ids = 13;
+}
+message CreateIndependentCertificateInput {
+    string from_id = 1;
+    string name = 2;
+    string id = 3;
+    string phone_number = 4;
+    string email = 5;
+    string location = 6;
+    string description = 7;
+    repeated string photo_ids = 8;
+}
+message UpdateIndependentCertificateInput {
+    string from_id = 1;
+    string name = 2;
+    string id = 3;
+    string phone_number = 4;
+    string email = 5;
+    string location = 6;
+    string description = 7;
+    repeated string photo_ids = 8;
+    string user_name = 9;
+}
+
+message IsPermittedAddressInput {
+    aelf.Address to_address = 1;
+    string scope_id = 2;
+    aelf.Address address = 3;
+}
+
+message IsPermittedMethodInput {
+    aelf.Address to_address = 1;
+    string scope_id = 2;
+    string method_name = 3;
+}
+
+message ForwardInput {
+    string from_id = 1;
+    aelf.Address to_address = 2;
+    string method_name = 3;
+    bytes parameter = 4;
+    string scope_id = 5;
+}
+
+message AddressList {
+    repeated aelf.Address value = 1;
+}
+
+message StringList {
+    repeated string value = 1;
+}
+
+message Role {
+    string role_name = 1;// Will be the primary key.
+    string role_creator = 2;
+    string role_description = 3;
+    google.protobuf.Timestamp create_time = 4;
+    google.protobuf.Timestamp latest_edit_time = 5;
+    int32 organization_unit_count = 6;
+    int32 user_count = 7;
+    bool enabled = 8;
+    string latest_edit_id = 9;
+}
+
+message RoleList {
+    repeated Role value = 1;
+}
+
+message OrganizationUnit {
+    string organization_name = 1;
+    string organization_creator = 2;
+    string role_name = 3;
+    int32 user_count = 4;
+    bool enabled = 5;
+    google.protobuf.Timestamp create_time = 6;
+    bool is_approved = 7;
+    StringList department_list = 8;
+}
+
+message OrganizationUnitList {
+    repeated OrganizationUnit value = 1;
+}
+
+message IndependentArtist {
+    string name = 1;
+    google.protobuf.Timestamp create_time = 2;
+    string user_name = 3;
+    bool is_rejected = 4;
+    bool enabled = 5;
+    google.protobuf.Timestamp latest_edit_time = 6;
+    string auditor = 7;
+}
+
+message IndependentArtistList {
+    repeated IndependentArtist value = 1;
+}
+
+message User {
+    string user_name = 1;
+    string user_creator = 2;
+    string organization_name = 3;
+    google.protobuf.Timestamp create_time = 4;
+    bool enabled = 5;
+    string user_creator_organization_name = 6;
+    string organization_department_name = 7;
+    string role_name = 8;
+}
+
+message UserList {
+    repeated User value = 1;
+}
+
+message OrganizationCertificate {
+    google.protobuf.Timestamp create_time = 1;
+    string organization_name = 2;
+    int32 organization_type = 3;
+    int32 organization_level = 4;
+    string organization_location = 5;
+    string organization_credit_code = 6;
+    string organization_artificial_person = 7;// 机构法人
+    google.protobuf.Timestamp organization_established_time = 8;
+    string registration_authority = 9;// 登记机关
+    string organization_phone_number = 10;
+    string organization_email = 11;
+    string organization_description = 12;
+    repeated string photo_ids = 13;
+    bool is_rejected = 14;
+    string applier = 15;
+    google.protobuf.Timestamp latest_edit_time = 16;
+}
+
+message IndependentCertificate {
+    google.protobuf.Timestamp create_time = 1;
+    string name = 2;
+    string id = 3;
+    string phone_number = 4;
+    string email = 5;
+    string location = 6;
+    string description = 7;
+    repeated string photo_ids = 8;
+    string user_name = 9;
+    bool is_rejected = 10;
+    google.protobuf.Timestamp latest_edit_time = 11;
+}
+
+message ForwardRecord {
+    string from_id = 1;
+    string scope_id = 2;
+    aelf.Address virtual_from_address = 3;
+    aelf.Address to_address = 4;
+    string method_name = 5;
+    bytes parameter = 6;
+}
+
+message GetOrganizationDepartmentIgnoredPermissionListInput {
+    string organization_name = 1;
+    string department_name = 2;
+}
+
+message CreateDepartmentInput {
+    string from_id = 1;
+    string organization_name = 2;
+    string department_name = 3;
+    StringList department_permission_list = 4;
+}
+
+message UpdateDepartmentInput {
+    string from_id = 1;
+    string organization_name = 2;
+    string department_name = 3;
+    StringList enable_department_permission_list = 4;
+    StringList disable_department_permission_list = 5;
+}
+
+message DeleteDepartmentInput {
+    string from_id = 1;
+    string organization_name = 2;
+    string department_name = 3;
+}
+
+message OrganizationDepartment {
+    string organization_name = 1;
+    string department_name = 2;
+    StringList member_list = 3;
+}
+
+message EnablePermissionCheckInput {
+    bool enable = 1;
+}
+
+// Events
+
+message RoleCreated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    Role role = 2;
+}
+
+message RoleUpdated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    Role role = 2;
+}
+
+message RoleDisabled {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string role_name = 2 [(aelf.is_indexed) = true];
+}
+
+message RoleEnabled {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string role_name = 2 [(aelf.is_indexed) = true];
+}
+
+message OrganizationUnitCreated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    OrganizationUnit organization_unit = 2;
+}
+
+message OrganizationUnitUpdated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    OrganizationUnit organization_unit = 2;
+}
+
+message OrganizationUnitEnabled {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string organization_name = 2 [(aelf.is_indexed) = true];
+}
+
+message OrganizationUnitDisabled {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string organization_name = 2 [(aelf.is_indexed) = true];
+}
+
+message UserCreated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    User user = 2;
+}
+
+message UserUpdated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    User user = 2;
+}
+
+message UserEnabled {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string user_name = 2 [(aelf.is_indexed) = true];
+}
+
+message UserDisabled {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string user_name = 2 [(aelf.is_indexed) = true];
+}
+
+message OrganizationCertificateCreated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    OrganizationCertificate organization_certificate = 2;
+}
+
+message OrganizationCertificateUpdated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    OrganizationCertificate organization_certificate = 2;
+}
+
+message OrganizationCertificateApproved {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    OrganizationUnit organization_unit = 2;
+}
+
+message OrganizationCertificateRejected {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string organization_name = 2 [(aelf.is_indexed) = true];
+}
+
+message IndependentCertificateCreated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    IndependentCertificate independent_certificate = 2;
+}
+
+message IndependentCertificateUpdated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    IndependentCertificate independent_certificate = 2;
+}
+
+message IndependentCertificateApproved {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    IndependentArtist independent_artist = 2;
+}
+
+message IndependentCertificateRejected {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string artist_user_name = 2 [(aelf.is_indexed) = true];
+    string artist_name = 3 [(aelf.is_indexed) = true];
+}
+
+message IndependentArtistEnabled {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string artist_user_name = 2 [(aelf.is_indexed) = true];
+    string artist_name = 3 [(aelf.is_indexed) = true];
+}
+
+message IndependentArtistDisabled {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string artist_user_name = 2 [(aelf.is_indexed) = true];
+    string artist_name = 3 [(aelf.is_indexed) = true];
+}
+
+message OrganizationDepartmentCreated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    OrganizationDepartment OrganizationDepartment = 2;
+}
+
+message OrganizationDepartmentUpdated {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string organization_name = 2 [(aelf.is_indexed) = true];
+    string department_name = 3 [(aelf.is_indexed) = true];
+    StringList updated_permission_list = 4;
+}
+
+message OrganizationDepartmentDeleted {
+    option (aelf.is_event) = true;
+    string from_id = 1 [(aelf.is_indexed) = true];
+    string organization_name = 2 [(aelf.is_indexed) = true];
+    string department_name = 3 [(aelf.is_indexed) = true];
+}
+
+message RolePermissionChanged {
+    option (aelf.is_event) = true;
+    string role_name = 1 [(aelf.is_indexed) = true];
+    StringList permission_list = 2;
+}
+
+message DepartmentPermissionChanged {
+    option (aelf.is_event) = true;
+    string organization_name = 1 [(aelf.is_indexed) = true];
+    string department_name = 2 [(aelf.is_indexed) = true];
+    StringList permission_list = 3;
+}
+

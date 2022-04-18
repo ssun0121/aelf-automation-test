@@ -56,6 +56,9 @@
         <ProtoContract Include="Protobuf\Proto\referendum_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\referendum_contract_impl.proto" />
         <ProtoContract Include="Protobuf\Proto\execution.proto" />
+        <ProtoContract Include="Protobuf\Proto\dac_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\dac_market_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\delegator_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>

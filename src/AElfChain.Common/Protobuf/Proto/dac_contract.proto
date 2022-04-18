@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+import "aelf/core.proto";
+import "aelf/options.proto";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+option csharp_namespace = "Sinodac.Contracts.DAC";
+
+service DACContract {
+
+    option (aelf.csharp_state) = "DACContractState";
+
+    rpc Initialize (InitializeInput) returns (google.protobuf.Empty) { }
+    rpc Create (CreateInput) returns (google.protobuf.Empty) { }
+    rpc Mint (MintInput) returns (google.protobuf.Empty) { }
+    rpc MintForRedeemCode (MintForRedeemCodeInput) returns (google.protobuf.Empty) { }
+    rpc InitialTransfer (InitialTransferInput) returns (google.protobuf.Empty) { }
+    rpc Transfer (TransferInput) returns (google.protobuf.Empty) { }
+    rpc TransferFrom (TransferFromInput) returns (google.protobuf.Empty) { }
+    rpc ApproveProtocol (ApproveProtocolInput) returns (google.protobuf.Empty) { }
+
+    rpc GetDACProtocolInfo (google.protobuf.StringValue) returns (DACProtocolInfo) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetDACInfo (GetDACInfoInput) returns (DACInfo) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetBalance (GetBalanceInput) returns (DACBalance) {
+        option (aelf.is_view) = true;
+    }
+    rpc GetRedeemCodeDAC (aelf.Hash) returns (DACInfo) {
+        option (aelf.is_view) = true;
+    }
+    rpc IsOwner (IsOwnerInput) returns (google.protobuf.BoolValue) {
+        option (aelf.is_view) = true;
+    }
+    rpc CalculateDACHash (CalculateDACHashInput) returns (aelf.Hash) {
+        option (aelf.is_view) = true;
+    }
+    rpc IsDACProtocolApproved (google.protobuf.StringValue) returns (google.protobuf.BoolValue) {
+        option (aelf.is_view) = true;
+    }
+    rpc IsMinted (IsMintedInput) returns (google.protobuf.BoolValue) {
+        option (aelf.is_view) = true;
+    }
+    rpc IsBindCompleted (google.protobuf.StringValue) returns (google.protobuf.BoolValue) {
+        option (aelf.is_view) = true;
+    }
+}
+
+message InitializeInput {
+    aelf.Address admin_address = 1;
+    aelf.Address delegator_contract_address = 2;
+    aelf.Address dac_market_contract_address = 3;
+}
+
+message CreateInput {
+    string creator_user_id = 1;
+    string creator_id = 2;
+    string dac_name = 3;
+    int64 price = 4;
+    int64 circulation = 5;
+    string dac_type = 6;
+    string dac_shape = 7;
+    int64 reserve_for_lottery = 8;
+    int64 reserve_from = 9;
+}
+
+message MintInput {
+    string dac_name = 1;
+    int64 from_dac_id = 2;
+    int64 quantity = 3;
+}
+
+message MintForRedeemCodeInput {
+    string dac_name = 1;
+    repeated aelf.Hash redeem_code_hash_list = 2;
+    int64 skip = 3;
+}
+
+message InitialTransferInput {
+    aelf.Address to = 1;
+    string dac_name = 2;
+    int64 dac_id = 3;
+}
+
+message TransferInput {
+    aelf.Address to = 1;
+    string dac_name = 2;
+    int64 dac_id = 3;
+    string memo = 4;
+}
+
+message TransferFromInput {
+    aelf.Address from = 1;
+    aelf.Address to = 2;
+    string dac_name = 3;
+    int64 dac_id = 4;
+    string memo = 5;
+}
+
+message ApproveProtocolInput {
+    string dac_name = 1;
+    bool is_approve = 2;
+}
+
+message GetDACInfoInput {
+    string dac_name = 1;
+    int64 dac_id = 2;
+}
+
+message GetBalanceInput {
+    aelf.Address owner = 1;
+    string dac_name = 2;
+}
+
+message GetBalanceByDACHashInput {
+    aelf.Address owner = 1;
+    aelf.Hash dac_hash = 2;
+}
+
+message IsOwnerInput {
+    aelf.Address owner = 1;
+    string dac_name = 2;
+    int64 dac_id = 3;
+}
+
+message CalculateDACHashInput {
+    string dac_name = 1;
+    int64 dac_id = 2;
+}
+
+message DACProtocolInfo {
+    string creator_user_id = 1;
+    string creator_id = 2;
+    string dac_name = 3;
+    int64 price = 4;
+    int64 circulation = 5;
+    string dac_type = 6;
+    string dac_shape = 7;
+    int64 reserve_for_lottery = 8;
+    int64 reserve_from = 9;
+}
+
+message DACInfo {
+    string dac_name = 1;
+    int64 dac_id = 2;
+    aelf.Hash dac_hash = 3;
+    aelf.Hash redeem_code_hash = 4;
+}
+
+message DACTypes {
+    map<string, string> value = 1;
+}
+
+message AddressList {
+    repeated aelf.Address value = 1;
+}
+
+message DACBalance {
+    aelf.Address owner = 1;
+    string dac_name = 2;
+    int64 balance = 3;
+}
+
+message FileInfo {
+    string dac_name = 1;
+    int64 quantity = 2;
+    string file_id = 3;
+}
+
+message Int64List {
+    repeated int64 value = 1;
+}
+
+message IsMintedInput {
+    string dac_name = 1;
+    int64 dac_id = 2;
+}
+
+// Events
+
+message DACProtocolCreated {
+    option (aelf.is_event) = true;
+    string dac_name = 1 [(aelf.is_indexed) = true];
+    DACProtocolInfo dac_protocol_info = 2;
+}
+
+message DACProtocolApproved {
+    option (aelf.is_event) = true;
+    string dac_name = 1 [(aelf.is_indexed) = true];
+}
+
+message DACMinted {
+    option (aelf.is_event) = true;
+    string dac_name = 1 [(aelf.is_indexed) = true];
+    int64 from_dac_id = 2 [(aelf.is_indexed) = true];
+    int64 quantity = 3 [(aelf.is_indexed) = true];
+    DACInfo dac_info = 4;
+}
+
+message DACInitialTransferred {
+    option (aelf.is_event) = true;
+    aelf.Address from = 1 [(aelf.is_indexed) = true];
+    aelf.Address to = 2 [(aelf.is_indexed) = true];
+    string dac_name = 3 [(aelf.is_indexed) = true];
+    int64 dac_id = 4 [(aelf.is_indexed) = true];
+}
+
+message DACTransferred {
+    option (aelf.is_event) = true;
+    aelf.Address from = 1 [(aelf.is_indexed) = true];
+    aelf.Address to = 2 [(aelf.is_indexed) = true];
+    string dac_name = 3 [(aelf.is_indexed) = true];
+    int64 dac_id = 4 [(aelf.is_indexed) = true];
+}
+
+message RedeemCodeCreated {
+    option (aelf.is_event) = true;
+    string dac_name = 1 [(aelf.is_indexed) = true];
+    int64 dac_id = 2 [(aelf.is_indexed) = true];
+    aelf.Hash redeem_code_hash = 3 [(aelf.is_indexed) = true];
+}
