@@ -1,4 +1,9 @@
-﻿using AElf.Client.Dto;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using AElf;
+using AElf.Client.Dto;
+using AElf.Contracts.Consensus.AEDPoS;
 using AElf.Contracts.Profit;
 using AElf.Types;
 using AElfChain.Common.DtoExtension;
@@ -154,6 +159,23 @@ namespace AElfChain.Common.Contracts
             {
                 FromId = fromId,
                 DacName = dacName
+            });
+
+            return result;
+        }
+
+        private List<string> RedeemCodeList { get; set; }
+
+        public TransactionResultDto BindRedeemCode(string fromId, string dacName, long skip)
+        {
+            RedeemCodeList = Enumerable.Range(1, 100).Select(i => Guid.NewGuid().ToString()).ToList();
+
+            var result = ExecuteMethodWithResult(DelegatorMethod.BindRedeemCode, new BindRedeemCodeInput
+            {
+                FromId = fromId,
+                DacName = dacName,
+                RedeemCodeHashList = {RedeemCodeList.Select(HashHelper.ComputeFrom)},
+                Skip = skip
             });
 
             return result;
