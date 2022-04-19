@@ -40,7 +40,8 @@ namespace AElfChain.Common.Contracts
 
         //View
         IsPermittedAddress,
-        IsPermittedMethod
+        IsPermittedMethod,
+        CalculateUserAddress
     }
 
     public class DelegatorContract : BaseContract<DelegatorMethod>
@@ -168,7 +169,7 @@ namespace AElfChain.Common.Contracts
 
         public TransactionResultDto BindRedeemCode(string fromId, string dacName, long skip)
         {
-            RedeemCodeList = Enumerable.Range(1, 100).Select(i => Guid.NewGuid().ToString()).ToList();
+            RedeemCodeList = Enumerable.Range(1, 10).Select(i => Guid.NewGuid().ToString()).ToList();
 
             var result = ExecuteMethodWithResult(DelegatorMethod.BindRedeemCode, new BindRedeemCodeInput
             {
@@ -273,6 +274,14 @@ namespace AElfChain.Common.Contracts
                 ToAddress = sender.ConvertAddress(),
                 ScopeId = scopeId,
                 MethodName = methodName
+            });
+        }
+
+        public Address CalculateUserAddress(string dacName)
+        {
+            return CallViewMethod<Address>(DelegatorMethod.CalculateUserAddress, new StringValue
+            {
+                Value = dacName
             });
         }
     }

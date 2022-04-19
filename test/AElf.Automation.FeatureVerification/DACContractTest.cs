@@ -27,6 +27,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string AdminAccount { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
+        private string BuyerAccount { get; } = "FHdcx45K5kovWsAKSb3rrdyNPFus8eoJ1XTQE7aXFHTgfpgzN";
 
         private string delegatorAddress = "2TXvtjgTiMwjvEyWGEvfbeQ9P6zVK55pTPcmzvLFBDCMLNUYXV";
         private string DACContractAddress = "2sFCkQs61YKVkHpN3AT7887CLfMvzzXnMkNYYM431RK5tbKQS9";
@@ -68,12 +69,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow(10000, 1000)]
+        [DataRow(10000, 10)]
         public void CreateTest(long circulation, long reserveForLottery)
         {
             var fromId = Guid.NewGuid().ToString();
             var creatorId = Guid.NewGuid().ToString();
-            var dacName = "尚方宝剑7号";
+            var dacName = "尚方宝剑28号";
             var price = 9999;
             var dacType = "图片";
             var dacShape = "长方形(纵向)";
@@ -85,32 +86,23 @@ namespace AElf.Automation.Contracts.ScenarioTest
             if (reserveForLottery >= 0 && reserveForLottery <= circulation)
             {
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-                var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
-                dacProtocolInfo.CreatorUserId.ShouldBe(fromId);
-                dacProtocolInfo.CreatorId.ShouldBe(creatorId);
-                dacProtocolInfo.DacName.ShouldBe(dacName);
-                dacProtocolInfo.Price.ShouldBe(price);
-                dacProtocolInfo.Circulation.ShouldBe(circulation);
-                dacProtocolInfo.DacType.ShouldBe(dacType);
-                dacProtocolInfo.DacShape.ShouldBe(dacShape);
-                dacProtocolInfo.ReserveForLottery.ShouldBe(reserveForLottery);
-
-                Logger.Info($"\ndacProtocolInfo.CreatorUserId: {dacProtocolInfo.CreatorUserId}\n" +
-                            $"dacProtocolInfo.CreatorId: {dacProtocolInfo.CreatorId}\n" +
-                            $"dacProtocolInfo.DacName: {dacProtocolInfo.DacName}\n" +
-                            $"dacProtocolInfo.Price: {dacProtocolInfo.Price}\n" +
-                            $"dacProtocolInfo.Circulation: {dacProtocolInfo.Circulation}\n" +
-                            $"dacProtocolInfo.DacType: {dacProtocolInfo.DacType}\n" +
-                            $"dacProtocolInfo.DacShape: {dacProtocolInfo.DacShape}\n" +
-                            $"dacProtocolInfo.ReserveForLottery: {dacProtocolInfo.ReserveForLottery}\n" +
-                            $"dacProtocolInfo.ReserveFrom: {dacProtocolInfo.ReserveFrom}");
             }
             else if (reserveForLottery > circulation)
             {
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result.Error.ShouldContain("");
             }
+
+            var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
+            Logger.Info($"\ndacProtocolInfo.CreatorUserId: {dacProtocolInfo.CreatorUserId}\n" +
+                        $"dacProtocolInfo.CreatorId: {dacProtocolInfo.CreatorId}\n" +
+                        $"dacProtocolInfo.DacName: {dacProtocolInfo.DacName}\n" +
+                        $"dacProtocolInfo.Price: {dacProtocolInfo.Price}\n" +
+                        $"dacProtocolInfo.Circulation: {dacProtocolInfo.Circulation}\n" +
+                        $"dacProtocolInfo.DacType: {dacProtocolInfo.DacType}\n" +
+                        $"dacProtocolInfo.DacShape: {dacProtocolInfo.DacShape}\n" +
+                        $"dacProtocolInfo.ReserveForLottery: {dacProtocolInfo.ReserveForLottery}\n" +
+                        $"dacProtocolInfo.ReserveFrom: {dacProtocolInfo.ReserveFrom}");
         }
 
         [TestMethod]
@@ -146,11 +138,31 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void BindRedeemCodeTest()
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑7号";
-            var skip = 10;
+            var dacName = "尚方宝剑28号";
+            var skip = 0;
 
             var result = _delegatorContract.BindRedeemCode(fromId, dacName, skip);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var isBindCompleted = _dacContract.IsBindCompleted(dacName);
+            // isBindCompleted.Value.ShouldBe(true);
+            Logger.Info($"isBindCompleted: {isBindCompleted}");
+
+            var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
+            var reserveFrom = (int) dacProtocolInfo.ReserveFrom;
+            var reserveForLottery = dacProtocolInfo.ReserveForLottery;
+            for (int i = reserveFrom; i < reserveFrom + reserveForLottery; i++)
+            {
+                var DACInfo = _dacContract.GetDACInfo(dacName, i);
+                DACInfo.DacName.ShouldBe(dacName);
+                DACInfo.DacId.ShouldBe(i);
+                DACInfo.DacHash.ShouldNotBeNull();
+                DACInfo.RedeemCodeHash.ShouldNotBeNull();
+                Logger.Info($"\nDACInfo.DacName: {DACInfo.DacName}\n" +
+                            $"DACInfo.DacId: {DACInfo.DacId}\n" +
+                            $"DACInfo.DacHash: {DACInfo.DacHash}\n" +
+                            $"DACInfo.RedeemCodeHash: {DACInfo.RedeemCodeHash}");
+            }
         }
 
         [TestMethod]
@@ -165,7 +177,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var DACSeries = _dacMarketContract.GetDACSeries(seriesName);
             DACSeries.SeriesName.ShouldBe(seriesName);
-
             DACSeries.CreatorUserId.ShouldBe(fromId);
             DACSeries.CollectionList.Value[0].ShouldBe(dacName);
             DACSeries.CollectionCount.ShouldBe(1);
@@ -183,8 +194,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void AuditDACTest()
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑1号";
-            var isApprove = false;
+            var dacName = "尚方宝剑28号";
+            var isApprove = true;
 
             var result = _delegatorContract.AuditDAC(fromId, dacName, isApprove);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -194,11 +205,74 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
+        public void MintDACTest()
+        {
+            var fromId = "故宫博物馆管理员";
+            var dacName = "尚方宝剑28号";
+            var fromDacId = 1;
+            var quantity = 1;
+
+            var result = _delegatorContract.MintDAC(fromId, dacName, fromDacId, quantity);
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            for (int i = 1; i <= quantity; i++)
+            {
+                var DACInfo = _dacContract.GetDACInfo(dacName, i);
+                DACInfo.DacName.ShouldBe(dacName);
+                DACInfo.DacId.ShouldBe(i);
+                DACInfo.DacHash.ShouldNotBeNull();
+                DACInfo.RedeemCodeHash.ShouldBeNull();
+                Logger.Info($"\nDACInfo.DacName: {DACInfo.DacName}\n" +
+                            $"DACInfo.DacId: {DACInfo.DacId}\n" +
+                            $"DACInfo.DacHash: {DACInfo.DacHash}\n" +
+                            $"DACInfo.RedeemCodeHash: {DACInfo.RedeemCodeHash}");
+            }
+        }
+
+        [TestMethod]
+        public void BuyDACTest()
+        {
+            var fromId = "故宫博物馆管理员";
+            var dacName = "尚方宝剑28号";
+            var dacId = 1;
+            var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
+            var price = dacProtocolInfo.Price;
+
+            var userAddress = _delegatorContract.CalculateUserAddress(dacName);
+            var balance = _dacContract.GetBalance(userAddress, dacName);
+            var isOwner = _dacContract.IsOwner(userAddress, dacName, dacId);
+            Logger.Info($"userAddress: {userAddress}");
+            Logger.Info($"balance: {balance}");
+            Logger.Info($"isOwner: {isOwner}");
+
+            var result = _delegatorContract.Buy("张三", dacName, dacId, price);
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
+        public void RedeemTest()
+        {
+            var fromId = "故宫博物馆管理员";
+            var dacName = "尚方宝剑28号";
+            var dacId = 1;
+            var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
+
+            var userAddress = _delegatorContract.CalculateUserAddress(dacName);
+            var balance = _dacContract.GetBalance(userAddress, dacName);
+            Logger.Info($"userAddress: {userAddress}");
+            Logger.Info($"balance: {balance}");
+
+            var redeemCode = "";
+            var result = _delegatorContract.Redeem("张三", redeemCode);
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        [TestMethod]
         public void ListDACTest()
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑2号";
-            var publicTime = DateTime.UtcNow.AddDays(1).ToTimestamp();
+            var dacName = "尚方宝剑28号";
+            var publicTime = DateTime.UtcNow.AddSeconds(5).ToTimestamp();
 
             var result = _delegatorContract.ListDAC(fromId, dacName, publicTime);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);

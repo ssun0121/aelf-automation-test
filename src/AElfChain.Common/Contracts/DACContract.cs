@@ -5,6 +5,7 @@ using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
 using Google.Protobuf.WellKnownTypes;
 using Sinodac.Contracts.DAC;
+using Address = AElf.Types.Address;
 
 namespace AElfChain.Common.Contracts
 {
@@ -169,11 +170,11 @@ namespace AElfChain.Common.Contracts
             });
         }
 
-        public DACBalance GetBalance(string owner, string dacName)
+        public DACBalance GetBalance(Address owner, string dacName)
         {
             return CallViewMethod<DACBalance>(DACMethod.GetBalance, new GetBalanceInput
             {
-                Owner = owner.ConvertAddress(),
+                Owner = owner,
                 DacName = dacName
             });
         }
@@ -183,11 +184,11 @@ namespace AElfChain.Common.Contracts
             return CallViewMethod<DACInfo>(DACMethod.GetRedeemCodeDAC, hash);
         }
 
-        public BoolValue IsOwner(string owner, string dacName, long dacId)
+        public BoolValue IsOwner(Address owner, string dacName, long dacId)
         {
             return CallViewMethod<BoolValue>(DACMethod.IsOwner, new IsOwnerInput
             {
-                Owner = owner.ConvertAddress(),
+                Owner = owner,
                 DacName = dacName,
                 DacId = dacId
             });
