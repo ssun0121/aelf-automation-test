@@ -93,13 +93,13 @@ namespace AElfChain.Common.Contracts
             return result;
         }
 
-        public TransactionResultDto MintForRedeemCode(string dacName, long skip)
+        public TransactionResultDto MintForRedeemCode(string dacName, long fromDacId)
         {
             var result = ExecuteMethodWithResult(DACMethod.MintForRedeemCode, new MintForRedeemCodeInput
             {
                 DacName = dacName,
                 RedeemCodeHashList = { },
-                Skip = skip
+                FromDacId = fromDacId
             });
 
             return result;
@@ -179,7 +179,7 @@ namespace AElfChain.Common.Contracts
             });
         }
 
-        public DACInfo GetRedeemCodeDAC(Hash hash)
+        public DACInfo GetRedeemCodeDAC(AElf.Types.Hash hash)
         {
             return CallViewMethod<DACInfo>(DACMethod.GetRedeemCodeDAC, hash);
         }

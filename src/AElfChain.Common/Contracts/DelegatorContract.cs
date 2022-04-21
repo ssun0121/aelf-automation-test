@@ -12,6 +12,7 @@ using AElfChain.Common.Managers;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Sinodac.Contracts.Delegator;
+using Hash = AElf.Client.Proto.Hash;
 
 namespace AElfChain.Common.Contracts
 {
@@ -141,7 +142,7 @@ namespace AElfChain.Common.Contracts
             return result;
         }
 
-        public TransactionResultDto MintDAC(string fromId, string dacName, long fromDacId, long quantity)
+        public TransactionResultDto MintDAC(string fromId, string dacName, long fromDacId, long quantity = 0)
         {
             var result = ExecuteMethodWithResult(DelegatorMethod.MintDAC, new MintDACInput
             {
@@ -165,18 +166,16 @@ namespace AElfChain.Common.Contracts
             return result;
         }
 
-        private List<string> RedeemCodeList { get; set; }
-
-        public TransactionResultDto BindRedeemCode(string fromId, string dacName, long skip)
+        public TransactionResultDto BindRedeemCode(string fromId, string dacName,
+            IEnumerable<AElf.Types.Hash> redeemCodeList,
+            long fromDacId)
         {
-            RedeemCodeList = Enumerable.Range(1, 10).Select(i => Guid.NewGuid().ToString()).ToList();
-
             var result = ExecuteMethodWithResult(DelegatorMethod.BindRedeemCode, new BindRedeemCodeInput
             {
                 FromId = fromId,
                 DacName = dacName,
-                RedeemCodeHashList = {RedeemCodeList.Select(HashHelper.ComputeFrom)},
-                Skip = skip
+                RedeemCodeHashList = {redeemCodeList},
+                FromDacId = fromDacId
             });
 
             return result;
@@ -277,11 +276,11 @@ namespace AElfChain.Common.Contracts
             });
         }
 
-        public Address CalculateUserAddress(string dacName)
+        public Address CalculateUserAddress(string user)
         {
             return CallViewMethod<Address>(DelegatorMethod.CalculateUserAddress, new StringValue
             {
-                Value = dacName
+                Value = user
             });
         }
     }

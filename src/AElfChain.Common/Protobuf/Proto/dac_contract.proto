@@ -77,7 +77,7 @@ message MintInput {
 message MintForRedeemCodeInput {
     string dac_name = 1;
     repeated aelf.Hash redeem_code_hash_list = 2;
-    int64 skip = 3;
+    int64 from_dac_id = 3;
 }
 
 message InitialTransferInput {
