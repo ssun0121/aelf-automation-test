@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using AElf.CSharp.Core;
 using AElf.Types;
 using AElfChain.Common;
@@ -36,11 +37,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string AdminAccount { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
-        private string BuyerAccount { get; } = "FHdcx45K5kovWsAKSb3rrdyNPFus8eoJ1XTQE7aXFHTgfpgzN";
 
-        private string delegatorAddress = "xwfQDMdE5xCmyKcDDKV8EDTJdmVfSY6zxiojUxjYKvWpkeu65";
-        private string DACContractAddress = "2QtXdKR1ap9Sxgvz3ksiozXx88xf12rfQhk7kNGYuamveDh1ZX";
-        private string DACMarketContractAddress = "xhhLqDthzC4rmyNURwQpASKWWF6o2eJHbGF5j9H1MyxAxNLap";
+        private string delegatorAddress = "2CUt9QP4SH25GubsBiVvW17nAwfyHRSMkk8GQ6r7Ez5aUJttG5";
+        private string DACContractAddress = "vqRuJR3LDDMHbrgqaLmsLAhKSQgrbH1r5xrs4aVDx9EezViGF";
+        private string DACMarketContractAddress = "62j1oMP2D8y4f6YHHL9WyhdtcFiLhMtrs7tBqXkMwJudz9AY5";
 
         private static string RpcUrl { get; } = "192.168.67.166:8000";
 
@@ -78,7 +78,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow(10, 1, "尚方宝剑54号")]
+        [DataRow(10000, 10, "尚方宝剑31号")]
         public void CreateTest(long circulation, long reserveForLottery, string dacName)
         {
             var fromId = "北京故宫博物馆管理员";
@@ -86,7 +86,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var price = 9999;
             var dacType = "图片";
             var dacShape = "长方形(纵向)";
-            var seriesName = "故宫尚方宝剑系列3";
+            var seriesName = "故宫尚方宝剑系列1";
 
             var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
             if (dacProtocolInfo.DacName != "")
@@ -160,7 +160,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var fromId = "故宫博物馆管理员";
             var seriesDescription = "描述：故宫尚方宝剑";
             var creatorId = Guid.NewGuid().ToString();
-            var seriesName = "故宫尚方宝剑系列3";
+            var seriesName = "故宫尚方宝剑系列1";
 
             var result = _delegatorContract.CreateSeries(fromId, seriesName, seriesDescription, creatorId);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -234,7 +234,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow("尚方宝剑53号")]
+        [DataRow("尚方宝剑31号")]
         public void BindRedeemCodeOnceTest(string dacName)
         {
             var fromId = "故宫博物馆管理员";
@@ -263,22 +263,27 @@ namespace AElf.Automation.Contracts.ScenarioTest
                             $"DACInfo.DacHash: {DACInfo.DacHash}\n" +
                             $"DACInfo.RedeemCodeHash: {DACInfo.RedeemCodeHash}");
             }
+
+            for (int i = 0; i < reserveForLottery; i++)
+            {
+                Logger.Info($"\nRedeemCodeList{i}: {RedeemCodeList[i]}");
+            }
         }
 
         [TestMethod]
         public void BindRedeemCodeErrorTest()
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑40号";
+            var dacName = "尚方宝剑11号";
             var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
             var reserveFrom = (int) dacProtocolInfo.ReserveFrom;
             var reserveForLottery = dacProtocolInfo.ReserveForLottery;
             var fromDacId = reserveFrom;
-            RedeemCodeList = Enumerable.Range(1, 10).Select(i => Guid.NewGuid().ToString()).ToList();
+            RedeemCodeList = Enumerable.Range(1, 11).Select(i => Guid.NewGuid().ToString()).ToList();
             var redeemCodeHashList = RedeemCodeList.Select(HashHelper.ComputeFrom).ToList();
 
             {
-                var result = _delegatorContract.BindRedeemCode(fromId, dacName, redeemCodeHashList, fromDacId);
+                var result = _delegatorContract.BindRedeemCode(fromId, dacName, redeemCodeHashList.Take(11), fromDacId);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 result.Error.ShouldContain("抽奖码给多了");
             }
@@ -294,8 +299,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             // 重新绑定新的抽奖码
             {
-                var result = _delegatorContract.BindRedeemCode(fromId, dacName, redeemCodeHashList.Skip(2), fromDacId);
-                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                var result =
+                    _delegatorContract.BindRedeemCode(fromId, dacName, redeemCodeHashList.Skip(2).Take(2), fromDacId);
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                result.Error.ShouldContain("已经绑定过哈希值");
             }
         }
 
@@ -329,7 +336,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow("尚方宝剑46号", 1, 2)]
+        [DataRow("尚方宝剑23号", 1, 10)]
         public void MintDACTest(string dacName, long fromDacId, long quantity)
         {
             var fromId = "故宫博物馆管理员";
@@ -368,11 +375,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow(1, 10)]
+        [DataRow(4, 2)]
         public void MintDACOtherTest(long fromDacId, long quantity)
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑53号";
+            var dacName = "尚方宝剑9号";
             ListDAC(fromId, dacName);
 
             var result = _delegatorContract.MintDAC(fromId, dacName, fromDacId, quantity);
@@ -414,8 +421,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void BuyDACTest()
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑53号";
-            var dacId = 1;
+            var dacName = "尚方宝剑23号";
+            var dacId = 3;
             var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
             var price = dacProtocolInfo.Price;
             var user = "张三";
@@ -435,13 +442,26 @@ namespace AElf.Automation.Contracts.ScenarioTest
             balanceAfter.DacName.ShouldBe(dacName);
             balanceAfter.Balance.ShouldBe(dacId);
             balanceAfter.Balance.ShouldBe(balance.Balance + 1);
+
+            // Check event: DACSold
+            var logs = result.Logs.First(l => l.Name.Equals("DACSold")).Indexed;
+            var index1 = DACSold.Parser.ParseFrom(ByteString.FromBase64(logs[0]));
+            index1.UserId.ShouldBe(user);
+            var index2 = DACSold.Parser.ParseFrom(ByteString.FromBase64(logs[1]));
+            index2.DacName.ShouldBe(dacName);
+            var index3 = DACSold.Parser.ParseFrom(ByteString.FromBase64(logs[2]));
+            index3.DacId.ShouldBe(dacId);
+            var index4 = DACSold.Parser.ParseFrom(ByteString.FromBase64(logs[3]));
+            index4.Price.ShouldBe(price);
+            var index5 = DACSold.Parser.ParseFrom(ByteString.FromBase64(logs[4]));
+            index5.UserAddress.ShouldBe(userAddress);
         }
 
         [TestMethod]
         public void BuyDACErrorTest()
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑号66号";
+            var dacName = "尚方宝剑号23号";
             var dacId = 1;
             var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
             var price = dacProtocolInfo.Price;
@@ -450,15 +470,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var reserveForLottery = 1;
 
             CreateTest(circulation, reserveForLottery, dacName);
-            // 检查是否上架,是否到上架时间
-            {
-                var result = _delegatorContract.Buy(user, dacName, dacId, price);
-                result.Status.ConvertTransactionResultStatus()
-                    .ShouldBe(TransactionResultStatus.NodeValidationFailed);
-                result.Error.ShouldContain("没有设置上架时间");
-            }
-
             ListDAC(fromId, dacName);
+
+            Thread.Sleep(10 * 1000);
             // 检查是否绑定兑换码
             {
                 var isBindCompleted = _dacContract.IsBindCompleted(dacName);
@@ -486,7 +500,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 result.Error.ShouldContain("还没有mint到初始地址");
             }
 
-            MintDACTest(dacName, 1, 2);
+            MintDACTest(dacName, 1, 10);
             // 检查是否转移
             {
                 var result = _delegatorContract.Buy(user, dacName, dacId, price);
@@ -494,69 +508,137 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
                 result = _delegatorContract.Buy("李四", dacName, dacId, price);
                 result.Error.ShouldContain("已经从初始地址转给");
+            }
 
-                result = _delegatorContract.Buy(user, dacName, dacId, price);
-                result.Error.ShouldContain("已经从初始地址转给");
+            {
+                Thread.Sleep(30 * 1000);
+                var result = _delegatorContract.Buy(user, dacName, dacId, price);
+                // result.Error.ShouldContain("已经从初始地址转给");
             }
         }
 
         [TestMethod]
-        public void BuyDACWithoutMintTest()
+        public void BuyDACPublishTimeTest()
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑54号";
+            var dacName = "尚方宝剑号13号";
             var dacId = 1;
             var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
             var price = dacProtocolInfo.Price;
             var user = "张三";
-            var userAddress = _delegatorContract.CalculateUserAddress(user);
+            var circulation = 100;
+            var reserveForLottery = 1;
 
-            // 检查是否mint
-            var isMinted = _dacContract.IsMinted(dacName, dacId);
-            if (isMinted.Value)
+            CreateTest(circulation, reserveForLottery, dacName);
+
+            // 检查是否上架
             {
                 var result = _delegatorContract.Buy(user, dacName, dacId, price);
+                result.Status.ConvertTransactionResultStatus()
+                    .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                result.Error.ShouldContain("没有设置上架时间");
+            }
+
+            // 是否到上架时间
+            {
+                AuditDACTest(fromId, dacName);
+                var publicTime = DateTime.UtcNow.AddYears(1).ToTimestamp();
+
+                var result = _delegatorContract.ListDAC(fromId, dacName, publicTime);
                 result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-                result = _delegatorContract.Buy("李四", dacName, dacId, price);
-                result.Error.ShouldContain("已经从初始地址转给");
-
                 result = _delegatorContract.Buy(user, dacName, dacId, price);
-                result.Error.ShouldContain("已经从初始地址转给");
-            }
-            else
-            {
-                var result = _delegatorContract.Buy(user, dacName, dacId, price);
-                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-                result.Error.ShouldContain("还没有mint到初始地址");
+                result.Status.ConvertTransactionResultStatus()
+                    .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                result.Error.ShouldContain("还没有上架");
             }
         }
 
         [TestMethod]
-        public void RedeemTest()
+        [DataRow("尚方宝剑31号", "534fb5b5-0abf-4633-b9df-608bc2c7ed45")]
+        public void RedeemTest(string dacName, string redeemCode)
         {
-            var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑3号";
+            var user = "张三";
             var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
             var reserveFrom = dacProtocolInfo.ReserveFrom;
             var dacId = reserveFrom;
             var dacInfo = _dacContract.GetDACInfo(dacName, dacId);
-            var redeemCode = dacInfo.RedeemCodeHash.ToString();
-            var user = "张三";
             var redeemCodeDAC = _dacContract.GetRedeemCodeDAC(dacInfo.RedeemCodeHash);
-            Logger.Info($"\redeemCodeDAC.DacName: {redeemCodeDAC.DacName}\n" +
+            Logger.Info($"\nredeemCodeDAC.DacName: {redeemCodeDAC.DacName}\n" +
                         $"redeemCodeDAC.DacId: {redeemCodeDAC.DacId}\n" +
                         $"redeemCodeDAC.DacHash: {redeemCodeDAC.DacHash}\n" +
                         $"redeemCodeDAC.RedeemCodeHash: {redeemCodeDAC.RedeemCodeHash}");
             var userAddress = _delegatorContract.CalculateUserAddress(user);
             var balance = _dacContract.GetBalance(userAddress, dacName);
-            var result = _delegatorContract.Redeem("张三", "8fe8803b-fd1d-475c-99de-d2a18a0fb8dc");
+
+            var result = _delegatorContract.Redeem("张三", redeemCode);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
             var balanceAfter = _dacContract.GetBalance(userAddress, dacName);
             Logger.Info($"balanceAfter: {balanceAfter}");
             balanceAfter.Owner.ShouldBe(userAddress);
             balanceAfter.DacName.ShouldBe(dacName);
             balanceAfter.Balance.ShouldBe(balance.Balance + 1);
+
+            // Check event: CodeRedeemed
+            var logs = result.Logs.First(l => l.Name.Equals("CodeRedeemed")).Indexed;
+            var index1 = CodeRedeemed.Parser.ParseFrom(ByteString.FromBase64(logs[0]));
+            index1.UserId.ShouldBe(user);
+            var index2 = CodeRedeemed.Parser.ParseFrom(ByteString.FromBase64(logs[1]));
+            index2.DacName.ShouldBe(dacName);
+            var index3 = CodeRedeemed.Parser.ParseFrom(ByteString.FromBase64(logs[2]));
+            index3.RedeemCode.ShouldBe(redeemCode);
+            var index4 = CodeRedeemed.Parser.ParseFrom(ByteString.FromBase64(logs[3]));
+            index4.DacId.ShouldBe(dacId);
+            var index5 = CodeRedeemed.Parser.ParseFrom(ByteString.FromBase64(logs[4]));
+            index5.UserAddress.ShouldBe(userAddress);
+        }
+
+        [TestMethod]
+        [DataRow("尚方宝剑31号", "534fb5b5-0abf-4633-b9df-608bc2c7ed45")]
+        public void RedeemErrorTest(string dacName, string redeemCode)
+        {
+            var user = "张三";
+            var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
+            var reserveFrom = dacProtocolInfo.ReserveFrom;
+            var dacId = reserveFrom;
+            var dacInfo = _dacContract.GetDACInfo(dacName, dacId);
+            var redeemCodeDAC = _dacContract.GetRedeemCodeDAC(dacInfo.RedeemCodeHash);
+            Logger.Info($"\nredeemCodeDAC.DacName: {redeemCodeDAC.DacName}\n" +
+                        $"redeemCodeDAC.DacId: {redeemCodeDAC.DacId}\n" +
+                        $"redeemCodeDAC.DacHash: {redeemCodeDAC.DacHash}\n" +
+                        $"redeemCodeDAC.RedeemCodeHash: {redeemCodeDAC.RedeemCodeHash}");
+
+            // 检查兑换码是否有效
+            {
+                var redeemCodeNew = "xxxxxxxx-201b-4b81-93a6-9a8fcf79547f";
+                var result = _delegatorContract.Redeem("张三", redeemCodeNew);
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                // result.Error.ShouldContain($"兑换码 {redeemCode} 无效");
+            }
+
+            // 检查是否上架
+            {
+                var result = _delegatorContract.Redeem("张三", redeemCode);
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                result.Error.ShouldContain($"{dacInfo.DacName} 还没有上架");
+            }
+
+            // 上架
+            ListDAC("故宫博物馆管理员", dacName);
+
+            Thread.Sleep(10 * 1000);
+            // 检查是否重复兑换
+            {
+                // 兑换
+                var result = _delegatorContract.Redeem("张三", redeemCode);
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+                // 重复兑换
+                result = _delegatorContract.Redeem("李四", redeemCode);
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                result.Error.ShouldContain($"已经从初始地址转给");
+            }
         }
 
         [TestMethod]
@@ -588,7 +670,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
             user2BalanceAfter.Balance.ShouldBe(user2BalanceBefore.Balance + 1);
         }
 
-        private void ListDAC(string fromId, string dacName)
+        [TestMethod]
+        [DataRow("北京故宫博物馆管理员", "尚方宝剑30号")]
+        public void ListDAC(string fromId, string dacName)
         {
             AuditDACTest(fromId, dacName);
             var publicTime = DateTime.UtcNow.AddSeconds(5).ToTimestamp();
@@ -621,6 +705,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var logs = result.Logs.First(l => l.Name.Equals("DACProtocolApproved")).Indexed;
             var index1 = DACProtocolApproved.Parser.ParseFrom(ByteString.FromBase64(logs[0]));
             index1.DacName.ShouldBe(dacName);
+        }
+
+        [TestMethod]
+        public Timestamp GetPublicTimeTest(string dacName)
+        {
+            var dacPublicTime = _dacMarketContract.GetPublicTime(dacName);
+            Logger.Info($"dacPublicTime:{dacPublicTime.Seconds}");
+            return dacPublicTime;
         }
     }
 }
