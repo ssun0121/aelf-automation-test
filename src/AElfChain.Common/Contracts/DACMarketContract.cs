@@ -7,7 +7,7 @@ using Sinodac.Contracts.DACMarket;
 
 namespace AElfChain.Common.Contracts
 {
-    public enum DACMarketCMethod
+    public enum DACMarketMethod
     {
         Initialize,
 
@@ -16,10 +16,14 @@ namespace AElfChain.Common.Contracts
 
         //View
         GetDACSeries,
-        GetPublicTime
+        GetPublicTime,
+        GetOwnBoxIdList,
+        GetBoxInfo,
+        ConfirmCopyright,
+        GetDACCopyright
     }
 
-    public class DacMarketContract : BaseContract<DACMarketCMethod>
+    public class DacMarketContract : BaseContract<DACMarketMethod>
     {
         public DacMarketContract(INodeManager nodeManager, string callAddress) :
             base(nodeManager, "Sinodac.Contracts.DACMarket", callAddress)
@@ -37,7 +41,7 @@ namespace AElfChain.Common.Contracts
         public TransactionResultDto Initialize(string delegatorContractAddress, string dacContractAddress,
             string adminAddress)
         {
-            var result = ExecuteMethodWithResult(DACMarketCMethod.Initialize, new InitializeInput
+            var result = ExecuteMethodWithResult(DACMarketMethod.Initialize, new InitializeInput
             {
                 DelegatorContractAddress = delegatorContractAddress.ConvertAddress(),
                 DacContractAddress = dacContractAddress.ConvertAddress(),
@@ -49,7 +53,7 @@ namespace AElfChain.Common.Contracts
 
         public DACSeries GetDACSeries(string seriesName)
         {
-            return CallViewMethod<DACSeries>(DACMarketCMethod.GetDACSeries, new StringValue
+            return CallViewMethod<DACSeries>(DACMarketMethod.GetDACSeries, new StringValue
             {
                 Value = seriesName
             });
@@ -57,7 +61,7 @@ namespace AElfChain.Common.Contracts
 
         public Timestamp GetPublicTime(string dacName)
         {
-            return CallViewMethod<Timestamp>(DACMarketCMethod.GetPublicTime, new StringValue
+            return CallViewMethod<Timestamp>(DACMarketMethod.GetPublicTime, new StringValue
             {
                 Value = dacName
             });
