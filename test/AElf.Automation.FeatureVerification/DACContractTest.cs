@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Threading;
 using AElf.CSharp.Core;
@@ -23,8 +22,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
     [TestClass]
     public class DelegatorForwardContractTest
     {
-        private GenesisContract _genesisContract;
-        private TokenContract _tokenContract;
         private DelegatorContract _delegatorContract;
         private DACContract _dacContract;
         private DacMarketContract _dacMarketContract;
@@ -50,8 +47,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             NodeInfoHelper.SetConfig("nodes-env2-main");
 
             NodeManager = new NodeManager(RpcUrl);
-            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
-            _tokenContract = _genesisContract.GetTokenContract(InitAccount);
 
             _delegatorContract = delegatorAddress == ""
                 ? new DelegatorContract(NodeManager, InitAccount)
