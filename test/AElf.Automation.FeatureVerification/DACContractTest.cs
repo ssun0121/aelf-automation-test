@@ -17,8 +17,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 using Sinodac.Contracts.DAC;
 using Sinodac.Contracts.DACMarket;
-using Sinodac.Contracts.Delegator;
-using BuyInput = Sinodac.Contracts.Delegator.BuyInput;
 
 namespace AElf.Automation.Contracts.ScenarioTest
 {
@@ -78,7 +76,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow(10000, 10, "尚方宝剑31号")]
+        [DataRow(10000, 10, "尚方宝剑32号")]
         public void CreateTest(long circulation, long reserveForLottery, string dacName)
         {
             var fromId = "北京故宫博物馆管理员";
@@ -645,12 +643,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void GiveTest()
         {
             var fromId = "故宫博物馆管理员";
-            var dacName = "尚方宝剑3号";
-            var dacProtocolInfo = _dacContract.GetDACProtocolInfo(dacName);
-            var reserveFrom = dacProtocolInfo.ReserveFrom;
-            var dacId = reserveFrom;
-            var dacInfo = _dacContract.GetDACInfo(dacName, dacId);
-            var redeemCode = dacInfo.RedeemCodeHash.ToString();
+            var dacName = "尚方宝剑23号";
+            var dacId = 1;
             var user1 = "张三";
             var user2 = "李四";
             var user1Address = _delegatorContract.CalculateUserAddress(user1);
@@ -660,14 +654,46 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"user1BalanceBefore: {user1BalanceBefore}");
             Logger.Info($"user2BalanceBefore: {user2BalanceBefore}");
 
-            var result = _delegatorContract.Give(user1, user2, dacName, dacId);
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var user1BalanceAfter = _dacContract.GetBalance(user1Address, dacName);
-            var user2BalanceAfter = _dacContract.GetBalance(user2Address, dacName);
-            Logger.Info($"user1BalanceAfter: {user1BalanceAfter}");
-            Logger.Info($"user2BalanceAfter: {user2BalanceAfter}");
-            user1BalanceAfter.Balance.ShouldBe(user1BalanceBefore.Balance - 1);
-            user2BalanceAfter.Balance.ShouldBe(user2BalanceBefore.Balance + 1);
+            var isOwner = _dacContract.IsOwner(user1Address, dacName, dacId);
+            Logger.Info($"isOwner: {isOwner}");
+
+            if (isOwner.Value)
+            {
+                var result = _delegatorContract.Give(user1, user1, dacName, dacId);
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                var user1BalanceAfter1 = _dacContract.GetBalance(user1Address, dacName);
+                var user2BalanceAfter1 = _dacContract.GetBalance(user2Address, dacName);
+                Logger.Info($"user1BalanceAfter1: {user1BalanceAfter1}");
+                Logger.Info($"user2BalanceAfter1: {user2BalanceAfter1}");
+                user1BalanceAfter1.Balance.ShouldBe(user1BalanceBefore.Balance);
+                user2BalanceAfter1.Balance.ShouldBe(user2BalanceBefore.Balance);
+
+                result = _delegatorContract.Give(user1, user2, dacName, dacId);
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                var user1BalanceAfter = _dacContract.GetBalance(user1Address, dacName);
+                var user2BalanceAfter = _dacContract.GetBalance(user2Address, dacName);
+                Logger.Info($"user1BalanceAfter: {user1BalanceAfter}");
+                Logger.Info($"user2BalanceAfter: {user2BalanceAfter}");
+                user1BalanceAfter.Balance.ShouldBe(user1BalanceBefore.Balance - 1);
+                user2BalanceAfter.Balance.ShouldBe(user2BalanceBefore.Balance + 1);
+
+                // Check event: DACTransferred
+                var logs = result.Logs.First(l => l.Name.Equals("DACTransferred")).Indexed;
+                var index1 = DACTransferred.Parser.ParseFrom(ByteString.FromBase64(logs[0]));
+                index1.From.ShouldBe(user1Address);
+                var index2 = DACTransferred.Parser.ParseFrom(ByteString.FromBase64(logs[1]));
+                index2.To.ShouldBe(user2Address);
+                var index3 = DACTransferred.Parser.ParseFrom(ByteString.FromBase64(logs[2]));
+                index3.DacName.ShouldBe(dacName);
+                var index4 = DACTransferred.Parser.ParseFrom(ByteString.FromBase64(logs[3]));
+                index4.DacId.ShouldBe(dacId);
+            }
+            else
+            {
+                var result = _delegatorContract.Give(user1, user2, dacName, dacId);
+                result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                result.Error.ShouldContain("不拥有 DAC");
+            }
         }
 
         [TestMethod]
