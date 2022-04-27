@@ -45,11 +45,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
 
-        private string dacAddr = "QhigELA74hLmPxmdo15uHJ5NGcNRDYkmtf86eyEzdNZXDTWXB";
+        private string dacAddr = "iupiTuL2cshxB9UNauXNXe9iyCcqka7jCotodcEHGpNXeLzqG";
         //private string dacAddr = "";
-        private string dacMarketAddr = "21ocA3GkhTTvBSDFT5oH9ANnZS2d9ErSpHrxBukNJ7AQ5ycaDb";
+        private string dacMarketAddr = "AtCnocGN47ZCUscwHYxJNh8G8jVmbgjgy1MR62uoXGohd67wu";
         //private string dacMarketAddr = "";
-        private string delegatorAddr = "2KWEt7yWgaXCu4WbCuMfBVxnaphE88whfEcaFAhYproUgov2hw";
+        private string delegatorAddr = "2TXvtjgTiMwjvEyWGEvfbeQ9P6zVK55pTPcmzvLFBDCMLNUYXV";
         //private string delegatorAddr = "";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string UserA { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
@@ -254,8 +254,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void BoxMysteryBoxError()
         {
-            
             {
+                //打包别人创的盲盒，权限在delegator里限制，market合约不做限制
                 var createResult = _delegatorContract.CreateDAC(
                     "用户3",
                     "机构",
@@ -270,13 +270,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 createResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
                 var box = _delegatorContract.Box("赵四", "青岛大姨");
-                box.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Failed);
+                box.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }
             {
+                //打包不存在的藏品，不做限制，没有影响
                 var box = _delegatorContract.Box("赵四", "东北大姨");
-                box.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Failed);
+                box.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }
             {
+                //重复打包，不在合约中判断，没有影响
                 var createResult = _delegatorContract.CreateDAC(
                     "用户3",
                     "机构",
@@ -294,7 +296,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 boxResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
                 var box = _delegatorContract.Box("用户3", "山东大姨");
-                box.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Failed);
+                box.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }
         }
 
@@ -417,12 +419,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Value = "五档路飞"
                 });
 
-                //listtwice.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                listtwice.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             }
 
             {
-                //上架别人的盲盒：需从delegator中设置权限
+                //上架别人的盲盒：需从delegator中设置权限,market合约不做判断
                 var createResult2 = _delegatorContract.CreateDAC(
                     "用户3",
                     "机构",
@@ -447,7 +449,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     "赵四", 
                     "罗杰", 
                     TimestampHelper.GetUtcNow().AddDays(1));
-                //list.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                list.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             }
 
@@ -549,7 +551,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             }
 
             {
-                //dacId不存在
+                //dacId不存在：market合约不做判断
                 var createResult = _delegatorContract.CreateDAC(
                     "用户3",
                     "机构",
@@ -602,22 +604,22 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     "老虎",
                     4,
                     788);
-                buyThrid.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                buyThrid.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             }
         }
 
         [TestMethod]
         public void UnboxMysteryError()
         {
-            CreatAndListMysteryBox("海豚",111,10);
-            CreatAndListMysteryBox("鲨鱼",222,15);
-            CreatAndListMysteryBox("鳄鱼",333,5);
+            CreatAndListMysteryBox("A",111,10);
+            CreatAndListMysteryBox("B",222,15);
+            CreatAndListMysteryBox("C",333,5);
             
             {
                 //boxId不存在
                 var unbox = _delegatorContract.Unbox(
                     "用户2", 
-                    "海豚",
+                    "A",
                     "FakeBoxId");
                 unbox.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
             }
@@ -625,7 +627,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
                 var buy = _delegatorContract.Buy(
                     "用户2",
-                    "海豚",
+                    "A",
                     3,
                     110);
                 buy.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -633,16 +635,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
                 var boxId = GetOwnBoxList("用户2").Value.Last();
 
-                var balanceSharkBefore = GetOwnerDacBalance("鲨鱼", "用户2");
-                var balanceDolphinBefore = GetOwnerDacBalance("海豚", "用户2");
+                var balanceSharkBefore = GetOwnerDacBalance("B", "用户2");
+                var balanceDolphinBefore = GetOwnerDacBalance("A", "用户2");
                 //boxId存在但不属于dacName
                 var unbox = _delegatorContract.Unbox(
                     "用户2", 
-                    "鲨鱼",
+                    "B",
                     boxId);
                 
-                var balanceSharkAfterUnbox = GetOwnerDacBalance("鲨鱼", "用户2");
-                var balanceDolphinAfterUnbox = GetOwnerDacBalance("海豚", "用户2");
+                var balanceSharkAfterUnbox = GetOwnerDacBalance("B", "用户2");
+                var balanceDolphinAfterUnbox = GetOwnerDacBalance("A", "用户2");
                 balanceSharkAfterUnbox.ShouldBe(balanceSharkBefore.Add(0));
                 balanceDolphinAfterUnbox.ShouldBe(balanceDolphinBefore.Add(1));
                 
@@ -651,7 +653,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 var buy = _delegatorContract.Buy(
                     "用户2",
-                    "鳄鱼",
+                    "C",
                     1,
                     777);
                 buy.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -660,7 +662,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var boxId = GetOwnBoxList("用户2").Value.Last();
                 var unbox = _delegatorContract.Unbox(
                     "用户3",
-                    "鳄鱼",
+                    "C",
                     boxId);
                 unbox.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 unbox.Error.ShouldContain("名下没有盲盒");
@@ -669,7 +671,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 var buy = _delegatorContract.Buy(
                     "用户3",
-                    "鳄鱼",
+                    "C",
                     2,
                     777);
                 buy.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
@@ -677,7 +679,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var boxId = GetOwnBoxList("用户2").Value.Last();
                 var unbox = _delegatorContract.Unbox(
                     "用户3",
-                    "鳄鱼",
+                    "C",
                     boxId);
                 unbox.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 unbox.Error.ShouldContain("盲盒不属于用户");    
@@ -729,9 +731,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 });
                 publicTime.Nanos.ShouldBe(0);
                 publicTime.Seconds.ShouldBe(0);
-
-
-                var delisttwice = _delegatorContract.DelistDAC("管理员", "千与千寻");
+                
+                var delisttwice = _delegatorContract.DelistDAC("管理员2", "千与千寻");
                 delisttwice.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 delisttwice.Error.ShouldContain("千与千寻");
 
@@ -741,6 +742,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void ConfirmCopyrightTest()
         {
+            // 当前delegator合约没有实现这个接口方法，直接调用market合约方法结果 NodeValidationFailed
             var copyRightResult = _dacMarketContract.ExecuteMethodWithResult(DACMarketMethod.ConfirmCopyright,
                 new ConfirmCopyrightInput
                 {
@@ -803,7 +805,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 circulation,
                 "图片",
                 "长方形",
-                circulation.Sub(1),
+                circulation,
                 ""
             );
             createResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
