@@ -36,8 +36,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
     [TestClass]
     public class DacMarketTest
     {
-        private GenesisContract _genesisContract;
-        private TokenContract _tokenContract;
         private DACContract _dacContract;
         private DacMarketContract _dacMarketContract;
         private DelegatorContract _delegatorContract;
@@ -45,12 +43,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
 
-        private string dacAddr = "iupiTuL2cshxB9UNauXNXe9iyCcqka7jCotodcEHGpNXeLzqG";
-        //private string dacAddr = "";
-        private string dacMarketAddr = "AtCnocGN47ZCUscwHYxJNh8G8jVmbgjgy1MR62uoXGohd67wu";
-        //private string dacMarketAddr = "";
-        private string delegatorAddr = "2TXvtjgTiMwjvEyWGEvfbeQ9P6zVK55pTPcmzvLFBDCMLNUYXV";
-        //private string delegatorAddr = "";
+        //private string dacAddr = "iupiTuL2cshxB9UNauXNXe9iyCcqka7jCotodcEHGpNXeLzqG";
+        private string dacAddr = "";
+        //private string dacMarketAddr = "AtCnocGN47ZCUscwHYxJNh8G8jVmbgjgy1MR62uoXGohd67wu";
+        private string dacMarketAddr = "";
+        //private string delegatorAddr = "2TXvtjgTiMwjvEyWGEvfbeQ9P6zVK55pTPcmzvLFBDCMLNUYXV";
+        private string delegatorAddr = "";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string UserA { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
         private string Receiver { get; } = "FHdcx45K5kovWsAKSb3rrdyNPFus8eoJ1XTQE7aXFHTgfpgzN";
@@ -65,9 +63,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             NodeInfoHelper.SetConfig("nodes-env2-main");
 
             NodeManager = new NodeManager(RpcUrl);
-            AuthorityManager = new AuthorityManager(NodeManager, InitAccount);
-            _genesisContract = GenesisContract.GetGenesisContract(NodeManager, InitAccount);
-            _tokenContract = _genesisContract.GetTokenContract(InitAccount);
             _dacContract = dacAddr == ""
                 ? new DACContract(NodeManager, InitAccount)
                 : new DACContract(NodeManager, InitAccount, dacAddr);
