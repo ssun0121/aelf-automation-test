@@ -117,9 +117,13 @@ namespace AElfChain.Common.Contracts
             return ExecuteMethodWithResult(QuadraticFundingMethod.ChangeOwner, address.ConvertAddress());
         }
         
-        public TransactionResultDto UploadProject(long pid) 
+        public TransactionResultDto UploadProject(int bid, Address address) 
         {
-            return ExecuteMethodWithResult(QuadraticFundingMethod.UploadProject, new Int64Value{Value = pid});
+            return ExecuteMethodWithResult(QuadraticFundingMethod.UploadProject, new UploadProjectInput
+            {
+                Address = address,
+                Bid = bid
+            });
         }
 
         public TransactionResultDto Donate(long amount)
@@ -141,12 +145,13 @@ namespace AElfChain.Common.Contracts
             return ExecuteMethodWithResult(QuadraticFundingMethod.Withdraw, new Empty());
         }
         
-        public TransactionResultDto TakeOutGrants(string projectId, long amount)
+        public TransactionResultDto TakeOutGrants(string projectId, long amount, Address address)
         {
             return ExecuteMethodWithResult(QuadraticFundingMethod.TakeOutGrants, new TakeOutGrantsInput
             {
                 ProjectId = projectId,
-                Amount = amount
+                Amount = amount,
+                Address = address
             });
         }
 
