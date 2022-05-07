@@ -1,0 +1,165 @@
+syntax = "proto3";
+
+import "aelf/core.proto";
+import "aelf/options.proto";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+option csharp_namespace = "Awaken.Contracts.Provider";
+
+service ProviderContract {
+
+  option (aelf.csharp_state) = "Awaken.Contracts.Provider.ProviderContractState";
+
+  rpc Initialize(InitializeInput) returns(google.protobuf.Empty){}
+
+  rpc Deposit(DepositInput) returns (google.protobuf.Empty){}
+
+  rpc Withdraw(WithdrawInput) returns (google.protobuf.Empty){}
+
+  rpc DepositAll(Token) returns(google.protobuf.Empty){}
+
+  rpc WithdrawAll(Token) returns(google.protobuf.Empty){}
+
+  rpc Harvest(Token) returns(google.protobuf.Empty){}
+
+  rpc HarvestInline(HarvestInlineInput) returns(google.protobuf.Empty){}
+
+  rpc EarnedCurrent(Token) returns(EarnedCurrentOutput){
+    option (aelf.is_view) = true;
+  }
+
+  rpc AddSupportToken(AddSupportTokenInput) returns(google.protobuf.Empty){}
+
+  rpc SetFeeTo(aelf.Address) returns(google.protobuf.Empty){}
+  
+  rpc SetFeeConfig(SetFeeConfigInput) returns(google.protobuf.Empty){}
+  
+  rpc Transfer(TransferInput) returns(google.protobuf.Empty){}
+
+  rpc EmergenceChangeLend(EmergenceChangeLendInput) returns(google.protobuf.Empty){}
+  // View
+  rpc IsSupportToken(Token) returns(google.protobuf.BoolValue){
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetFee(GetFeeInput) returns (google.protobuf.Int64Value){
+    option (aelf.is_view) = true;
+  }
+
+  rpc LastProfitAmount(google.protobuf.Empty) returns (aelf.BigIntValue){
+    option (aelf.is_view) = true;
+  }
+
+  rpc Profits(google.protobuf.StringValue) returns(google.protobuf.StringValue){
+    option (aelf.is_view) = true;
+  }
+
+  rpc LastWithdrawAmount(google.protobuf.Empty) returns (aelf.BigIntValue){
+    option (aelf.is_view) = true;
+  }
+
+  rpc Owner(google.protobuf.Empty) returns(aelf.Address){
+    option (aelf.is_view) = true;
+  }
+
+  rpc PlatformTokenSymbol(google.protobuf.Empty) returns(google.protobuf.StringValue){
+    option (aelf.is_view) = true;
+  }
+
+  rpc Router(google.protobuf.Empty) returns(aelf.Address){
+    option (aelf.is_view) = true;
+  }
+
+  rpc Comptroller(google.protobuf.Empty) returns(aelf.Address){
+    option (aelf.is_view) = true;
+  }
+
+  rpc Balance(google.protobuf.StringValue) returns(aelf.BigIntValue){
+    option (aelf.is_view) = true;
+  }
+
+  rpc FeeTo(google.protobuf.Empty) returns(aelf.Address){
+    option (aelf.is_view) = true;
+  }
+
+  rpc HarvestFee(google.protobuf.Empty) returns(aelf.BigIntValue){
+    option (aelf.is_view) = true;
+  }
+
+  rpc Controller(google.protobuf.Empty) returns(aelf.Address){
+    option (aelf.is_view) = true;
+  }
+
+  rpc Lends(google.protobuf.StringValue) returns(aelf.Address){
+    option (aelf.is_view) = true;
+  }
+
+}
+
+// Input
+message EmergenceChangeLendInput{
+  string token = 1;
+  aelf.Address  lend = 2;
+}
+
+message HarvestInlineInput{
+  string profit = 1;
+}
+
+message TransferInput{
+  string token = 1;
+  aelf.Address receipt = 2;
+  int64 amount = 3;
+}
+
+message SetFeeConfigInput{
+  int64 harvest_fee=1;
+}
+
+message InitializeInput{
+  aelf.Address controller = 1;
+  string platform_token_symbol = 2;
+  aelf.Address router = 3;
+  aelf.Address comptroller = 4;
+}
+
+message DepositInput{
+  string token_symbol = 1;
+  int64 amount = 2;
+}
+
+message WithdrawInput{
+  string token_symbol = 1;
+  int64 amount = 2;
+}
+
+message Token{
+  string token_symbol = 1;
+}
+
+message AddSupportTokenInput{
+  string token_symbol = 1;
+  aelf.Address lend = 2;
+  aelf.Address lending_lens =3;
+  string profit_token_symbol = 4;
+}
+
+message GetFeeInput{
+  string profit_token_symbol = 1;
+  aelf.BigIntValue profit_amount = 2;
+}
+// Output
+message EarnedCurrentOutput{
+  repeated string tokens = 1;
+  repeated int64 amounts = 2;
+}
+// Struct
+// Event
+message TokenTransferred{
+  option (aelf.is_event) = true;
+  string token_symbol = 1;
+  aelf.Address receipt = 2;
+  aelf.BigIntValue amount = 3;
+}
