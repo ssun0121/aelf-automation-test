@@ -51,11 +51,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private const string NewRewardToken = "USDT";
         private bool isNeedInitialize = false;
         private const long Block0 = 60;
-        private const long Block1 = Block0 * 2;
+        private const long Block1 = 700;
         private const long PerBlock0 = 20000;
         private const long PerBlock1 = PerBlock0 / 2;
         private const long Cycle = Block0 * 4;
-        private const long HalvingPeriod = Block0 + Block1;
         private long FeeRate { get; } = 30;
 
         [TestInitialize]
@@ -188,7 +187,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void FixEndBlockFixedTest()
+        public void FixEndBlockFixedWithoutRedepositTest()
         {
             InitializeTest();
 
@@ -205,8 +204,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var addResult = _awakenFarmContract.AddPool(1, true, LPTOKEN_EU);
             addResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            var addPoolOneResult = AddPool(1, LPTOKEN, true);
-            var addPoolTwoResult = AddPool(2, LPTOKEN, true);
+            var addPoolOneResult = AddPool(10, LPTOKEN, true);
+            var addPoolTwoResult = AddPool(150, LPTOKEN, true);
             addPoolOneResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             addPoolTwoResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -257,40 +256,151 @@ namespace AElf.Automation.Contracts.ScenarioTest
             }
 
             // Redeposit
-            ReDeposit(0);
+            // ReDeposit(0);
 
             // Fix endBlock after redeposit
             var result = _awakenFarmTwoContract.FixEndBlock(true);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             // Info after fix endBlock
-            Logger.Info($"fixEndBlockNumber2:{result.BlockNumber}");
+            var fixEndBlockNumber2 = result.BlockNumber;
+            Logger.Info($"fixEndBlockNumber2:{fixEndBlockNumber2}");
 
             var redepositStartBlock = _awakenFarmTwoContract.RedepositStartBlock();
             var redepositAdjustFlagAfter = _awakenFarmTwoContract.RedepositAdjustFlag();
-            var afterEndBlock = _awakenFarmContract.GetEndBlock();
+            var afterEndBlock = _awakenFarmTwoContract.EndBlock().Value;
             redepositAdjustFlagAfter.ShouldBe(true);
             redepositStartBlock.ShouldBe(startBlock.Add(Block0));
-            // afterEndBlock.ShouldBe(endBlock);
             var toalReward = _awakenFarmTwoContract.GetTotalReward();
-            var ph1TotalReward1 = (redepositStartBlock - startBlock) * halvingPeriod * 2 / 3;
-            var ph1TotalReward2 = (startBlock + halvingPeriod - redepositStartBlock) * PerBlock1;
+            var ph1TotalReward1 = (fixEndBlockNumber2 - startBlock) * PerBlock1 * 150 / 160;
+            var ph1TotalReward2 = (startBlock + halvingPeriod - fixEndBlockNumber2) * PerBlock1;
             var ph2TotalReward = halvingPeriod * PerBlock1 / 2;
-            var ph3TotalReward = halvingPeriod * PerBlock1 / 2 / 2;
-            var ph4TotalReward = halvingPeriod * PerBlock1 / 2 / 2;
-            var ph5TotalReward = (afterEndBlock - startBlock - PerBlock1 * 4) * PerBlock1 / 2 / 2;
+            var ph3TotalReward = halvingPeriod * PerBlock1 / 4;
+            var ph4TotalReward = halvingPeriod * PerBlock1 / 8;
+            var ph5TotalReward = (afterEndBlock - startBlock - (Block0.Add(Block1)) * 4) * PerBlock1 / 16;
             var expectTotalReward = ph1TotalReward1 + ph1TotalReward2 + ph2TotalReward + ph3TotalReward +
                                     ph4TotalReward + ph5TotalReward;
-            toalReward.ShouldBe(expectTotalReward);
+            Logger.Info($"\nph1TotalReward1:{ph1TotalReward1}" +
+                        $"\nph1TotalReward2:{ph1TotalReward2}" +
+                        $"\nph2TotalReward:{ph2TotalReward}" +
+                        $"\nph3TotalReward:{ph3TotalReward}" +
+                        $"\nph4TotalReward:{ph4TotalReward}" +
+                        $"\nph5TotalReward:{ph5TotalReward}");
+            toalReward.IsBetween(expectTotalReward - PerBlock1 / 16, expectTotalReward + PerBlock1 / 16);
             Logger.Info($"endBlockNew:{afterEndBlock}");
-            Logger.Info($"IssuedReward2 {_awakenFarmTwoContract.IssuedReward()}");
+            Logger.Info($"toalReward {toalReward}");
+            Logger.Info($"expectTotalReward {expectTotalReward}");
+        }
+
+        [TestMethod]
+        public void FixEndBlockFixedWithRedepositTest()
+        {
+            InitializeTest();
+
+            var startBlock = _awakenFarmTwoContract.GetStartBlock().Value;
+            var halvingPeriod = _awakenFarmTwoContract.GetHalvingPeriod().Value;
+            var endBlock = _awakenFarmTwoContract.EndBlock().Value;
+            endBlock.ShouldBe(startBlock.Add(halvingPeriod * 4));
+            Logger.Info($"\nstartBlock:{startBlock}" +
+                        $"\nhalvingPeriod:{halvingPeriod}" +
+                        $"\nendBlock:{endBlock}");
+
+            // Add pool
+            _awakenFarmContract.SetAccount(AdminAddress);
+            var addResult = _awakenFarmContract.AddPool(1, true, LPTOKEN_EU);
+            addResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var addPoolOneResult = AddPool(10, LPTOKEN, true);
+            var addPoolTwoResult = AddPool(150, LPTOKEN, true);
+            addPoolOneResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            addPoolTwoResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // Approve
+            var approveResult =
+                _awakenTokenContract.ApproveLPToken(_awakenFarmContract.ContractAddress, AdminAddress, 100_00000000,
+                    LPTOKEN_EU);
+            approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            approveResult =
+                _awakenTokenContract.ApproveLPToken(_awakenFarmTwoContract.ContractAddress, AdminAddress, 100_00000000,
+                    LPTOKEN);
+            approveResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // Deposit before startBlock
+            var depositResultFarm1 = _awakenFarmContract.Deposit(0, 1_00000000, AdminAddress);
+            depositResultFarm1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            _awakenFarmTwoContract.SetAccount(AdminAddress);
+            var depositResult = _awakenFarmTwoContract.Deposit(1, 1_00000000);
+            depositResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // Info before fix endBlock
+            var amount = _awakenFarmTwoContract.GetUserInfo(1, AdminAddress).Amount;
+            var totalAmount = _awakenFarmTwoContract.GetPoolInfo(1).TotalAmount;
+            var distributeTokenBefore = _tokenContract.GetUserBalance(AdminAddress, DistributeToken);
+            Logger.Info($"\namount:{amount}" +
+                        $"\ntotalAmount:{totalAmount}" +
+                        $"\ndistributeTokenBefore:{distributeTokenBefore}");
+
+            while (NodeManager.ApiClient.GetBlockHeightAsync().Result <= startBlock)
+            {
+                Thread.Sleep(5 * 1000);
+            }
+
+            var poolInfoPerShare0 = _awakenFarmTwoContract.GetPoolInfo(0).AccDistributeTokenPerShare;
+            poolInfoPerShare0.ShouldBe(0);
+
+            _awakenFarmTwoContract.SetAccount(InitAccount);
+            var fixEndBlock = _awakenFarmTwoContract.FixEndBlock(true);
+            Logger.Info($"fixEndBlockNumber1 {fixEndBlock.BlockNumber}");
+            Logger.Info($"IssuedReward1 {_awakenFarmTwoContract.IssuedReward()}");
+            var redepositAdjustFlagBefore = _awakenFarmTwoContract.RedepositAdjustFlag();
+            redepositAdjustFlagBefore.ShouldBe(false);
+
+            while (NodeManager.ApiClient.GetBlockHeightAsync().Result <= startBlock.Add(Block0))
+            {
+                Thread.Sleep(5 * 1000);
+            }
+
+            // Redeposit
+            var reDepositBlockNumber = ReDeposit(0);
+
+            // Fix endBlock after redeposit
+            var result = _awakenFarmTwoContract.FixEndBlock(true);
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            // Info after fix endBlock
+            var fixEndBlockNumber2 = result.BlockNumber;
+            Logger.Info($"fixEndBlockNumber2:{fixEndBlockNumber2}");
+
+            var redepositStartBlock = _awakenFarmTwoContract.RedepositStartBlock();
+            var redepositAdjustFlagAfter = _awakenFarmTwoContract.RedepositAdjustFlag();
+            var afterEndBlock = _awakenFarmTwoContract.EndBlock().Value;
+            redepositAdjustFlagAfter.ShouldBe(true);
+            redepositStartBlock.ShouldBe(startBlock.Add(Block0));
+            var toalReward = _awakenFarmTwoContract.GetTotalReward();
+            var ph1TotalReward1 = (reDepositBlockNumber - startBlock) * PerBlock1 * 150 / 160;
+            var ph1TotalReward2 = (startBlock + halvingPeriod - reDepositBlockNumber) * PerBlock1;
+            var ph2TotalReward = halvingPeriod * PerBlock1 / 2;
+            var ph3TotalReward = halvingPeriod * PerBlock1 / 4;
+            var ph4TotalReward = halvingPeriod * PerBlock1 / 8;
+            var ph5TotalReward = (afterEndBlock - startBlock - (Block0.Add(Block1)) * 4) * PerBlock1 / 16;
+            var expectTotalReward = ph1TotalReward1 + ph1TotalReward2 + ph2TotalReward + ph3TotalReward +
+                                    ph4TotalReward + ph5TotalReward;
+            Logger.Info($"\nph1TotalReward1:{ph1TotalReward1}" +
+                        $"\nph1TotalReward2:{ph1TotalReward2}" +
+                        $"\nph2TotalReward:{ph2TotalReward}" +
+                        $"\nph3TotalReward:{ph3TotalReward}" +
+                        $"\nph4TotalReward:{ph4TotalReward}" +
+                        $"\nph5TotalReward:{ph5TotalReward}");
+            toalReward.IsBetween(expectTotalReward - PerBlock1 / 16, expectTotalReward + PerBlock1 / 16);
+            Logger.Info($"endBlockNew:{afterEndBlock}");
             Logger.Info($"toalReward {toalReward}");
             Logger.Info($"expectTotalReward {expectTotalReward}");
         }
 
         [TestMethod]
         [DataRow(0)]
-        public void ReDeposit(int pid)
+        public long ReDeposit(int pid)
         {
             var depositAddress = AdminAddress;
             var symbolA = DistributeToken;
@@ -352,6 +462,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 .Sub(approveElfToken.GetDefaultTransactionFee()));
             afterUserDistributeBalance.ShouldBe(originUserDistributeBalance.Sub(amount));
             afterRedepositAmount.ShouldBe(getRedepositAmount.Add(amount));
+
+            return reDepositBlockNumber;
         }
 
         private TransactionResultDto AddPool(long allocPoint, string lpToken, bool with_update)
