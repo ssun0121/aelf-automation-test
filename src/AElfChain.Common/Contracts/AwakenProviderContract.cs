@@ -1,7 +1,6 @@
 using System.Net.NetworkInformation;
 using AElf.Client.Dto;
-using AElf.Contracts.Profit;
-using AElf.Contracts.TokenConverter;
+using Token = Awaken.Contracts.Provider.Token;
 using AElfChain.Common.Managers;
 using AElf.Types;
 using AElfChain.Common.DtoExtension;
@@ -22,7 +21,8 @@ namespace AElfChain.Common.Contracts
         
 
         //View
-        
+        Controller,
+        IsSupportToken
     }
 
     public class AwakenProviderContract : BaseContract<AwakenProviderContractMethod>
@@ -47,6 +47,8 @@ namespace AElfChain.Common.Contracts
         }
 
         
+        
+        
         //set
         public TransactionResultDto AddSupportToken(string tokenSymbol, Address lend, Address lendingLens, string profitTokenSymbol)
         {
@@ -62,9 +64,22 @@ namespace AElfChain.Common.Contracts
         }
         
         
+        public Address Controller()
+        {
+            return CallViewMethod<Address>(AwakenProviderContractMethod.Controller, new Empty());
+        }
         
         
+        public BoolValue IsSupportToken(string tokenSymbol )
+        {
+            return CallViewMethod<BoolValue>(AwakenProviderContractMethod.IsSupportToken,new Token
+            {
+                TokenSymbol = tokenSymbol
+            });
+        }
         
+
+
         
         
         

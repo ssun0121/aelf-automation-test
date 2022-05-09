@@ -1,12 +1,9 @@
-using System.Net.NetworkInformation;
+using System;
 using AElf.Client.Dto;
-using AElf.Contracts.TokenConverter;
 using AElfChain.Common.Managers;
 using AElf.Types;
-using AElfChain.Common.DtoExtension;
-using AElfChain.Common.Helpers;
+
 using Awaken.Contracts.Investment;
-using Awaken.Contracts.Shadowfax;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElfChain.Common.Contracts
@@ -63,13 +60,20 @@ namespace AElfChain.Common.Contracts
             SetAccount(callAddress);
         }
         
-
-        public TransactionResultDto Initialize()
+        
+         
+        
+         /*
+         public TransactionResultDto Initialize()
         {
             var result = ExecuteMethodWithResult(AwakenInvestmentContractMethod.Initialize,new Empty());
             
             return result;
         }
+        */
+        
+        
+        
 
         //set
         public TransactionResultDto ReBalance(string tokenSymbol, Address router)
@@ -312,11 +316,6 @@ namespace AElfChain.Common.Contracts
 
         }
 
-        
-        
-        
-        
-        
         
     }
     
