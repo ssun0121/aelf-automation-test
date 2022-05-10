@@ -62,6 +62,17 @@ namespace AElfChain.Common.Contracts
             });
         }
         
+        public Allowance GetAllowance(string symbol, string owner, string spender)
+        {
+            return CallViewMethod<Allowance>(AwakenTokenMethod.GetAllowance, new GetAllowanceInput
+            {
+                Symbol = symbol,
+                Owner = owner.ConvertAddress(),
+                Spender = spender.ConvertAddress()
+            });
+        }
+
+        
         public TokenInfo GetTokenInfo(string symbol)
         {
             return CallViewMethod<TokenInfo>(AwakenTokenMethod.GetTokenInfo, new GetTokenInfoInput

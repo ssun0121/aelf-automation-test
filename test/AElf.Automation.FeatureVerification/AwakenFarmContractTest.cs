@@ -216,7 +216,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var originContractUsdtBalance =
                 _tokenContract.GetUserBalance(_awakenFarmContract.ContractAddress, NewRewardToken);
             var originPending = _awakenFarmContract.Pending(pid, depositAddress);
-
+            
             ApproveLpToken(symbol, amount, _awakenFarmContract.ContractAddress, depositAddress);
             var pending = _awakenFarmContract.Pending(pid, depositAddress);
             Logger.Info($"Pending: {pending}");
@@ -996,6 +996,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var height = AsyncHelper.RunSync(() => NodeManager.ApiClient.GetBlockHeightAsync());
             // var height = 0;
             CheckPeriod(height);
+            Logger.Info(_awakenFarmContract.GetDistributeTokenPerBlockConcentratedMining());
+            Logger.Info(_awakenFarmContract.GetDistributeTokenPerBlockContinuousMining());
+            Logger.Info(_awakenFarmContract.GetHalvingPeriod0());
+            Logger.Info(_awakenFarmContract.GetHalvingPeriod1());
         }
 
         [TestMethod]
@@ -1167,18 +1171,22 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             long p = -1;
             string period;
+            var perBlock0 = _awakenFarmContract.GetDistributeTokenPerBlockConcentratedMining();
+            var perBlock1 = _awakenFarmContract.GetDistributeTokenPerBlockContinuousMining();
+            var block0 = _awakenFarmContract.GetHalvingPeriod0();
+            var block1 = _awakenFarmContract.GetHalvingPeriod1();
             if (currentHeight > startBlockHeight)
-                p = (currentHeight - startBlockHeight - 1) / (Block0 + Block1) > 3
+                p = (currentHeight - startBlockHeight - 1) / (block0 + block1) > 3
                     ? 3
-                    : (currentHeight - startBlockHeight - 1) / (Block0 + Block1);
+                    : (currentHeight - startBlockHeight - 1) / (block0 + block1);
             if (p != -1)
-                period = currentHeight > startBlockHeight.Add((Block0 + Block1).Mul(p)).Add(Block0)
+                period = currentHeight > startBlockHeight.Add((block0 + block1).Mul(p)).Add(block0)
                     ? "Continuous"
                     : "Concentrated";
             else
                 period = "NotStart";
 
-            var onePeriod = Block0 + Block1;
+            var onePeriod = block0 + block1;
             long blockReward = 0;
             long blockLockReward = 0;
             var usdtBlockReward = CheckUsdtReward(currentHeight);
@@ -1187,15 +1195,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 var halfLevel = (2 << Convert.ToInt32(i)).Div(2);
                 if (period == "Concentrated")
                 {
-                    blockLockReward += PerBlock0.Div(halfLevel)
+                    blockLockReward += perBlock0.Div(halfLevel)
                         .Mul(currentHeight - onePeriod.Mul(i) - startBlockHeight + 1);
-                    blockReward += i == 0 ? 0 : PerBlock1.Div(halfLevel).Mul(Block1);
+                    blockReward += i == 0 ? 0 : perBlock1.Div(halfLevel).Mul(block1);
                 }
                 else
                 {
-                    blockLockReward += PerBlock0.Div(halfLevel).Mul(Block0);
-                    blockReward += PerBlock1.Div(halfLevel)
-                        .Mul(currentHeight - onePeriod.Mul(i) - startBlockHeight - Block0 - 1);
+                    blockLockReward += perBlock0.Div(halfLevel).Mul(block0);
+                    blockReward += perBlock0.Div(halfLevel)
+                        .Mul(currentHeight - onePeriod.Mul(i) - startBlockHeight - block0 - 1);
                 }
             }
 
@@ -1595,7 +1603,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private void ApproveLpToken(string symbol, long amount, string spender, string owner)
         {
-            var result = _awakenTokenContract.ApproveLPToken(spender, owner, amount, symbol);
+            var allowance = _awakenTokenContract.GetAllowance(symbol, owner, spender);
+            if (allowance.Amount >= amount) return;
+            var result = _awakenTokenContract.ApproveLPToken(spender, owner, amount.Sub(allowance.Amount), symbol);
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
         }
     }
