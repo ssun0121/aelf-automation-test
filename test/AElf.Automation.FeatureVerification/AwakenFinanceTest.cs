@@ -51,6 +51,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string TestAccount { get; } = "Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx";
+        private string TestAccount2 { get; } = "2asoy1ZbqcxguA2TBaMt5V1nFpfsE4bAdCUrG1YK9CCXnTCJKN";
+        private string TestAccount3 { get; } = "1Fy4ar9CjDuwQTbde3syqGzY5Wzfvoj4uwcJPNtWMCNS6USYS";
+
         private string FeeToAccount { get; } = "Zz4iuCCCktGjZGmQ9vMcxh2JT9pDTFA4XSR7WDNrndYcEXtRx";
         private static string RpcUrl { get; } = "http://172.25.127.105:8000";
 
@@ -134,7 +137,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void EnterMarkets()
         {
-            var listToken = new List<string> { "LLL", "MMM", "ELF", "TEST", "USDT" };
+            var listToken = new List<string> { "ELF" };
             var listAToken = new List<Address>();
             foreach (var aToken in listToken.Select(t => _awakenATokenContract.GetATokenAddress(t)))
             {
@@ -170,7 +173,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [DataRow("ELF", 1000000000000)]
         public void MintToken(string mintToken, long amount)
         {
-            var user = TestAccount;
+            var user = TestAccount2;
             CheckBalance(mintToken, user, amount);
             var aToken = _awakenATokenContract.GetATokenAddress(mintToken);
             _awakenATokenContract.SetAccount(user);
@@ -200,15 +203,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             
             var logs = userMint.Logs.First(l => l.Name.Equals(nameof(Mint)));
             var mintLogs = Mint.Parser.ParseFrom(ByteString.FromBase64(logs.NonIndexed));
-            mintLogs.Address.ShouldBe(user.ConvertAddress());
-            mintLogs.Amount.ShouldBe(amount);
-            mintLogs.Symbol.ShouldBe(aToken);
-            mintLogs.CTokenAmount.ShouldBe(aTokenAmount);
-
+            mintLogs.Sender.ShouldBe(user.ConvertAddress());
+            mintLogs.UnderlyingAmount.ShouldBe(amount);
+            mintLogs.AToken.ShouldBe(aToken);
+            mintLogs.ATokenAmount.ShouldBe(aTokenAmount);
+            mintLogs.Underlying.ShouldBe(mintToken);
+            mintLogs.Channel.ShouldBe("channel");
+            
             var interestLogs = AccrueInterest.Parser.ParseFrom(
                 ByteString.FromBase64(userMint.Logs.First(l => l.Name.Equals(nameof(AccrueInterest))).NonIndexed));
             interestLogs.Cash.ShouldBe(origin["totalCash"]);
-            interestLogs.Symbol.ShouldBe(aToken);
+            interestLogs.AToken.ShouldBe(aToken);
             Logger.Info(interestLogs);
         }
 
@@ -242,10 +247,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var logs = userRedeem.Logs.First(l => l.Name.Equals(nameof(Redeem)));
             var redeemLogs = Redeem.Parser.ParseFrom(ByteString.FromBase64(logs.NonIndexed));
-            redeemLogs.Address.ShouldBe(user.ConvertAddress());
-            redeemLogs.Amount.ShouldBe(actualRedeemAmount);
-            redeemLogs.Symbol.ShouldBe(aToken);
-            redeemLogs.CTokenAmount.ShouldBe(actualATokenAmount);
+            redeemLogs.Sender.ShouldBe(user.ConvertAddress());
+            redeemLogs.UnderlyingAmount.ShouldBe(actualRedeemAmount);
+            redeemLogs.Underlying.ShouldBe(redeemToken);
+            redeemLogs.AToken.ShouldBe(aToken);
+            redeemLogs.ATokenAmount.ShouldBe(actualATokenAmount);
             
             var after = Verify(user, redeemToken, aToken);
             origin["userBalance"].ShouldBe(redeemToken.Equals("ELF")
@@ -260,7 +266,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var interestLogs = AccrueInterest.Parser.ParseFrom(
                 ByteString.FromBase64(userRedeem.Logs.First(l => l.Name.Equals(nameof(AccrueInterest))).NonIndexed));
             interestLogs.Cash.ShouldBe(origin["totalCash"]);
-            interestLogs.Symbol.ShouldBe(aToken);
+            interestLogs.AToken.ShouldBe(aToken);
             Logger.Info(interestLogs);
         }
         
@@ -290,10 +296,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var logs = userRedeem.Logs.First(l => l.Name.Equals(nameof(Redeem)));
             var redeemLogs = Redeem.Parser.ParseFrom(ByteString.FromBase64(logs.NonIndexed));
-            redeemLogs.Address.ShouldBe(user.ConvertAddress());
-            redeemLogs.Amount.ShouldBe(redeemAmount);
-            redeemLogs.Symbol.ShouldBe(aToken);
-            redeemLogs.CTokenAmount.ShouldBe(redeemTokenAmount);
+            redeemLogs.Sender.ShouldBe(user.ConvertAddress());
+            redeemLogs.UnderlyingAmount.ShouldBe(redeemAmount);
+            redeemLogs.Underlying.ShouldBe(redeemToken);
+            redeemLogs.AToken.ShouldBe(aToken);
+            redeemLogs.ATokenAmount.ShouldBe(redeemTokenAmount);
             
             var after = Verify(user, redeemToken, aToken);
             origin["userBalance"].ShouldBe(redeemToken.Equals("ELF")
@@ -308,15 +315,16 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var interestLogs = AccrueInterest.Parser.ParseFrom(
                 ByteString.FromBase64(userRedeem.Logs.First(l => l.Name.Equals(nameof(AccrueInterest))).NonIndexed));
             interestLogs.Cash.ShouldBe(origin["totalCash"]);
-            interestLogs.Symbol.ShouldBe(aToken);
+            interestLogs.AToken.ShouldBe(aToken);
             Logger.Info(interestLogs);
         }
 
         [TestMethod]
-        [DataRow("TEST", 1000000000)]
+        [DataRow("ELF", 10000000)]
         public void BorrowToken(string borrowToken, long amount)
         {
-            var user = TestAccount;
+            var user = NodeManager.AccountManager.NewAccount("12345678");
+            _tokenContract.TransferBalance(InitAccount, user, 10_00000000, "ELF");
             var aToken = _awakenATokenContract.GetATokenAddress(borrowToken);
             _awakenATokenContract.SetAccount(user);
             var origin = Verify(user, borrowToken, aToken);
@@ -343,7 +351,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var interestLogs = AccrueInterest.Parser.ParseFrom(
                 ByteString.FromBase64(userBorrow.Logs.First(l => l.Name.Equals(nameof(AccrueInterest))).NonIndexed));
             interestLogs.Cash.ShouldBe(origin["totalCash"]);
-            interestLogs.Symbol.ShouldBe(aToken);
+            interestLogs.AToken.ShouldBe(aToken);
             Logger.Info(interestLogs);
         }
         
@@ -374,7 +382,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             repayLogs.Borrower.ShouldBe(user.ConvertAddress());
             repayLogs.Payer.ShouldBe(user.ConvertAddress());
             repayLogs.Amount.ShouldBe(amount);
-            repayLogs.Symbol.ShouldBe(aToken);
+            repayLogs.AToken.ShouldBe(aToken);
             // repayLogs.BorrowBalance.ShouldBe(userSnapshot.BorrowBalance.Sub(actualRepayAmount));
             // repayLogs.TotalBorrows.ShouldBe(origin["totalBorrow"].Sub(actualRepayAmount));
             Logger.Info(repayLogs);
@@ -390,7 +398,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var interestLogs = AccrueInterest.Parser.ParseFrom(
                 ByteString.FromBase64(userRepay.Logs.First(l => l.Name.Equals(nameof(AccrueInterest))).NonIndexed));
             interestLogs.Cash.ShouldBe(origin["totalCash"]);
-            interestLogs.Symbol.ShouldBe(aToken);
+            interestLogs.AToken.ShouldBe(aToken);
             Logger.Info(interestLogs);
         }
         
@@ -449,12 +457,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var interestRateModeInitializeResult =
                 _awakenFinanceInterestRateModelContract.ExecuteMethodWithResult(InterestRateModelMethod.Initialize,
-                    new UpdateJumpRateModelInput
+                    new Awaken.Contracts.InterestRateModel.InitializeInput()
                     {
                         BaseRatePerYear = _baseRatePerYear,
                         MultiplierPerYear = _multiplierPerYear,
                         JumpMultiplierPerYear = _jumpMultiplierPerYear,
-                        Kink = _kink
+                        Kink = _kink,
+                        InterestRateModelType = true
                     });
             interestRateModeInitializeResult.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
@@ -489,10 +498,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         //SupportMarket
         [TestMethod]
-        [DataRow("LLL")]
-        [DataRow("MMM")]
-        [DataRow("TEST")]
-        [DataRow("USDT")]
+        // [DataRow("LLL")]
+        // [DataRow("MMM")]
+        // [DataRow("TEST")]
+        // [DataRow("USDT")]
         [DataRow("ELF")]
         public void SupportMarket(string underlyingSymbol)
         {
@@ -633,6 +642,49 @@ namespace AElf.Automation.Contracts.ScenarioTest
             changed.OldPlatformTokenRate.ShouldBe(oldPlatformTokenRate);
             newPlatformTokenRate.ShouldBe(changePlatformTokenRate);
         }
+        
+        [TestMethod]
+        public void AddPlatformTokenMarkets()
+        {
+            var listToken = new List<string> {"ELF"};
+            var listAToken = new List<Address>();
+            foreach (var aToken in listToken.Select(t => _awakenATokenContract.GetATokenAddress(t)))
+            {
+                Logger.Info(aToken);
+                listAToken.Add(aToken);
+            }
+
+            // var aTokenAddress = _awakenATokenContract.GetATokenAddress("ELF");
+            var addPlatformTokenMarkets =
+                _awakenFinanceControllerContract.ExecuteMethodWithResult(ControllerMethod.AddPlatformTokenMarkets,
+                    new ATokens
+                    {
+                        AToken = { listAToken }
+                    });
+            addPlatformTokenMarkets.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var logs = addPlatformTokenMarkets.Logs.Where(l => l.Name.Equals(nameof(MarketPlatformTokened))).ToList();
+            foreach (var log in logs)
+            {
+                var platformTokenMarkets =
+                    MarketPlatformTokened.Parser.ParseFrom(ByteString.FromBase64(log.NonIndexed));
+                platformTokenMarkets.IsPlatformTokened.ShouldBeTrue();
+                listAToken.ShouldContain(platformTokenMarkets.AToken);
+            }
+            foreach (var aToken in listAToken)
+            {
+                var marketInfo = _awakenFinanceControllerContract.GetMarket(aToken);
+                marketInfo.IsPlatformTokened.ShouldBeTrue();
+            }
+        }
+
+        [TestMethod]
+        public void RefreshPlatformTokenSpeeds()
+        {
+            var result =
+                _awakenFinanceControllerContract.ExecuteMethodWithResult(ControllerMethod.RefreshPlatformTokenSpeeds,
+                    new Empty());
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
 
         #endregion
 
@@ -688,6 +740,37 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var checkAccountAssets = _awakenFinanceControllerContract.GetAssetsIn(user.ConvertAddress());
             Logger.Info(checkAccountAssets);
         }
+
+        [TestMethod]
+        [DataRow("ELF")]
+        public void GetPlatformTokenSpeeds(string token)
+        {
+            var aToken = _awakenATokenContract.GetATokenAddress(token);
+            var speeds = _awakenFinanceControllerContract.GetPlatformTokenSpeeds(aToken);
+            Logger.Info(speeds);
+        }
+        #endregion
+
+        #region Controller Check
+
+        [TestMethod]
+        [DataRow(100000,"ELF")]
+        public void BorrowAllowed(long borrowAmount, string underlyingToken)
+        {
+            var borrower = NodeManager.NewAccount("12345678");
+            var aToken = _awakenATokenContract.GetATokenAddress(underlyingToken);
+            
+            var result =
+                _awakenFinanceControllerContract.ExecuteMethodWithResult(ControllerMethod.BorrowAllowed,
+                    new BorrowAllowedInput
+                    {
+                        BorrowAmount = borrowAmount,
+                        Borrower = borrower.ConvertAddress(),
+                        AToken = aToken
+                    });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+        }
+
 
         #endregion
 
@@ -797,8 +880,21 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [DataRow("ELF", 1000_00000000)]
         public void TransferTokenForTest(string symbol, long amount)
         {
-            var account = "2wXrQfPLYU4QXC9w7mrzGUViNsknb5ge198DPyv8fABVtKjz5R";
+            var account = TestAccount;
             CheckBalance(symbol, account, amount);
+        }
+        
+        [TestMethod]
+        public void IssueToken()
+        {
+            _tokenContract.IssueBalance(InitAccount, _awakenFinanceControllerContract.ContractAddress, 1000_00000000,
+                _platformTokenSymbol);
+        }
+
+        [TestMethod]
+        public void CheckElement()
+        {
+            Logger.Info(long.MaxValue);
         }
     }
 }

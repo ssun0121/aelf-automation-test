@@ -127,5 +127,10 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<AssetList>(ControllerMethod.GetAssetsIn, address);
         }
+        
+        public long  GetPlatformTokenSpeeds(Address address)
+        {
+            return CallViewMethod<Int64Value>(ControllerMethod.GetPlatformTokenSpeeds, address).Value;
+        }
     }
 }
