@@ -112,6 +112,11 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<Int64Value>(ATokenMethod.GetCash, address).Value;
         }
+        
+        public long GetExchangeRateStored(Address address)
+        {
+            return CallViewMethod<Int64Value>(ATokenMethod.GetExchangeRateStored, address).Value;
+        }
 
         public long GetInitialExchangeRate(Address address)
         {

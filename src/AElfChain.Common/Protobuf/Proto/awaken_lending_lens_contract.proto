@@ -44,8 +44,7 @@ option (aelf.is_view) = true;
 }
 
 rpc GetPlatformTokenBalanceMetadataExt(GetPlatformTokenBalanceMetadataExtInput)returns(PlatformTokenBalanceMetadataExt){
-}
-rpc GetPlatformTokenBalanceInline(GetPlatformTokenBalanceMetadataExtInput)returns(google.protobuf.Int64Value){
+option (aelf.is_view) = true;
 }
 }
 message InitializeInput {

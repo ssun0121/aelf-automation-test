@@ -1,7 +1,9 @@
+using AElf.Client.Dto;
 using AElf.Types;
 using AElfChain.Common.Managers;
 using Awaken.Contracts.Controller;
 using Google.Protobuf.WellKnownTypes;
+using Org.BouncyCastle.Asn1.X509;
 
 namespace AElfChain.Common.Contracts
 {
@@ -25,7 +27,7 @@ namespace AElfChain.Common.Contracts
         TransferAllowed,
         TransferVerify,
         LiquidateCalculateSeizeTokens,
-        
+
         SetCloseFactor,
         SetCollateralFactor,
         SetMaxAssets,
@@ -45,7 +47,7 @@ namespace AElfChain.Common.Contracts
         SetPlatformTokenRate,
         AddPlatformTokenMarkets,
         DropPlatformTokenMarket,
-        
+
         GetAssetsIn,
         CheckMembership,
         GetAllMarkets,
@@ -67,7 +69,9 @@ namespace AElfChain.Common.Contracts
         GetPlatformTokenBorrowState,
         GetPlatformTokenSupplierIndex,
         GetPlatformTokenBorrowerIndex,
-        GetPlatformTokenAccrued
+        GetPlatformTokenAccrued,
+        GetMintGuardianPaused,
+        GetPlatformTokenClaimAmount
     }
 
     public class AwakenFinanceControllerContract : BaseContract<ControllerMethod>
@@ -107,12 +111,12 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<Int64Value>(ControllerMethod.GetCloseFactor, new Empty()).Value;
         }
-        
+
         public long GetLiquidationIncentive()
         {
             return CallViewMethod<Int64Value>(ControllerMethod.GetLiquidationIncentive, new Empty()).Value;
         }
-        
+
         public long GetMaxAssets()
         {
             return CallViewMethod<Int64Value>(ControllerMethod.GetMaxAssets, new Empty()).Value;
@@ -127,10 +131,31 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<AssetList>(ControllerMethod.GetAssetsIn, address);
         }
-        
-        public long  GetPlatformTokenSpeeds(Address address)
+
+        public long GetPlatformTokenSpeeds(Address address)
         {
             return CallViewMethod<Int64Value>(ControllerMethod.GetPlatformTokenSpeeds, address).Value;
+        }
+
+        public bool GetMintGuardianPaused(Address address)
+        {
+            return CallViewMethod<BoolValue>(ControllerMethod.GetMintGuardianPaused, address).Value;
+        }
+
+        public long GetPlatformTokenClaimAmount(Address holder, bool borrowers, bool suppliers)
+        {
+            return CallViewMethod<Int64Value>(ControllerMethod.GetPlatformTokenClaimAmount,
+                new GetClaimPlatformTokenInput
+                {
+                    Holder = holder,
+                    Borrowers = borrowers,
+                    Suppliers = suppliers
+                }).Value;
+        }
+        
+        public bool CheckMembership(Address address)
+        {
+            return CallViewMethod<BoolValue>(ControllerMethod.CheckMembership, address).Value;
         }
     }
 }
