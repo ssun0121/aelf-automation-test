@@ -44,9 +44,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         private const long ExchangeMantissa = 1_00000000;
 
-        // private const long Mantissa = 1_00000000;
-        private string _platformTokenSymbol = "AWAKEN";
-
         [TestInitialize]
         public void Initialize()
         {
@@ -362,8 +359,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void MintBorrowWithoutEnterMarketsTest()
         {
-            var mintUnderlyingToken = "BBB";
-            var borrowUnderlyingToken = "CCC";
+            var mintUnderlyingToken = "DDD";
+            var borrowUnderlyingToken = "EEE";
             var mintAmount = 100_00000000;
             var borrowAmount = 100_00000000;
 
@@ -398,7 +395,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             // Borrow
             _tokenContract.TransferBalance(InitAccount, user, 10_00000000, "ELF");
             var before = Verify(user, borrowUnderlyingToken, listAToken[1]);
-            _awakenATokenContract.SetAccount(user);
+            _awakenATokenContract.SetAccount(user, "wanghuan");
             var userBorrow = _awakenATokenContract.ExecuteMethodWithResult(ATokenMethod.Borrow, new BorrowInput
             {
                 AToken = listAToken[1],
@@ -409,7 +406,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             userBorrow.Error.ShouldContain("Insufficient liquidity");
 
             // Enter markets
-            _awakenFinanceControllerContract.SetAccount(user);
+            _awakenFinanceControllerContract.SetAccount(user, "wanghuan");
             var enterResult = _awakenFinanceControllerContract.ExecuteMethodWithResult(
                 ControllerMethod.EnterMarkets, new ATokens
                 {
@@ -421,12 +418,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"checkAccountAssets:{checkAccountAssets}");
 
             // Borrow for the second time
-            _awakenATokenContract.SetAccount(user);
+            _awakenATokenContract.SetAccount(user, "wanghuan");
             userBorrow = _awakenATokenContract.ExecuteMethodWithResult(ATokenMethod.Borrow, new BorrowInput
             {
                 AToken = listAToken[1],
                 Amount = borrowAmount,
-                Channel = "channel"
+                Channel = "channelNew"
             });
             userBorrow.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var after = Verify(user, borrowUnderlyingToken, listAToken[1]);
@@ -521,19 +518,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             exitMarketResult.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             exitMarketResult.Error.ShouldContain("Nonzero borrow balance");
-
-            // Set mint paused
-            var mintPaused = _awakenFinanceControllerContract.ExecuteMethodWithResult(
-                ControllerMethod.SetMintPaused,
-                new SetPausedInput
-                {
-                    AToken = listAToken[0],
-                    State = false
-                });
-            // mintPaused.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-
-            var mintGuardianPaused = _awakenFinanceControllerContract.GetMintGuardianPaused(listAToken[0]);
-            Logger.Info($"mintGuardianPaused:{mintGuardianPaused}");
         }
 
         [TestMethod]
@@ -600,7 +584,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             if (totalSupply == 0)
                 return _awakenATokenContract.GetInitialExchangeRate(aToken);
-            var exchangeRateStr = new BigIntValue(totalCash).Add(totalBorrow).Sub(totalReserves).Mul(Mantissa)
+            var exchangeRateStr = new BigIntValue(totalCash).Add(totalBorrow).Sub(totalReserves).Mul(ExchangeMantissa)
                 .Div(totalSupply).Value;
             return long.Parse(exchangeRateStr);
         }

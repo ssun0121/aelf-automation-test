@@ -172,6 +172,8 @@ rpc GetPlatformTokenClaimAmount(GetClaimPlatformTokenInput)returns(google.protob
 option (aelf.is_view) = true;
 } 
 }
+
+// Input
 message InitializeInput{
 aelf.Address a_token_contract = 1;
 string platform_token_symbol = 2;
@@ -207,6 +209,7 @@ aelf.Address a_token=1;
 aelf.Address src=2; 
 aelf.Address dst=3; 
 int64 transfer_tokens=4; 
+AccountSnapshot snapshot = 5; 
 }    
 message TransferVerifyInput{
 aelf.Address a_token=1; 
@@ -236,6 +239,7 @@ aelf.Address a_token_collateral=2;
 aelf.Address liquidator=3; 
 aelf.Address borrower=4; 
 int64 repay_amount=5; 
+AccountSnapshot snapshot = 6; 
 }
 message LiquidateBorrowVerifyInput{
 aelf.Address a_token_borrowed=1; 
@@ -259,7 +263,8 @@ int64 mint_tokens=4;
 message RedeemAllowedInput{
 aelf.Address a_token=1; 
 aelf.Address redeemer=2; 
-int64 redeem_tokens=3; 
+int64 redeem_tokens=3;
+AccountSnapshot snapshot = 4; 
 }
 message RedeemVerifyInput{
 aelf.Address a_token=1; 
@@ -271,6 +276,7 @@ message BorrowAllowedInput{
 aelf.Address a_token=1; 
 aelf.Address borrower=2; 
 int64 borrow_amount=3; 
+AccountSnapshot snapshot = 4; 
 }
 message BorrowVerifyInput{
 aelf.Address a_token=1; 
@@ -282,6 +288,7 @@ aelf.Address a_token=1;
 aelf.Address payer=2; 
 aelf.Address borrower=3; 
 int64 repay_amount=4; 
+AccountSnapshot snapshot = 5; 
 }
 message GetHypotheticalAccountLiquidityInput{
 aelf.Address account=1;
@@ -331,6 +338,12 @@ message Market {
     int64 collateral_factor = 2;
     map<string,bool> account_membership = 3;
     bool is_platform_tokened = 4;
+}
+
+message AccountSnapshot{
+     int64 a_token_balance = 1;
+     int64 borrow_balance = 2;
+     int64 exchange_rate = 3;
 }
 //event
 message MarketListed{
