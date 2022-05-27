@@ -27,7 +27,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
 
-        private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
+        private string InitAccount { get; } = "J6zgLjGwd1bxTBpULLXrGVeV74tnS2n74FFJJz7KNdjTYkDF6";
         private string ManagersAddress { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
         private string ManagersAddress1 { get; } = "FHdcx45K5kovWsAKSb3rrdyNPFus8eoJ1XTQE7aXFHTgfpgzN";
         private string ManagersAddress2 { get; } = "2NKnGrarMPTXFNMRDiYH4hqfSoZw72NLxZHzgHD1Q3xmNoqdmR";
@@ -39,9 +39,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private string UserAddress3 { get; } = "1DskqyVKjWQm6iev5GtSegv1bP8tz1ZTWQZC2MTogTQoMhv4q";
         private string UserAddress4 { get; } = "W6YQXwoGHM25DZgCB2dsB95Zzb7LbUkYdEe347q8J1okMgB9z";
 
+        
+        //private static string RpcUrl { get; } = "http://172.25.127.105:8000";
+        private static string RpcUrl { get; } = "http://127.0.0.1:8000";
 
-        private static string RpcUrl { get; } = "http://172.25.127.105:8000";
-        private string WhitelistAddress = "2VTusxv6BN4SQDroitnWyLyQHWiwEhdWU76PPiGBqt5VbyF27J"; 
+        private string WhitelistAddress = "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG";
         //correctTestContract
         //GwsSp1MZPmkMvXdbfSCDydHhZtDpvqkFpmPvStYho288fb7QZ
 
@@ -115,13 +117,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 {
                     Value = {ManagersAddress.ConvertAddress(), ManagersAddress1.ConvertAddress()}
                 },
-                projectId, 
+                projectId,
                 StrategyType.Price,
                 out var output
             );
             Logger.Info($"output is {output}");
             createWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
+
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
             var whitelist = _whiteListContract.GetWhitelist(output);
             Logger.Info($"whitelist is {whitelist}");
@@ -154,7 +156,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var info = new Price {Symbol = "ELF", Amount = 30_00000000}.ToByteString();
             var owner = InitAccount.ConvertAddress();
             var id = HashHelper.ComputeFrom($"{owner}{projectId}{"Three"}");
-     
+
             _whiteListContract.SetAccount(InitAccount);
             var addExtraInfo = _whiteListContract.AddExtraInfo
             (
@@ -191,7 +193,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
             Logger.Info($"id is {id}");
-            
+
             _whiteListContract.SetAccount(InitAccount);
             var addAddressInfoToWhitelist = _whiteListContract.AddAddressInfoToWhitelist
             (
@@ -211,7 +213,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             extraInfoList.Value[3].Address.ShouldBe(UserAddress2.ConvertAddress());
             extraInfoList.Value[3].Info.TagName.ShouldBe("First");
             extraInfoList.Value[3].Info.Info.ShouldBe(info);
-           
         }
 
 
@@ -221,7 +222,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var whitelistId = Hash.LoadFromHex("2e399d3e913557ba3b032f4014f6523bf941e138df7413fcb3b06c628f98c232");
             var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
-            
+
             _whiteListContract.SetAccount(InitAccount);
             var removeAddressInfoFromWhitelist = _whiteListContract.RemoveAddressInfoFromWhitelist
             (
@@ -239,18 +240,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"extraInfoList is {extraInfoList}");
             extraInfoList.Value.Count.ShouldBe(3);
             extraInfoList.Value[2].Address.ShouldBe(UserAddress4.ConvertAddress());
-            
+
             // Check event--WhitelistDisabled
-            var logs = removeAddressInfoFromWhitelist.Logs.First(l => l.Name.Equals("WhitelistAddressInfoRemoved")).NonIndexed;
+            var logs = removeAddressInfoFromWhitelist.Logs.First(l => l.Name.Equals("WhitelistAddressInfoRemoved"))
+                .NonIndexed;
             var byteString = ByteString.FromBase64(logs);
             var whitelistAddressInfoRemoved = WhitelistAddressInfoRemoved.Parser.ParseFrom(byteString);
             whitelistAddressInfoRemoved.WhitelistId.ShouldBe(whitelistId);
             whitelistAddressInfoRemoved.ExtraInfoIdList.Value[0].ShouldBe
-                (new ExtraInfoId
-                {
-                    Address = UserAddress2.ConvertAddress(), Id = id
-                });
-                
+            (new ExtraInfoId
+            {
+                Address = UserAddress2.ConvertAddress(), Id = id
+            });
         }
 
         [TestMethod]
@@ -293,7 +294,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             extraInfoList.Value[4].Address.ShouldBe(UserAddress3.ConvertAddress());
             extraInfoList.Value[4].Info.Info.ShouldBe(info);
             // Check event--WhitelistDisabled
-            var logs = addAddressInfoListToWhitelist.Logs.First(l => l.Name.Equals("WhitelistAddressInfoAdded")).NonIndexed;
+            var logs = addAddressInfoListToWhitelist.Logs.First(l => l.Name.Equals("WhitelistAddressInfoAdded"))
+                .NonIndexed;
             var byteString = ByteString.FromBase64(logs);
             var whitelistAddressInfoAdded = WhitelistAddressInfoAdded.Parser.ParseFrom(byteString);
             Logger.Info($"whitelistAddressInfoAdded is {whitelistAddressInfoAdded}");
@@ -302,12 +304,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             (new ExtraInfoId
             {
                 Address = UserAddress2.ConvertAddress(), Id = id
-            });       
+            });
             whitelistAddressInfoAdded.ExtraInfoIdList.Value[4].ShouldBe
             (new ExtraInfoId
             {
                 Address = UserAddress3.ConvertAddress(), Id = id
-            }); 
+            });
         }
 
         [TestMethod]
@@ -316,7 +318,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var whitelistId = Hash.LoadFromHex("2e399d3e913557ba3b032f4014f6523bf941e138df7413fcb3b06c628f98c232");
             var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
-            
+
             _whiteListContract.SetAccount(InitAccount);
             var removeAddressInfoListFromWhitelist = _whiteListContract.RemoveAddressInfoListFromWhitelist
             (
@@ -345,7 +347,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"extraInfoList is {extraInfoList}");
             extraInfoList.Value.Count.ShouldBe(3);
             // Check event--WhitelistDisabled
-            var logs = removeAddressInfoListFromWhitelist.Logs.First(l => l.Name.Equals("WhitelistAddressInfoRemoved")).NonIndexed;
+            var logs = removeAddressInfoListFromWhitelist.Logs.First(l => l.Name.Equals("WhitelistAddressInfoRemoved"))
+                .NonIndexed;
             var byteString = ByteString.FromBase64(logs);
             var whitelistAddressInfoRemoved = WhitelistAddressInfoRemoved.Parser.ParseFrom(byteString);
             Logger.Info($"whitelistAddressInfoRemoved is {whitelistAddressInfoRemoved}");
@@ -354,14 +357,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
             (new ExtraInfoId
             {
                 Address = UserAddress2.ConvertAddress(), Id = id
-            });       
+            });
             whitelistAddressInfoRemoved.ExtraInfoIdList.Value[1].ShouldBe
             (new ExtraInfoId
             {
                 Address = UserAddress3.ConvertAddress(), Id = id
-            }); 
+            });
         }
-        
+
         [TestMethod]
         public void RemoveTagInfo()
         {
@@ -371,7 +374,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var owner = InitAccount.ConvertAddress();
             var tagId = HashHelper.ComputeFrom($"{owner}{projectId}{"Three"}");
             Logger.Info($"tagId is {tagId}");
-            
+
             _whiteListContract.SetAccount(InitAccount);
             var removeAddressInfoFromWhitelist = _whiteListContract.RemoveAddressInfoFromWhitelist
             (
@@ -386,11 +389,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 .ShouldBe(TransactionResultStatus.Mined);
             //RemoveTagInfo
             var removeTagInfo = _whiteListContract.RemoveTagInfo
-                (
+            (
                 whitelistId,
                 projectId,
                 tagId
-                );
+            );
             removeTagInfo.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
             // Check event--WhitelistDisabled
@@ -413,7 +416,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var disableWhitelist = _whiteListContract.DisableWhitelist(whitelistId);
             disableWhitelist.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
-            
+
             // Check event--WhitelistDisabled
             var logs = disableWhitelist.Logs.First(l => l.Name.Equals("WhitelistDisabled")).NonIndexed;
             var byteString = ByteString.FromBase64(logs);
@@ -421,7 +424,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             whiteListDisabled.WhitelistId.ShouldBe(whitelistId);
             whiteListDisabled.IsAvailable.ShouldBe(false);
         }
-        
+
         [TestMethod]
         public void EnableWhitelist()
         {
@@ -430,7 +433,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var enableWhitelist = _whiteListContract.EnableWhitelist(whitelistId);
             enableWhitelist.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
-            
+
             // Check event--WhitelistReenable
             var logs = enableWhitelist.Logs.First(l => l.Name.Equals("WhitelistReenable")).NonIndexed;
             var byteString = ByteString.FromBase64(logs);
@@ -445,15 +448,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var whitelistId = Hash.LoadFromHex("2e399d3e913557ba3b032f4014f6523bf941e138df7413fcb3b06c628f98c232");
             var isCloneable = false;
             var isCloneable1 = true;
-            
+
             _whiteListContract.SetAccount(InitAccount);
-           
+
             //例：关闭克隆
             var changeWhitelistCloneable = _whiteListContract.ChangeWhitelistCloneable
             (
                 whitelistId,
                 isCloneable
-                );
+            );
             changeWhitelistCloneable.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
             // Check event--IsCloneableChanged
@@ -462,7 +465,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var isCloneableChanged = IsCloneableChanged.Parser.ParseFrom(byteString);
             isCloneableChanged.WhitelistId.ShouldBe(whitelistId);
             isCloneableChanged.IsCloneable.ShouldBe(false);
-            
+
 
             //例：开启克隆
             var changeWhitelistCloneable1 = _whiteListContract.ChangeWhitelistCloneable
@@ -473,8 +476,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             changeWhitelistCloneable1.Status.ConvertTransactionResultStatus()
                 .ShouldBe(TransactionResultStatus.Mined);
             // Check event
-            logs = changeWhitelistCloneable1.Logs.First(l => l.Name.Equals("IsCloneableChanged")).NonIndexed; 
-            byteString = ByteString.FromBase64(logs); 
+            logs = changeWhitelistCloneable1.Logs.First(l => l.Name.Equals("IsCloneableChanged")).NonIndexed;
+            byteString = ByteString.FromBase64(logs);
             isCloneableChanged = IsCloneableChanged.Parser.ParseFrom(byteString);
             isCloneableChanged.WhitelistId.ShouldBe(whitelistId);
             isCloneableChanged.IsCloneable.ShouldBe(true);
@@ -484,15 +487,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void UpdateExtraInfo()
         {
         }
-        
+
         [TestMethod]
         public void TransferManager()
         {
             var whitelistId = Hash.LoadFromHex("2e399d3e913557ba3b032f4014f6523bf941e138df7413fcb3b06c628f98c232");
             var manager = UserAddress.ConvertAddress();
             var manager1 = ManagersAddress.ConvertAddress();
-            
-            
+
+
             _whiteListContract.SetAccount(ManagersAddress);
             var transferManager = _whiteListContract.TransferManager
             (
@@ -583,22 +586,22 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void ResetWhitelist()
         {
             //ea663c76b3484a4c0622ea0b01f6bb50a842e3dfb795d39a2ad6351984f501ef_已删除
-            var whitelistId = Hash.LoadFromHex("ea663c76b3484a4c0622ea0b01f6bb50a842e3dfb795d39a2ad6351984f501ef"); 
+            var whitelistId = Hash.LoadFromHex("ea663c76b3484a4c0622ea0b01f6bb50a842e3dfb795d39a2ad6351984f501ef");
             var projectId = HashHelper.ComputeFrom($"{UserAddress1.ConvertAddress()}");
-            
-             _whiteListContract.SetAccount(InitAccount);
+
+            _whiteListContract.SetAccount(InitAccount);
             var resetWhitelist = _whiteListContract.ResetWhitelist
             (
                 whitelistId,
                 projectId
             );
             resetWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
+
             var whitelist = _whiteListContract.GetWhitelist(whitelistId);
             Logger.Info($"whitelist is {whitelist}");
             var whitelistIdList = _whiteListContract.GetWhitelistByManager(InitAccount.ConvertAddress());
             Logger.Info($"whitelistIdList is {whitelistIdList}");
-            
+
             // Check event
             var logs = resetWhitelist.Logs.First(l => l.Name.Equals("WhitelistReset")).NonIndexed;
             var byteString = ByteString.FromBase64(logs);
@@ -606,7 +609,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             whitelistReset.WhitelistId.ShouldBe(whitelistId);
             whitelistReset.ProjectId.ShouldBe(projectId);
         }
-        
+
         //Subscribers.
         [TestMethod]
         public void SubscribeWhitelist()
@@ -614,25 +617,25 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
             var whitelistId = Hash.LoadFromHex("2e399d3e913557ba3b032f4014f6523bf941e138df7413fcb3b06c628f98c232");
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
-            
-            _whiteListContract.SetAccount(UserAddress2,"123456");
+
+            _whiteListContract.SetAccount(UserAddress2, "123456");
             var subscribeWhitelist = _whiteListContract.SubscribeWhitelist
-                (
+            (
                 projectId,
-                whitelistId , 
+                whitelistId,
                 out var output
             );
             Logger.Info($"output is {output}");
             subscribeWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            var subscribeId =HashHelper.ComputeFrom($"{UserAddress2.ConvertAddress()}{projectId}{whitelistId}");
+            var subscribeId = HashHelper.ComputeFrom($"{UserAddress2.ConvertAddress()}{projectId}{whitelistId}");
             Logger.Info($"subscribeId is {subscribeId}");
             var getSubscribeWhitelist = _whiteListContract.GetSubscribeWhitelist(output);
             Logger.Info($"getSubscribeWhitelist is {getSubscribeWhitelist}");
             getSubscribeWhitelist.SubscribeId.ShouldBe(output);
             getSubscribeWhitelist.WhitelistId.ShouldBe(whitelistId);
             getSubscribeWhitelist.ProjectId.ShouldBe(projectId);
-            
+
             // Check event
             var logs = subscribeWhitelist.Logs.First(l => l.Name.Equals("WhitelistSubscribed")).NonIndexed;
             var byteString = ByteString.FromBase64(logs);
@@ -641,31 +644,31 @@ namespace AElf.Automation.Contracts.ScenarioTest
             whiteListSubscribed.ProjectId.ShouldBe(projectId);
             whiteListSubscribed.SubscribeId.ShouldBe(output);
         }
-        
+
         [TestMethod]
         public void ConsumeWhitelist()
         {
             var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
             var whitelistId = Hash.LoadFromHex("2e399d3e913557ba3b032f4014f6523bf941e138df7413fcb3b06c628f98c232");
-            var subscribeId =HashHelper.ComputeFrom($"{UserAddress2.ConvertAddress()}{projectId}{whitelistId}");
+            var subscribeId = HashHelper.ComputeFrom($"{UserAddress2.ConvertAddress()}{projectId}{whitelistId}");
             Logger.Info($"subscribeId is {subscribeId}");
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
-            
-            var getTagInfoByHash =_whiteListContract.GetTagInfoByHash(id);
+
+            var getTagInfoByHash = _whiteListContract.GetTagInfoByHash(id);
             Logger.Info($"getTagInfoByHash is {getTagInfoByHash}");
-            
+
             var getExtraInfoFromWhitelist = _whiteListContract.GetExtraInfoFromWhitelist
-            ( 
+            (
                 whitelistId,
-                 new ExtraInfoId
-                     {
-                         Address =UserAddress.ConvertAddress(),
-                         Id =id
-                     }
-                );
+                new ExtraInfoId
+                {
+                    Address = UserAddress.ConvertAddress(),
+                    Id = id
+                }
+            );
             Logger.Info($"getSubscribeWhitelist is {getExtraInfoFromWhitelist}");
 
-            var getAvailableWhitelist =_whiteListContract.GetAvailableWhitelist(subscribeId);
+            var getAvailableWhitelist = _whiteListContract.GetAvailableWhitelist(subscribeId);
             Logger.Info($"getAvailableWhitelist is {getAvailableWhitelist}");
 
             //例：      
@@ -681,7 +684,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 }
             );
             consumeWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
+
             var getConsumedList = _whiteListContract.GetConsumedList(subscribeId);
             Logger.Info($"getConsumedList is {getConsumedList}");
             getConsumedList.SubscribeId.ShouldBe(subscribeId);
@@ -698,7 +701,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             consumedListAdded.SubscribeId.ShouldBe(subscribeId);
             consumedListAdded.ExtraInfoIdList.Value[0].Address.ShouldBe(UserAddress.ConvertAddress());
             consumedListAdded.ExtraInfoIdList.Value[0].Id.ShouldBe(id);
-
         }
 
         [TestMethod]
@@ -707,10 +709,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
             var whitelistId = Hash.LoadFromHex("2e399d3e913557ba3b032f4014f6523bf941e138df7413fcb3b06c628f98c232");
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
-            var subscribeId =HashHelper.ComputeFrom($"{UserAddress2.ConvertAddress()}{projectId}{whitelistId}");
+            var subscribeId = HashHelper.ComputeFrom($"{UserAddress2.ConvertAddress()}{projectId}{whitelistId}");
             Logger.Info($"subscribeId is {subscribeId}");
-            
-            _whiteListContract.SetAccount(UserAddress2,"123456");
+
+            _whiteListContract.SetAccount(UserAddress2, "123456");
             var unsubscribeWhitelist = _whiteListContract.UnsubscribeWhitelist
             (
                 subscribeId
@@ -745,7 +747,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             );
             Logger.Info($"output is {output}");
             cloneWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
+
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
             var whitelist = _whiteListContract.GetWhitelist(output);
             Logger.Info($"whitelist is {whitelist}");
@@ -765,7 +767,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void CreateWhitelistFail()
         {
-            
             var isCloneable = true;
             var remark = "111111";
             var creator = InitAccount.ConvertAddress();
@@ -774,7 +775,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
             var projectId1 = HashHelper.ComputeFrom($"{UserAddress1.ConvertAddress()}");
 
-            //whitelistId:5d68136f025f7a4dc7352eca72828e5b5fa1dd9e9d2fbcf1f2689bc1027d312e
+            //whitelistId:e4cd3193c51e8622816a69f7288cac6083968e6099e2487ca63893dfb981a1ce
             //例：重复创建
             _whiteListContract.SetAccount(InitAccount);
             var createWhitelist = _whiteListContract.CreateWhitelist(
@@ -811,9 +812,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 },
                 projectId,
                 StrategyType.Price,
-                out _
-                );
-            createWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+                out var output
+            );
+            Logger.Info($"out is {output}");
+            createWhitelist.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             createWhitelist.Error.ShouldContain("");
             //例：非message创建
             _whiteListContract.SetAccount(UserAddress);
@@ -852,8 +855,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 projectId1,
                 StrategyType.Price,
                 out _
-                );
-            createWhitelist1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            );
+            createWhitelist1.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             createWhitelist1.Error.ShouldContain("");
         }
 
@@ -898,7 +902,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Value = {UserAddress2.ConvertAddress()}
                 }
             );
-            addExtraInfo1.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            addExtraInfo1.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             addExtraInfo1.Error.ShouldContain("");
             //例：TagName下的用户重复
             _whiteListContract.SetAccount(ManagersAddress);
@@ -916,7 +921,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Value = {UserAddress.ConvertAddress()}
                 }
             );
-            addExtraInfo2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            addExtraInfo2.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             addExtraInfo2.Error.ShouldContain("");
             //例：非ManagersAddress添加
             _whiteListContract.SetAccount(UserAddress);
@@ -934,7 +940,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Value = {UserAddress2.ConvertAddress()}
                 }
             );
-            addExtraInfo3.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            addExtraInfo3.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             addExtraInfo3.Error.ShouldContain("");
             //例：白名单关闭后添加
             _whiteListContract.SetAccount(InitAccount);
@@ -955,7 +962,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Value = {UserAddress2.ConvertAddress()}
                 }
             );
-            addExtraInfo4.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            addExtraInfo4.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             addExtraInfo4.Error.ShouldContain("");
         }
 
@@ -963,10 +971,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void AddAddressInfoToWhitelistFail()
         {
             var whitelistId = Hash.LoadFromHex("5d68136f025f7a4dc7352eca72828e5b5fa1dd9e9d2fbcf1f2689bc1027d312e");
+            var whitelistId1 = Hash.LoadFromHex("1d68136f025f7a4dc7352eca72828e5b5fa1dd9e9d2fbcf1f2689bc1027d312e");
             var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
             var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
             Logger.Info($"id is {id}");
-            
+            //开启白名单
+            _whiteListContract.SetAccount(InitAccount);
+            var enableWhitelist = _whiteListContract.EnableWhitelist(whitelistId);
+            enableWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            //例：再次添加标签下用户
             _whiteListContract.SetAccount(InitAccount);
             var addAddressInfoToWhitelist = _whiteListContract.AddAddressInfoToWhitelist
             (
@@ -977,8 +990,81 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     Id = id
                 }
             );
-            addAddressInfoToWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            addAddressInfoToWhitelist.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
             addAddressInfoToWhitelist.Error.ShouldContain("");
+            //例：输入错误的whitelistId
+            _whiteListContract.SetAccount(InitAccount);
+            var addAddressInfoToWhitelist1 = _whiteListContract.AddAddressInfoToWhitelist
+            (
+                whitelistId1,
+                new ExtraInfoId
+                {
+                    Address = UserAddress4.ConvertAddress(),
+                    Id = id
+                }
+            );
+            addAddressInfoToWhitelist1.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            addAddressInfoToWhitelist1.Error.ShouldContain("");
+            //例：非ManagersAddress添加
+            _whiteListContract.SetAccount(UserAddress);
+            var addAddressInfoToWhitelist2 = _whiteListContract.AddAddressInfoToWhitelist
+            (
+                whitelistId,
+                new ExtraInfoId
+                {
+                    Address = UserAddress4.ConvertAddress(),
+                    Id = id
+                }
+            );
+            addAddressInfoToWhitelist2.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            addAddressInfoToWhitelist2.Error.ShouldContain("");
+            //例：白名单关闭后添加
+            _whiteListContract.SetAccount(InitAccount);
+            var disableWhitelist = _whiteListContract.DisableWhitelist(whitelistId);
+            disableWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            _whiteListContract.SetAccount(InitAccount);
+            var addAddressInfoToWhitelist3 = _whiteListContract.AddAddressInfoToWhitelist
+            (
+                whitelistId,
+                new ExtraInfoId
+                {
+                    Address = UserAddress4.ConvertAddress(),
+                    Id = id
+                }
+            );
+            addAddressInfoToWhitelist3.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            addAddressInfoToWhitelist3.Error.ShouldContain("");
+        }
+
+        [TestMethod]
+        public void RemoveAddressInfoFromWhitelistFail()
+        {
+            var whitelistId = Hash.LoadFromHex("2e399d3e913557ba3b032f4014f6523bf941e138df7413fcb3b06c628f98c232");
+            var projectId = HashHelper.ComputeFrom($"{UserAddress.ConvertAddress()}");
+            var id = HashHelper.ComputeFrom($"{InitAccount.ConvertAddress()}{projectId}{"First"}");
+
+            //开启白名单
+            _whiteListContract.SetAccount(InitAccount);
+            var enableWhitelist = _whiteListContract.EnableWhitelist(whitelistId);
+            enableWhitelist.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            //移除不在白名单的用户
+            _whiteListContract.SetAccount(InitAccount);
+            var removeAddressInfoFromWhitelist = _whiteListContract.RemoveAddressInfoFromWhitelist
+            (
+                whitelistId,
+                new ExtraInfoId
+                {
+                    Address = UserAddress4.ConvertAddress(),
+                    Id = id
+                }
+            );
+            removeAddressInfoFromWhitelist.Status.ConvertTransactionResultStatus()
+                .ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            removeAddressInfoFromWhitelist.Error.ShouldContain("");
             
             
             
@@ -990,13 +1076,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             
             
         }
-        
-        
-        
-        
-        
-        
-        
+
+
 
     }
 }
