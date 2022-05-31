@@ -13,10 +13,6 @@ using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using InitializeInput = Awaken.Contracts.SwapExchangeContract.InitializeInput;
 using Path = Awaken.Contracts.SwapExchangeContract.Path;
-using PendingOutput = Gandalf.Contracts.DividendPoolContract.PendingOutput;
-using PoolInfoStruct = Gandalf.Contracts.DividendPoolContract.PoolInfoStruct;
-using TokenList = Awaken.Contracts.SwapExchangeContract.TokenList;
-using UserInfoStruct = Gandalf.Contracts.DividendPoolContract.UserInfoStruct;
 
 
 namespace AElfChain.Common.Contracts
@@ -32,7 +28,8 @@ namespace AElfChain.Common.Contracts
         Threshold,
         SwapCommonTokens,
         SwapLpTokens,
-        GetHandlePath
+        //GetHandlePath,
+        ChangeOwner
     }
 
     public class SwapExchangeContract :BaseContract<SwapExchangeMethod>
@@ -79,7 +76,7 @@ namespace AElfChain.Common.Contracts
                 SwapTokenList = tokenList
             });
         }
-
+/*
         public RepeatedField<string> GetHandlePath(string symbol, Path pathPair)
         {
             return CallViewMethod<HandlePathOutput>(SwapExchangeMethod.GetHandlePath, new HandlePathInput
@@ -87,6 +84,6 @@ namespace AElfChain.Common.Contracts
                 Symbol = symbol,
                 PathPair = pathPair
             }).Path;
-        }
+        }*/
     }
 }

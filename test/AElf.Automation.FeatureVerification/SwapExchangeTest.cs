@@ -45,18 +45,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
 
-        private string awakenSwapAddress = "2M24EKAecggCnttZ9DUUMCXi4xC67rozA87kFgid9qEwRUMHTs";
-        //private string awakenSwapAddress = "";
-        private string awakenTokenAddress = "225ajURvev5rgX8HnMJ8GjbPnRxUrCHoD7HUjhWQqewEJ5GAv1";
-        //private string awakenTokenAddress = "";
-        private string swapExchangeAddress = "2VTusxv6BN4SQDroitnWyLyQHWiwEhdWU76PPiGBqt5VbyF27J";
-        //private string swapExchangeAddress = "";
+        private string awakenSwapAddress = "";
+        private string awakenTokenAddress = "";
+        private string swapExchangeAddress = "";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string UserA { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
-        private string Receiver { get; } = "FHdcx45K5kovWsAKSb3rrdyNPFus8eoJ1XTQE7aXFHTgfpgzN";
-        private static string RpcUrl { get; } = "192.168.67.166:8000";
-        private static readonly string[] DISTRIBUTETOKEN = {"APPLE","PEACH","BANANA"};
-        private static readonly string[] DEPOSITTOKEN = {"D","ABC"};
+        private string Receiver { get; } = "AviSYTKSFpNZwHwuAKGWQFtBQ4oG6babJJU7WtZexx8bNNAn5";
+        private static string RpcUrl { get; } = "172.25.127.105:8000";
         private static readonly string TARGETTOKEN = "USDTE";
         private const string SymbolUsdt = "USDTE";
         private const string SymbolElff = "ELFF";
@@ -91,6 +86,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void InitializeTest()
         {
+            
             var initSwap = _awakenSwapContract.ExecuteMethodWithResult(SwapMethod.Initialize, new Awaken.Contracts.Swap.InitializeInput
             {
                 Admin = InitAccount.ConvertAddress(),
@@ -176,7 +172,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 path[SymbolElff] = new Path
                 {
                     Value = {SymbolElff, SymbolLink, SymbolUsdt},
-                    ExpectPrice = expectedPrice,
+                    ExpectPrice = expectedPrice.Value,
                     SlipPoint = 1
                 };
             }
@@ -191,7 +187,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 path[SymbolAave] = new Path
                 {
                     Value = {SymbolAave, SymbolLink, SymbolUsdt},
-                    ExpectPrice = expectedPrice,
+                    ExpectPrice = expectedPrice.Value,
                     SlipPoint = 1
                 };
             }
@@ -242,7 +238,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     {
                         eventLogs.Result.ShouldBe(false);
                     }
-                    Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol},{eventLogs.AmountOut},{eventLogs.ActualSlipPoint})");
+                    Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol})");
                 }
             }
             receiverBalanceAfter.Sub(receiverBalanceBefore).ShouldBe(totalUsdtOut);
@@ -273,7 +269,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 path[SymbolAave] = new Path
                 {
                     Value = {SymbolAave, SymbolLink, SymbolUsdt},
-                    ExpectPrice = expectedPrice,
+                    ExpectPrice = expectedPrice.Value,
                     SlipPoint = 1
                 };
             }
@@ -286,7 +282,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 path[SymbolElff] = new Path
                 {
                     Value = {SymbolElff, SymbolLink, SymbolUsdt},
-                    ExpectPrice = expectedPrice,
+                    ExpectPrice = expectedPrice.Value,
                     SlipPoint = 1
                 };
             }
@@ -299,7 +295,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 path[SymbolLink] = new Path
                 {
                     Value = {SymbolLink, SymbolUsdt},
-                    ExpectPrice = expectedPrice,
+                    ExpectPrice = expectedPrice.Value,
                     SlipPoint = 1
                 };
             }
@@ -362,13 +358,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 if (isSwapEvent)
                 {
                     var eventLogs = SwapResultEvent.Parser.ParseFrom(ByteString.FromBase64(log.NonIndexed));
-                    Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol},{eventLogs.AmountOut},{eventLogs.ActualSlipPoint})");
+                    Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol})");
                     if (eventLogs.Symbol.Equals(SymbolAave))
                     {
                         eventLogs.Result.ShouldBe(true);
                         eventLogs.Amount.ShouldBe(10_00000000);
                         eventLogs.IsLptoken.ShouldBe(false);
-                        eventLogs.AmountOut.ShouldBe(totalUsdtOut);
+                        //eventLogs.AmountOut.ShouldBe(totalUsdtOut);
                     }
                     else if(eventLogs.Symbol.Equals(SymbolElff))
                     {
@@ -444,7 +440,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 path[SymbolAave] = new Path
                 {
                     Value = {SymbolAave, SymbolLink, SymbolUsdt},
-                    ExpectPrice = 0,
+                    ExpectPrice = "0",
                     SlipPoint = 1
                 };
 
@@ -466,14 +462,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 path[SymbolAave] = new Path
                 {
                     Value = {SymbolAave, SymbolLink, SymbolUsdt},
-                    ExpectPrice = expectedPrice,
+                    ExpectPrice = expectedPrice.Value,
                     SlipPoint = 1
                 };
                 
                 path[SymbolElff] = new Path
                 {
                     Value = {SymbolElff, SymbolAave,SymbolLink, SymbolUsdt},
-                    ExpectPrice = expectedPrice,
+                    ExpectPrice = expectedPrice.Value,
                     SlipPoint = 1
                 };
                 
@@ -531,13 +527,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             path[SymbolElff] = new Path
             {
                 Value = {SymbolElff, SymbolLink, SymbolUsdt},
-                ExpectPrice = 1,
+                ExpectPrice = "1",
                 SlipPoint = 1
             };
             path[SymbolLink] = new Path
             {
                 Value = {SymbolLink, SymbolUsdt},
-                ExpectPrice = 1,
+                ExpectPrice = "1",
                 SlipPoint = 1
             };
             tokenList.TokensInfo.Add( new Awaken.Contracts.SwapExchangeContract.Token
@@ -573,7 +569,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     eventLogs.Result.ShouldBe(false);
                     eventLogs.IsLptoken.ShouldBe(true);
                     eventLogs.Amount.ShouldBe(10_00000000);
-                    Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol},{eventLogs.AmountOut},{eventLogs.ActualSlipPoint})");
+                    Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol})");
                 }
             }
             
@@ -605,21 +601,21 @@ namespace AElf.Automation.Contracts.ScenarioTest
             path[SymbolAave] = new Path
             {
                 Value = {$"ALP {SymbolAave}-{SymbolLink}", $"ALP {SymbolLink}-{SymbolUsdt}"},
-                ExpectPrice = new BigIntValue(1),
+                ExpectPrice = "1",
                 SlipPoint = 100
             };
             
             path[SymbolElff] = new Path
             {
                 Value = {$"{SymbolElff}-{SymbolLink}", $"{SymbolLink}-{SymbolUsdt}"},
-                ExpectPrice = new BigIntValue(100000000_00000000).Mul(ExpansionCoefficient),
+                ExpectPrice = new BigIntValue(100000000_00000000).Mul(ExpansionCoefficient).Value,
                 SlipPoint = 1
             };
 
             path[SymbolLink] = new Path
             {
                 Value = {$"{SymbolLink}-{SymbolUsdt}"},
-                ExpectPrice = new BigIntValue(100000000_00000000).Mul(ExpansionCoefficient),
+                ExpectPrice = new BigIntValue(100000000_00000000).Mul(ExpansionCoefficient).Value,
                 SlipPoint = 100
             };
 
@@ -691,14 +687,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     var eventLogs = SwapResultEvent.Parser.ParseFrom(ByteString.FromBase64(log.NonIndexed));
                     if (eventLogs.Symbol.Equals(SymbolAave))
                     {
-                        Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol},{eventLogs.AmountOut},{eventLogs.ActualSlipPoint})");
+                        Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol}");
                         eventLogs.Result.ShouldBe(true);
                         eventLogs.IsLptoken.ShouldBe(false);
                         swapAmountSymbolAave = eventLogs.Amount;
                     }
                     else if(eventLogs.Symbol.Equals(SymbolUsdt))
                     {
-                        Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol},{eventLogs.AmountOut},{eventLogs.ActualSlipPoint})");
+                        Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol})");
                         eventLogs.Result.ShouldBe(true);
                         eventLogs.IsLptoken.ShouldBe(false);
                         swapAmountSymbolUsdt = eventLogs.Amount;
@@ -709,7 +705,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     }
                     else
                     {
-                        Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol},{eventLogs.AmountOut},{eventLogs.ActualSlipPoint})");
+                        Logger.Info($"log({eventLogs.Amount},{eventLogs.Result},{eventLogs.Symbol})");
                         eventLogs.Result.ShouldBe(false);
                         eventLogs.IsLptoken.ShouldBe(false);
                     }
@@ -763,7 +759,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 pathMap[SymbolElff] = new Path
                 {
                     Value = {SymbolElff, SymbolLink, SymbolUsdt},
-                    ExpectPrice = 1,
+                    ExpectPrice = "1",
                     SlipPoint = 1
                 };
 
@@ -800,14 +796,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 pathMap[SymbolAave] = new Path
                 {
                     Value = { SymbolAave,SymbolElff,SymbolLink,SymbolUsdt},
-                    ExpectPrice = 1,
+                    ExpectPrice = "1",
                     SlipPoint = 1
                 };
                 
                 pathMap[SymbolLink] = new Path
                 {
                     Value = { SymbolLink,SymbolUsdt},
-                    ExpectPrice = 1,
+                    ExpectPrice = "1",
                     SlipPoint = 1
                 };
                 
@@ -837,7 +833,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 pathMap[SymbolAave] = new Path
                 {
                     Value = { SymbolAave,SymbolLink,SymbolUsdt},
-                    ExpectPrice = 1,
+                    ExpectPrice = "1",
                     SlipPoint = 1
                 };
                 
@@ -854,7 +850,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             
             
         }
-        
+        /*
         [TestMethod]
         public void HandlePathTest()
         {
@@ -876,7 +872,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             HandlePath("ZZZ",new RepeatedField<string>{"TEST-ZZZ","TEST-UUU","USDT-UUU"}, new RepeatedField<string>{"ZZZ","TEST","UUU","USDT"});
             HandlePath("ZZZ",new RepeatedField<string>{"ZAA-ZZZ","YYY-ZAA","USDT-YYY"}, new RepeatedField<string>{"ZZZ","ZAA","YYY","USDT"});
 
-        }
+        }*/
         
         private long GetLpTokenPairMinOut(long lpAmount, string tokenPair, List<string> pathA, List<string> pathB)
         {
@@ -1164,7 +1160,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             });
         }
         
-        
+        /*
         private void HandlePath(string symbol, RepeatedField<string> path, RepeatedField<string> expectedPath)
         {
             var result = _swapExchangeContract.GetHandlePath(symbol, new Path
@@ -1173,7 +1169,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             });
             Logger.Info($"handlePath result({result})");
             result.ShouldBe(expectedPath);
-        }
+        }*/
         
         private string GetTokenPairSymbol(string tokenA, string tokenB)
         {
@@ -1192,6 +1188,5 @@ namespace AElf.Automation.Contracts.ScenarioTest
             return symbols.OrderBy(s => s).ToArray();
         }
         
-
     }
 }
