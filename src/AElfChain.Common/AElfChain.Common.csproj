@@ -26,6 +26,12 @@
         <ProtoContract Include="Protobuf\Proto\token_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_token_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_swap_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\a_token_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\awaken_lending_lens_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\controller_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\interest_rate_model_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\callback_input.proto" />
+        <ProtoContract Include="Protobuf\Proto\price_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\farm_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_shadowfax_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\acs5_plugin_test_contract.proto" />
@@ -64,7 +70,7 @@
         <ProtoContract Include="Protobuf\Proto\dividend_pool_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_investment_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_provider_contract.proto" />
-
+        <ProtoContract Include="Protobuf\Proto\swap_exchange_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>

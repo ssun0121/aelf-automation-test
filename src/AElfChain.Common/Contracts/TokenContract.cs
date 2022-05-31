@@ -1,6 +1,7 @@
 ﻿using System;
 using AElf.Client.Dto;
 using AElf.Contracts.MultiToken;
+using AElf.CSharp.Core;
 using AElf.Types;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
@@ -82,6 +83,22 @@ namespace AElfChain.Common.Contracts
                 Memo = $"T-{Guid.NewGuid().ToString()}"
             });
 
+            return result;
+        }
+
+        public TransactionResultDto CreateToken(string symbol, int d, string issuer)
+        {
+            long totalSupply = 100000000;
+            var t = totalSupply.Mul(Int64.Parse(new BigIntValue(10).Pow(d).Value));
+            var result = ExecuteMethodWithResult(TokenMethod.Create,
+                new AElf.Contracts.MultiToken.CreateInput
+                {
+                    Symbol = symbol,
+                    Decimals = d,
+                    Issuer = issuer.ConvertAddress(),
+                    TokenName = $"{symbol} token",
+                    TotalSupply = t
+                });
             return result;
         }
 

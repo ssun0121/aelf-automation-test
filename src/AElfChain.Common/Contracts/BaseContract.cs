@@ -127,6 +127,23 @@ namespace AElfChain.Common.Contracts
             Thread.Sleep(100); //in case of 'NotExisted' issue
             return NodeManager.CheckTransactionResult(txId);
         }
+        
+        /// <summary>
+        ///     execution tx and wait result response
+        /// </summary>
+        /// <param name="method"></param>
+        /// <param name="inputParameter"></param>
+        /// <returns></returns>
+        public TransactionResultDto ExecuteMethodWithResultThroughPrivateKey(string method, IMessage inputParameter, string privateKey)
+        {
+            var rawTx = GenerateBroadcastRawTx(method, inputParameter, privateKey);
+            var txId = NodeManager.SendTransaction(rawTx);
+            Logger.Info($"Transaction method: {method}, TxId: {txId}");
+
+            //Check result
+            Thread.Sleep(100); //in case of 'NotExisted' issue
+            return NodeManager.CheckTransactionResult(txId);
+        }
 
         /// <summary>
         ///     check tx whether exist or not before execution
@@ -300,6 +317,11 @@ namespace AElfChain.Common.Contracts
         private string GenerateBroadcastRawTx(string method, IMessage inputParameter)
         {
             return NodeManager.GenerateRawTransaction(CallAddress, ContractAddress, method, inputParameter);
+        }
+        
+        private string GenerateBroadcastRawTx(string method, IMessage inputParameter, string privateKey)
+        {
+            return NodeManager.GenerateRawTransactionFromPrivateKey(CallAddress,ContractAddress, method, inputParameter, privateKey);
         }
 
         #endregion Methods

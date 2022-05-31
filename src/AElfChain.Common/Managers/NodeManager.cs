@@ -262,6 +262,30 @@ namespace AElfChain.Common.Managers
 
             return tr.ToByteArray().ToHex();
         }
+        
+        public string GenerateRawTransactionFromPrivateKey(string from, string to, string methodName, IMessage inputParameter, string privateKey)
+        {
+            
+            var tr = new Transaction
+            {
+                From = from.ConvertAddress(),
+                To = to.ConvertAddress(),
+                MethodName = methodName
+            };
+
+            if (tr.MethodName == null)
+            {
+                Logger.Error("Method not found.");
+                return string.Empty;
+            }
+
+            tr.Params = inputParameter == null ? ByteString.Empty : inputParameter.ToByteString();
+            tr = tr.AddBlockReference(_baseUrl, _chainId);
+
+            TransactionManager.SignTransactionThroughPrivateKey(tr, privateKey);
+
+            return tr.ToByteArray().ToHex();
+        }
 
         public TransactionResultDto CheckTransactionResult(string txId, int maxSeconds = -1)
         {

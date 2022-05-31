@@ -29,6 +29,7 @@ namespace AElfChain.Common.Managers
         string SendTransaction(string rawTransaction);
         List<string> SendTransactions(string rawTransactions);
         string GenerateRawTransaction(string from, string to, string methodName, IMessage inputParameter);
+        string GenerateRawTransactionFromPrivateKey(string from, string to, string methodName, IMessage inputParameter, string privateKey);
         TransactionResultDto CheckTransactionResult(string txId, int maxSeconds = -1);
         void CheckTransactionListResult(List<string> transactionIds);
 
