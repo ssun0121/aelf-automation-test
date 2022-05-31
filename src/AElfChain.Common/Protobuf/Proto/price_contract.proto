@@ -4,7 +4,8 @@ import "aelf/core.proto";
 import "aelf/options.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/wrappers.proto";
+import "callback_input.proto";
+
 option csharp_namespace = "AElf.Contracts.Price";
 
 service PriceContract {
@@ -14,30 +15,35 @@ service PriceContract {
 
   rpc QuerySwapTokenPrice (QueryTokenPriceInput) returns (aelf.Hash) {}
   rpc QueryExchangeTokenPrice (QueryTokenPriceInput) returns (aelf.Hash) {}
-  
+
   rpc RecordSwapTokenPrice (CallbackInput) returns (google.protobuf.Empty) {}
   rpc RecordExchangeTokenPrice (CallbackInput) returns (google.protobuf.Empty) {}
 
   rpc UpdateSwapTokenTraceInfo (UpdateSwapTokenTraceInfoInput) returns (google.protobuf.Empty) {}
-  rpc UpdateAuthorizedSwapTokenPriceQueryUsers (AuthorizedSwapTokenPriceQueryUsers) returns (google.protobuf.Empty) {}
+  rpc UpdateAuthorizedSwapTokenPriceQueryUsers (AddressList) returns (google.protobuf.Empty) {}
 
   rpc ChangeOracle (ChangeOracleInput) returns (google.protobuf.Empty) {}
-  
+  rpc ChangeTracePathLimit(ChangeTracePathLimitInput) returns (google.protobuf.Empty) {}
+  rpc SetQueryFee(SetQueryFeeInput) returns (google.protobuf.Empty) {}
+
+  rpc SetUnderlyingToken(SetUnderlyingTokenInput) returns (google.protobuf.Empty) {}
+  rpc SetTokenSwapAddress(aelf.Address) returns (google.protobuf.Empty) {}
   rpc SetPrice(SetPriceInput)returns(google.protobuf.Empty){}
+
   // Views
   rpc GetSwapTokenPriceInfo (GetSwapTokenPriceInfoInput) returns (Price) {
     option (aelf.is_view) = true;
   }
 
-  rpc GetBatchSwapTokenPriceInfo (GetBatchSwapTokenPriceInfoInput) returns (BatchPrices) {
+  rpc BatchGetSwapTokenPriceInfo (GetBatchSwapTokenPriceInfoInput) returns (TokenPriceList) {
     option (aelf.is_view) = true;
   }
-  
+
   rpc GetExchangeTokenPriceInfo (GetExchangeTokenPriceInfoInput) returns (Price) {
     option (aelf.is_view) = true;
   }
 
-  rpc GetBatchExchangeTokenPriceInfo (GetBatchExchangeTokenPriceInfoInput) returns (BatchPrices) {
+  rpc BatchGetExchangeTokenPriceInfo (GetBatchExchangeTokenPriceInfoInput) returns (TokenPriceList) {
     option (aelf.is_view) = true;
   }
 
@@ -45,18 +51,47 @@ service PriceContract {
     option (aelf.is_view) = true;
   }
 
-  rpc GetAuthorizedSwapTokenPriceQueryUsers (google.protobuf.Empty) returns (AuthorizedSwapTokenPriceQueryUsers) {
+  rpc GetAuthorizedSwapTokenPriceQueryUsers (google.protobuf.Empty) returns (AddressList) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetTracePathLimit (google.protobuf.Empty) returns (TracePathLimit) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetSwapTokenInfo (GetSwapTokenInfoInput) returns (PriceTraceInfo) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetOracle (google.protobuf.Empty) returns (aelf.Address) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetController (google.protobuf.Empty) returns (aelf.Address) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetQueryFee (google.protobuf.Empty) returns (QueryFee) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetUnderlyingToken (google.protobuf.Empty) returns (UnderlyingToken) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetTokenSwapAddress (google.protobuf.Empty) returns (aelf.Address) {
     option (aelf.is_view) = true;
   }
 }
-message SetPriceInput{
-string token_symbol = 1;
-int64 price = 2;
-}
+
 message InitializeInput{
   aelf.Address oracle_address = 1;
   aelf.Address controller = 2;
   repeated aelf.Address authorized_users = 3;
+  int32 trace_path_limit = 4;
+  int64 query_fee = 5;
+  string underlying_token_symbol = 6;
+  aelf.Address token_swap_address = 7;
 }
 
 message QueryTokenPriceInput{
@@ -72,11 +107,16 @@ message UpdateSwapTokenTraceInfoInput{
   string target_token_symbol = 2;
 }
 
-message TokenPrice{
+message TokenPrice {
   string token_symbol = 1;
   string target_token_symbol = 2;
   string price = 3;
   google.protobuf.Timestamp timestamp = 4;
+}
+
+message SetPriceInput{
+  string token_symbol = 1;
+  int64 price = 2;
 }
 
 message GetSwapTokenPriceInfoInput{
@@ -97,17 +137,12 @@ message GetExchangeTokenPriceInfoInput{
 message GetBatchExchangeTokenPriceInfoInput{
   repeated GetExchangeTokenPriceInfoInput token_price_query_list = 1;
 }
-message CallbackInput {
-    aelf.Hash query_id = 1;
-    bytes result = 2;
-    repeated aelf.Address oracle_nodes = 3;
+
+message TokenPriceList {
+  repeated TokenPrice value = 1;
 }
 
-message  BatchPrices{
-  repeated TokenPrice tokenPrices = 1;
-}
-
-message Price{
+message Price {
   string value = 1;
   google.protobuf.Timestamp timestamp = 2;
 }
@@ -118,21 +153,47 @@ message PriceTraceInfo {
   repeated string token_list = 3;
 }
 
-message IsQueryIdExisted{
+message IsQueryIdExisted {
   bool value = 1;
 }
 
-message AuthorizedSwapTokenPriceQueryUsers{
-  repeated aelf.Address list = 1;
+message AddressList {
+  repeated aelf.Address value = 1;
 }
 
-message OrganizationList{
-  repeated aelf.Address node_list = 1;
-}
-
-message ChangeOracleInput{
+message ChangeOracleInput {
   aelf.Address oracle = 1;
 }
+
+message ChangeTracePathLimitInput{
+  int32 new_path_limit = 1;
+}
+
+message SetQueryFeeInput{
+  int64 new_query_fee = 1;
+}
+
+message GetSwapTokenInfoInput{
+  string token = 1;
+}
+
+message QueryFee{
+  int64 fee = 1;
+}
+
+message TracePathLimit{
+  int32 path_limit = 1;
+}
+
+message UnderlyingToken{
+  string value = 1;
+}
+
+message SetUnderlyingTokenInput{
+  string underlying_token = 1;
+}
+
+// Events
 
 message NewestSwapPriceUpdated{
   option (aelf.is_event) = true;
@@ -141,7 +202,6 @@ message NewestSwapPriceUpdated{
   string price = 3;
   google.protobuf.Timestamp timestamp = 4;
   aelf.Hash query_id = 5;
-  string underlying_token_price = 6;
 }
 
 message NewestExchangePriceUpdated{
@@ -150,6 +210,6 @@ message NewestExchangePriceUpdated{
   string target_token_symbol = 2;
   string price = 3;
   google.protobuf.Timestamp timestamp = 4;
-  OrganizationList price_supplier = 5;
+  AddressList price_supplier = 5;
   aelf.Hash query_id = 6;
 }

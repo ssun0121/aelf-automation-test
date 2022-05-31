@@ -30,6 +30,7 @@
         <ProtoContract Include="Protobuf\Proto\awaken_lending_lens_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\controller_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\interest_rate_model_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\callback_input.proto" />
         <ProtoContract Include="Protobuf\Proto\price_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\farm_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_shadowfax_contract.proto" />

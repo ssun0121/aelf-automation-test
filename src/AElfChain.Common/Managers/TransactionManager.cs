@@ -50,20 +50,36 @@ namespace AElfChain.Common.Managers
             tx.Signature = Sign(tx.From.ToBase58(), txData);
             return tx;
         }
-
-        public ByteString Sign(string addr, byte[] txData)
+        
+        public Transaction SignTransactionThroughPrivateKey(Transaction tx, string privateKey)
         {
-            var kp = _keyStore.GetAccountKeyPair(addr);
+            var txData = tx.GetHash().ToByteArray();
+            tx.Signature = Sign(tx.From.ToBase58(), txData, privateKey);
+            return tx;
+        }
 
-            if (kp == null)
+        public ByteString Sign(string addr, byte[] txData, string privateKey = null)
+        {
+            if (privateKey == null)
             {
-                Logger.Error($"The following account is locked: {addr}");
-                return null;
+                var kp = _keyStore.GetAccountKeyPair(addr);
+
+                if (kp == null)
+                {
+                    Logger.Error($"The following account is locked: {addr}");
+                    return null;
+                }
+
+                // Sign the hash
+                var signature = CryptoHelper.SignWithPrivateKey(kp.PrivateKey, txData);
+                return ByteString.CopyFrom(signature);
+            }
+            else
+            {
+                var signature = CryptoHelper.SignWithPrivateKey(Hash.LoadFromBase64(privateKey).ToByteArray(), txData);
+                return ByteString.CopyFrom(signature);
             }
 
-            // Sign the hash
-            var signature = CryptoHelper.SignWithPrivateKey(kp.PrivateKey, txData);
-            return ByteString.CopyFrom(signature);
         }
 
         public string ConvertTransactionRawTxString(Transaction tx)

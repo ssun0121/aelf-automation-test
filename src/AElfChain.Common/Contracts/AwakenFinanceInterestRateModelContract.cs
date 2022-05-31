@@ -1,4 +1,5 @@
 using AElfChain.Common.Managers;
+using Awaken.Contracts.InterestRateModel;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElfChain.Common.Contracts
@@ -6,7 +7,7 @@ namespace AElfChain.Common.Contracts
     public enum InterestRateModelMethod
     {
         Initialize,
-        UpdateJumpRateModel,
+        UpdateRateModel,
         GetBorrowRate,
         GetSupplyRate,
         GetUtilizationRate,
@@ -53,6 +54,40 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<Int64Value>(InterestRateModelMethod.GetJumpMultiplierPerBlock,
                 new Empty()).Value;
+        }
+
+        public long GetUtilizationRate(long cash,long borrows,long reserves)
+        {
+            return CallViewMethod<Int64Value>(InterestRateModelMethod.GetUtilizationRate,
+                new GetUtilizationRateInput
+                {
+                    Cash = cash,
+                    Borrows = borrows,
+                    Reserves = reserves
+                }).Value;
+        }
+        
+        public long GetBorrowRate(long cash,long borrows,long reserves)
+        {
+            return CallViewMethod<Int64Value>(InterestRateModelMethod.GetBorrowRate,
+                new GetBorrowRateInput
+                {
+                    Cash = cash,
+                    Borrows = borrows,
+                    Reserves = reserves
+                }).Value;
+        }
+        
+        public long GetSupplyRate(long cash,long borrows,long reserves, long reserveFactor)
+        {
+            return CallViewMethod<Int64Value>(InterestRateModelMethod.GetSupplyRate,
+                new GetSupplyRateInput
+                {
+                    Cash = cash,
+                    Borrows = borrows,
+                    Reserves = reserves,
+                    ReserveFactor = reserveFactor
+                }).Value;
         }
     }
 }

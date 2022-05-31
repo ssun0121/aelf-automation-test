@@ -2,12 +2,12 @@
   "RequireAuthority": true,
   "Nodes": [
     {
-      "name": "bp1",
-      "endpoint": "127.0.0.1:9000",
-      "account": "2RCLmZQ2291xDwSbDEJR6nLhFJcMkyfrVTq1i1YxWC4SdY49a6",
-      "password": "123"
+      "name": "1.美国东部(弗吉尼亚北部)",
+      "endpoint":"18.163.40.175:8000",
+      "account": "V6LuP6FXKPoXqR5V9X2XuufZ8wSwKu4kNJbxY8i9JJ4NDPxib",
+      "password": "12345678"
     }
   ],
-  "NativeTokenSymbol" : "ELF",
-  "DefaultPassword": "123"
+  "NativeTokenSymbol": "ELF",
+  "DefaultPassword": "12345678"
 }

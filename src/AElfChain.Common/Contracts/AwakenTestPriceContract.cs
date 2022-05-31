@@ -1,9 +1,11 @@
+using AElf.Contracts.Price;
 using AElfChain.Common.Managers;
 
 namespace AElfChain.Common.Contracts;
 
 public enum PriceMethod
 {
+    Initialize,
     GetExchangeTokenPriceInfo,
     SetPrice
 }
@@ -19,5 +21,13 @@ public class AwakenTestPriceContract : BaseContract<PriceMethod>
         contractAddress)
     {
         SetAccount(callAddress);
+    }
+
+    public Price GetExchangeTokenPriceInfo(string tokenSymbol)
+    {
+        return CallViewMethod<Price>(PriceMethod.GetExchangeTokenPriceInfo, new GetExchangeTokenPriceInfoInput
+        {
+            TokenSymbol = tokenSymbol
+        });
     }
 }

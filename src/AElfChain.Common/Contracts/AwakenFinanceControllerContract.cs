@@ -1,5 +1,6 @@
 using AElf.Client.Dto;
 using AElf.Types;
+using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Managers;
 using Awaken.Contracts.Controller;
 using Google.Protobuf.WellKnownTypes;
@@ -152,10 +153,43 @@ namespace AElfChain.Common.Contracts
                     Suppliers = suppliers
                 }).Value;
         }
-        
+
         public bool CheckMembership(Address address)
         {
             return CallViewMethod<BoolValue>(ControllerMethod.CheckMembership, address).Value;
+        }
+
+        public long GetPlatformTokenAccrued(Address address)
+        {
+            return CallViewMethod<Int64Value>(ControllerMethod.GetPlatformTokenAccrued, address).Value;
+        }
+        
+        public GetAccountLiquidityOutput GetAccountLiquidity(Address address)
+        {
+            return CallViewMethod<GetAccountLiquidityOutput>(ControllerMethod.GetAccountLiquidity, address);
+        }
+
+        public GetHypotheticalAccountLiquidityOutput GetHypotheticalAccountLiquidity(Address user, Address aToken, long borrowAmount, long redeemTokenAmount)
+        {
+            return CallViewMethod<GetHypotheticalAccountLiquidityOutput>(
+                ControllerMethod.GetHypotheticalAccountLiquidity,
+                new GetHypotheticalAccountLiquidityInput
+                {
+                    RedeemTokens = redeemTokenAmount,
+                    BorrowAmount = borrowAmount,
+                    Account = user,
+                    ATokenModify = aToken
+                });
+        }
+
+        public long GetPlatformTokenClaimAmount(string holder, bool isBorrowers, bool isSuppliers)
+        {
+            return CallViewMethod<Int64Value>(ControllerMethod.GetPlatformTokenClaimAmount, new GetClaimPlatformTokenInput
+            {
+                Holder = holder.ConvertAddress(),
+                Borrowers = isBorrowers,
+                Suppliers = isSuppliers
+            }).Value;
         }
     }
 }

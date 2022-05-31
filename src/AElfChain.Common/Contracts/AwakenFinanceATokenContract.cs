@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using AElf.Types;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Managers;
@@ -18,6 +19,7 @@ namespace AElfChain.Common.Contracts
         RepayBorrowBehalf,
         LiquidateBorrow,
         AddReserves,
+        ReduceReserves,
         AccrueInterest,
         Seize,
         
@@ -86,6 +88,11 @@ namespace AElfChain.Common.Contracts
         public Address GetATokenAddress(string symbol)
         {
             return CallViewMethod<Address>(ATokenMethod.GetATokenAddress, new StringValue{Value = symbol});
+        }
+
+        public string GetUnderlying(Address aToken)
+        {
+            return CallViewMethod<StringValue>(ATokenMethod.GetUnderlying, aToken).Value;
         }
 
         public long GetReserveFactor(Address address)
@@ -163,6 +170,30 @@ namespace AElfChain.Common.Contracts
                     User = user.ConvertAddress(),
                     AToken = aToken
                 });
+        }
+
+        public long GetCurrentExchangeRate(Address aToken)
+        {
+            return CallViewMethod<Int64Value>(ATokenMethod.GetCurrentExchangeRate, aToken).Value;
+        }
+
+        public BigIntValue GetBorrowIndex(Address aToken)
+        {
+            return CallViewMethod<BigIntValue>(ATokenMethod.GetBorrowIndex, aToken).Value;
+        }
+
+        public Address GetInterestRateModel(Address aToken)
+        {
+            return CallViewMethod<Address>(ATokenMethod.GetInterestRateModel, aToken);
+        }
+
+        public Balances GetBalances(List<string> symbol)
+        {
+            return CallViewMethod<Balances>(ATokenMethod.GetBalances, new Awaken.Contracts.AToken.GetBalancesInput
+            {
+                Symbols = { symbol }
+            });
+
         }
     }
 }
