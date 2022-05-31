@@ -10,8 +10,8 @@ using Gandalf.Contracts.DividendPoolContract;
 using Google.Protobuf.WellKnownTypes;
 using InitializeInput = Gandalf.Contracts.DividendPoolContract.InitializeInput;
 using PendingOutput = Gandalf.Contracts.DividendPoolContract.PendingOutput;
-using PoolInfoStruct = Gandalf.Contracts.DividendPoolContract.PoolInfoStruct;
-using UserInfoStruct = Gandalf.Contracts.DividendPoolContract.UserInfoStruct;
+using PoolInfoStruct = Gandalf.Contracts.DividendPoolContract.Pool;
+using UserInfoStruct = Gandalf.Contracts.DividendPoolContract.User;
 
 
 namespace AElfChain.Common.Contracts
@@ -61,7 +61,7 @@ namespace AElfChain.Common.Contracts
         {
             return ExecuteMethodWithResult(DividendPoolMethod.Initialize, new InitializeInput
             {
-                Cycle = cycle
+                Cycle = cycle,
             });
         }
 
@@ -69,7 +69,7 @@ namespace AElfChain.Common.Contracts
         {
             return ExecuteMethodWithResult(DividendPoolMethod.AddToken, new Token
             {
-                TokenSymbol = tokenSymbol
+                Value = tokenSymbol
             });
         }
         public TransactionResultDto Add(long allocationPoint, string tokenSymbol)

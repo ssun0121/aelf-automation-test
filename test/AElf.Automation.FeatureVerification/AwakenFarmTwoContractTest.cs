@@ -75,7 +75,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var totalReward = new BigIntValue(750);
             var result =
                 _awakenFarmTwoContract.Initialize(tokenSymbol, tokenPerBlock, halvingPeriod, startBlock, totalReward,
-                    _awakenTokenContract.ContractAddress);
+                    _awakenTokenContract.ContractAddress, startBlock.Add(halvingPeriod));
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
             result.Error.ShouldContain("Invalid StartBlock");
         }
@@ -90,7 +90,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var totalReward = new BigIntValue(150000000000);
 
             var result = _awakenFarmTwoContract.Initialize(tokenSymbol, tokenPerBlock, halvingPeriod, startBlock,
-                totalReward, _awakenTokenContract.ContractAddress);
+                totalReward, _awakenTokenContract.ContractAddress, startBlock.Add(halvingPeriod));
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             if (!IsLpTokenExist(LPTOKEN))
@@ -126,7 +126,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Int64 startBlock = NodeManager.ApiClient.GetBlockHeightAsync().Result.Add(500);
             var totalReward = new BigIntValue(750);
             var result = _awakenFarmTwoContract.Initialize(tokenSymbol, tokenPerBlock, halvingPeriod,
-                startBlock, totalReward, _awakenTokenContract.ContractAddress);
+                startBlock, totalReward, _awakenTokenContract.ContractAddress, startBlock.Add(halvingPeriod));
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
             result.Error.ShouldContain("Already initialized");
         }
@@ -845,7 +845,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var fixEndBlockResult = _awakenFarmTwoContract.FixEndBlock(true);
             fixEndBlockResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var distributeTokenAfterFix = _tokenContract.GetUserBalance(InitAccount, DISTRIBUTETOKEN);
-            Logger.Info(distributeTokenAfterFix);
             var issuedAfterFix = _awakenFarmTwoContract.IssuedReward();
 
             var endblock = _awakenFarmTwoContract.EndBlock().Value;
@@ -886,7 +885,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             if (!asserted)
                 throw new Exception(message);
         }
-
+        
         private TransactionResultDto AddPool(long allocPoint, string lpToken, bool with_update)
         {
             var result = _awakenFarmTwoContract.Add(allocPoint, lpToken, with_update);

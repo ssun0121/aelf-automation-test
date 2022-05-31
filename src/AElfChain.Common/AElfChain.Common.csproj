@@ -68,6 +68,7 @@
         <ProtoContract Include="Protobuf\Proto\execution.proto" />
         <ProtoContract Include="Protobuf\Proto\pool_two_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\dividend_pool_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\swap_exchange_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>

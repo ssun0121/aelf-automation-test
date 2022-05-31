@@ -143,7 +143,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                         $"StartBlock: {poolTwoStart}");
             var totalPoolReward = GetPoolTwoTotalReward(poolTwoPerBlock, havingPeriod);
             var initializePoolTwo = _awakenPoolTwoContract.Initialize(DistributeToken, poolTwoPerBlock, havingPeriod,
-                poolTwoStart, totalPoolReward, _awakenTokenContract.ContractAddress);
+                poolTwoStart, totalPoolReward, _awakenTokenContract.ContractAddress, startBlock.Add(havingPeriod));
             initializePoolTwo.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             CreateToken(DistributeToken, 8, InitAccount.ConvertAddress());
             _tokenContract.IssueBalance(InitAccount, _awakenPoolTwoContract.ContractAddress,
