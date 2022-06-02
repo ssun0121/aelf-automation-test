@@ -37,7 +37,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
         
-        private string dividendPoolAddress = "";
+        private string dividendPoolAddress = "fPSqRCNMVfig7PH25D22mjc1bZ77z9n4ChVunrZm5CH96UUzP";
         private string InitAccount = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string UserA { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
         private string UserB { get; } = "FHdcx45K5kovWsAKSb3rrdyNPFus8eoJ1XTQE7aXFHTgfpgzN";
@@ -440,7 +440,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var newreward = _dividendPoolContract.NewReward(newRewardInput);
             newreward.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
                 
-            Thread.Sleep(50 * 1000);
+            Thread.Sleep(60 * 1000);
             
             //userb deposit    
             _dividendPoolContract.SetAccount(UserB);
@@ -476,7 +476,19 @@ namespace AElf.Automation.Contracts.ScenarioTest
             
             //check pending
             var pendingresult = _dividendPoolContract.Pending(0, UserB);
-
+            var blockMultipler = _dividendPoolContract.EndBlock().Value.Sub(useraWithdraw.BlockNumber);
+            Logger.Info(pendingresult.Tokens[0]);
+            Logger.Info(pendingresult.Amounts[1]);
+            Logger.Info(GetAccPerShare(0,DISTRIBUTETOKEN[1],blockMultipler)
+                .Mul(_dividendPoolContract.UserInfo(0,UserB).Value)
+                .Div(GetMultiplier(DISTRIBUTETOKEN[1]))
+                .Sub(_dividendPoolContract.RewardDebt(0,UserB, DISTRIBUTETOKEN[1])));
+            pendingresult.Tokens[1].ShouldBe(DISTRIBUTETOKEN[1]);
+            pendingresult.Amounts[1].ShouldBe(GetAccPerShare(0,DISTRIBUTETOKEN[1],blockMultipler)
+                .Mul(_dividendPoolContract.UserInfo(0,UserB).Value)
+                .Div(GetMultiplier(DISTRIBUTETOKEN[1]))
+                .Sub(_dividendPoolContract.RewardDebt(0,UserB, DISTRIBUTETOKEN[1])));
+            
             //userb withdraw
             _dividendPoolContract.SetAccount(UserB);
             var userbAmount = _dividendPoolContract.UserInfo(0, UserB).Value;
@@ -519,9 +531,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     userbAmountAfterDeposit, 0));
             Logger.Info($"userb reward ({userbReward})");
             userbReward.ShouldBe(new BigIntValue(userbDistributeTokenAfterWithdraw.Sub(userbDistributeTokenAfterDeposit)));
+            pendingresult.Amounts[1].ShouldBe(userbReward);
+
             
             // verify pending
-            pendingresult.Amounts[0].ShouldBe(userbReward);
+            pendingresult.Amounts[1].ShouldBe(userbReward);
 
             //verify total reward equal to newreward amount
             useraReward.Add(userbReward).ShouldBeLessThanOrEqualTo(new BigIntValue(40000000000));
@@ -634,6 +648,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 AllocationPoint = 1,
                 WithUpdate = true
             });
+
+            var pendingRoundOne = _dividendPoolContract.Pending(0, UserA);
+            Logger.Info(pendingRoundOne);
             
             //newreward round 2
             _dividendPoolContract.SetAccount(InitAccount);
@@ -646,6 +663,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
             dt1ApproveResultRound2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             var newrewardResultRound2 = _dividendPoolContract.NewReward(newRewardInput);
             newrewardResultRound2.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var pendingRoundTwoBeforeStart = _dividendPoolContract.Pending(0, UserA);
+            Logger.Info(pendingRoundTwoBeforeStart);
+            pendingRoundOne.Amounts[0].ShouldBe(pendingRoundTwoBeforeStart.Amounts[0]);
+            pendingRoundOne.Amounts[1].ShouldBe(pendingRoundTwoBeforeStart.Amounts[1]);
             
             var cycle = _dividendPoolContract.Cycle().Value;
             var dt0TotalRewardRoundTwo = _dividendPoolContract.PerBlock(DISTRIBUTETOKEN[0])
@@ -666,7 +688,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Thread.Sleep((sleeptimeroundtwo + 30) * 1000);
 
             //get pending
-            Logger.Info(_dividendPoolContract.Pending(1,UserA));
+            Logger.Info(_dividendPoolContract.Pending(0,UserA));
+            _dividendPoolContract.Pending(0,UserA).Amounts[0].ShouldBe(50000000000.Add(30000000000.Div(2)));
+            _dividendPoolContract.Pending(0,UserA).Amounts[0].ShouldBe(100000000000.Add(60000000000.Div(2)));
+            
             //usera withdraw
             _dividendPoolContract.SetAccount(UserA);
             var useraAmount = _dividendPoolContract.UserInfo(0, UserA).Value;
@@ -1081,5 +1106,25 @@ namespace AElf.Automation.Contracts.ScenarioTest
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             Logger.Info($"Successfully issue amount {amount} to {toAddress}");
         }
+        
+        private BigIntValue GetAccPerShare(int pid, string token, BigIntValue multipler)
+        {
+            //var accPerShare = _dividendPoolContract.AccPerShare(pid, token);
+            var perBlock = _dividendPoolContract.PerBlock(token);
+            var totalAllocPoint = _dividendPoolContract.TotalAllocPoint().Value;
+            var allocPoint = _dividendPoolContract.PoolInfo(pid).AllocPoint;
+            var totalAmount = _dividendPoolContract.PoolInfo(pid).TotalAmount;
+            var reward = perBlock
+                .Mul(multipler)
+                .Mul(allocPoint)
+                .Div(totalAllocPoint);
+            var tokenMultipler = GetMultiplier(token);
+            var accPerShare = _dividendPoolContract.AccPerShare(pid, token).Add(
+                tokenMultipler
+                    .Mul(reward)
+                    .Div(totalAmount));
+            return accPerShare;
+        }
+        
     }
 }

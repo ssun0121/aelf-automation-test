@@ -187,6 +187,17 @@ namespace AElfChain.Common.Contracts
                     User = user.ConvertAddress()
                 });
         }
+        
+        public BigIntValue RewardDebt(int pid, string user, string token)
+        {
+            return CallViewMethod<BigIntValue>(DividendPoolMethod.RewardDebt, new RewardDebtInput
+            {
+                Pid = pid,
+                User = user.ConvertAddress(),
+                Token = token
+            }) ?? new BigIntValue(0);
+
+        }
 
     }
 }
