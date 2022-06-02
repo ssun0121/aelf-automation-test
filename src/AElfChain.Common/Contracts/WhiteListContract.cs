@@ -16,8 +16,6 @@ namespace AElfChain.Common.Contracts
         Initialize,
         CreateWhitelist,
         AddExtraInfo,
-        AddAddressInfoToWhitelist,
-        RemoveAddressInfoFromWhitelist,
         AddAddressInfoListToWhitelist,
         RemoveAddressInfoListFromWhitelist,
         RemoveTagInfo,
@@ -50,7 +48,8 @@ namespace AElfChain.Common.Contracts
         GetConsumedList,
         GetAvailableWhitelist,
         GetFromAvailableWhitelist,
-        GetExtraInfoFromWhitelist
+        GetExtraInfoFromWhitelist,
+        GetTagInfoFromWhitelist
     }
 
     public class WhiteListContract : BaseContract<WhiteListContractMethod>
@@ -97,29 +96,7 @@ namespace AElfChain.Common.Contracts
             return result;
  
         }
-        
-         public TransactionResultDto AddAddressInfoToWhitelist(Hash whitelistId ,ExtraInfoId extraInfoId)
-         {
-             var result = ExecuteMethodWithResult(WhiteListContractMethod.AddAddressInfoToWhitelist, new AddAddressInfoToWhitelistInput
-             {
-                 WhitelistId = whitelistId,
-                 ExtraInfoId = extraInfoId
-             });
-             return result;
- 
-         }
-         
-         public TransactionResultDto RemoveAddressInfoFromWhitelist(Hash whitelistId ,ExtraInfoId extraInfoId)
-         {
-             var result = ExecuteMethodWithResult(WhiteListContractMethod.RemoveAddressInfoFromWhitelist, new RemoveAddressInfoFromWhitelistInput
-             {
-                 WhitelistId = whitelistId,
-                 ExtraInfoId = extraInfoId
-             });
-             return result;
-         }
-         
-         public TransactionResultDto AddAddressInfoListToWhitelist(Hash whitelistId ,ExtraInfoIdList extraInfoIdList)
+        public TransactionResultDto AddAddressInfoListToWhitelist(Hash whitelistId ,ExtraInfoIdList extraInfoIdList)
          {
              var result = ExecuteMethodWithResult(WhiteListContractMethod.AddAddressInfoListToWhitelist, new AddAddressInfoListToWhitelistInput
              {
@@ -310,12 +287,11 @@ namespace AElfChain.Common.Contracts
              });
          }
          
-         public HashList GetExtraInfoIdList(Hash whitelistId,Address owner,Hash projectId)
+         public HashList GetExtraInfoIdList(Hash whitelistId,Hash projectId)
          {
              return CallViewMethod<HashList>(WhiteListContractMethod.GetExtraInfoIdList, new GetExtraInfoIdListInput
              {
                  WhitelistId = whitelistId,
-                 Owner= owner,
                  ProjectId = projectId
              });
          }
@@ -363,12 +339,12 @@ namespace AElfChain.Common.Contracts
              });
          }
          
-         public BoolValue GetFromAvailableWhitelist(Hash subscribeId,ExtraInfo extraInfo)
+         public BoolValue GetFromAvailableWhitelist(Hash subscribeId,ExtraInfoId extraInfoId)
          {
              return CallViewMethod<BoolValue>(WhiteListContractMethod.GetFromAvailableWhitelist, new GetFromAvailableWhitelistInput
              {
                  SubscribeId = subscribeId,
-                 ExtraInfo=extraInfo
+                 ExtraInfoId= extraInfoId
              });
          }
          
@@ -378,6 +354,16 @@ namespace AElfChain.Common.Contracts
              {
                  WhitelistId =  whitelistId,
                  ExtraInfoId= extraInfoId
+             });
+         }
+         
+         public BoolValue GetTagInfoFromWhitelist(Hash whitelistId,Hash projectId,TagInfo tagInfo )
+         {
+             return CallViewMethod<BoolValue>(WhiteListContractMethod.GetTagInfoFromWhitelist, new GetTagInfoFromWhitelistInput
+             {
+                 WhitelistId =  whitelistId,
+                 ProjectId= projectId,
+                 TagInfo = tagInfo
              });
          }
  
