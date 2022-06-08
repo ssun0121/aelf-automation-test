@@ -71,6 +71,8 @@
         <ProtoContract Include="Protobuf\Proto\awaken_investment_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\awaken_provider_contract.proto" />
         <ProtoContract Include="Protobuf\Proto\swap_exchange_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\whitelist_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\nft_market_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>
