@@ -59,6 +59,7 @@
         <ProtoContract Include="Protobuf\Proto\referendum_contract_impl.proto" />
         <ProtoContract Include="Protobuf\Proto\execution.proto" />
         <ProtoContract Include="Protobuf\Proto\whitelist_contract.proto" />
+        <ProtoContract Include="Protobuf\Proto\ido_contract.proto" />
     </ItemGroup>
 
     <ItemGroup>

@@ -29,13 +29,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         public INodeManager NM { get; set; }
         public ContractManager MainManager { get; set; }
-        public static string InitAccount { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
-        public static string Creator { get; } = "28Y8JA1i2cN6oHvdv7EraXJr9a1gY6D1PpJXw9QtRMRwKcBQMK";
-        public static string Member { get; } = "2frDVeV6VxUozNqcFbgoxruyqCRAuSyXyfCaov6bYWc7Gkxkh2";
-        public static string OtherAccount { get; } = "W4xEKTZcvPKXRAmdu9xEpM69ArF7gUxDh9MDgtsKnu7JfePXo";
+        public static string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
+        public static string Creator { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
+        public static string Member { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
+        public static string OtherAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
 
         public List<string> Members;
-        private static string MainRpcUrl { get; } = "http://192.168.197.21:8000";
+        private static string MainRpcUrl { get; } = "http://192.168.67.166:8000";
         private static string SideRpcUrl { get; } = "http://192.168.197.21:8001";
         private static string SideRpcUrl2 { get; } = "http://192.168.197.21:8002";
         private string Type { get; } = "Main";
@@ -322,7 +322,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void ProposalUpdate_MinerProposalUpdateContract_Success()
         {
-            var input = ContractUpdateInput("AElf.Contracts.MultiToken", Tester.ReferendumService.ContractAddress);
+            var input = ContractUpdateInput("AElf.Contracts.Ido", "2X5xuMq5fmjQ4NgYS2kH97xUVxSCXgop4mJvvRonTCyxwMcjfu");
             var contractProposalInfo = ProposalUpdateContract(Tester, InitAccount, input);
             ApproveByMiner(Tester, contractProposalInfo.ProposalId);
             var release = Tester.GenesisService.ReleaseApprovedContract(contractProposalInfo, InitAccount);
@@ -334,8 +334,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        [DataRow("6171bff09116c62a2bc5fd0ec547a99b8c8c95532b0eebaf611d713d796c4016",
-            "d65391e08082dff24e708caf5c4a664a57998f7f35e6fc9ea7b6ae118f0e2191")]
+        [DataRow("3a39d09b6faf7c2e5c8e2e7d523b8949c9857862e78c13d067c6d4789372d831",
+            "7d4e2c20141b2e173436046416718bd61b97787a4c29eb12b012e35e1a4286b9")]
         public void ReleaseUpdateCodeCheck(string proposal, string hash)
         {
             var proposalId = Hash.LoadFromHex(proposal);
