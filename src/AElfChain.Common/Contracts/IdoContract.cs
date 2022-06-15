@@ -36,7 +36,8 @@ namespace AElfChain.Common.Contracts
         GetProjectInfo,
         GetWhitelistId,
         GetInvestDetail,
-        GetProjectListInfo
+        GetProjectListInfo,
+        GetProfitDetail
     }
 
     public class IdoContract :BaseContract<IdoMethod>
@@ -69,25 +70,70 @@ namespace AElfChain.Common.Contracts
             return ExecuteMethodWithResult(IdoMethod.EnableWhitelist, projectId);
         }
 
-        public TransactionResultDto AddWhitelist(AddWhitelistsInput addWhitelistsInput)
+        public TransactionResultDto AddWhitelist(string creator, AddWhitelistsInput addWhitelistsInput)
         {
-            return ExecuteMethodWithResult(IdoMethod.AddWhitelists, addWhitelistsInput);
+            var tester = GetNewTester(creator);
+            return tester.ExecuteMethodWithResult(IdoMethod.AddWhitelists, addWhitelistsInput);
         }
 
-        public TransactionResultDto Invest(string currency, Int64 investAmount, Hash projectId)
+        public TransactionResultDto RemoveWhitelist(RemoveWhitelistsInput removeWhitelistsInput)
         {
-            return ExecuteMethodWithResult(IdoMethod.Invest, new InvestInput
+            return ExecuteMethodWithResult(IdoMethod.RemoveWhitelists, removeWhitelistsInput);
+        }
+        
+        public TransactionResultDto Invest(string user, string currency, Int64 investAmount, Hash projectId)
+        {
+            var tester = GetNewTester(user);
+            return tester.ExecuteMethodWithResult(IdoMethod.Invest, new InvestInput
             {
                 Currency = currency,
                 InvestAmount = investAmount,
                 ProjectId = projectId
             });
         }
+        
+        public TransactionResultDto UnInvest(string user, Hash projectId)
+        {
+            var tester = GetNewTester(user);
+            return tester.ExecuteMethodWithResult(IdoMethod.UnInvest, projectId);
+        }
+
+
 
         public TransactionResultDto LockLiquidity(Hash projectId)
         {
             return ExecuteMethodWithResult(IdoMethod.LockLiquidity, projectId);
         }
+
+        public TransactionResultDto Claim(Hash projectId, string user)
+        {
+            return ExecuteMethodWithResult(IdoMethod.Claim, new ClaimInput
+            {
+                ProjectId = projectId,
+                User = user.ConvertAddress()
+            });
+        }
+
+        public TransactionResultDto NextPeriod(Hash projectId)
+        {
+            return ExecuteMethodWithResult(IdoMethod.NextPeriod, projectId);
+        }
+
+        public TransactionResultDto UpdateAdditionalInfo(Hash projectId, AdditionalInfo addtionalInfo)
+        {
+            return ExecuteMethodWithResult(IdoMethod.UpdateAdditionalInfo, new UpdateAdditionalInfoInput
+            {
+                ProjectId = projectId,
+                AdditionalInfo = addtionalInfo
+            });
+        }
+
+        public TransactionResultDto Withdraw(string creator, Hash projectId)
+        {
+            var tester = GetNewTester(creator);
+            return tester.ExecuteMethodWithResult(IdoMethod.Withdraw, projectId);
+        }
+        
         public ProjectInfo GetProjectInfo(Hash projectId)
         {
             return CallViewMethod<ProjectInfo>(IdoMethod.GetProjectInfo, projectId);
@@ -106,6 +152,23 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<ProjectListInfo>(IdoMethod.GetProjectListInfo, projectId);
         }
+
+        public ProfitDetail GetProfitDetail(Hash projectId, string user)
+        {
+            return CallViewMethod<ProfitDetail>(IdoMethod.GetProfitDetail, new GetProfitDetailInput
+            {
+                ProjectId = projectId,
+                User = user.ConvertAddress()
+
+            });
+        }
+
+        public Hash GetWhitelistId(Hash projectId)
+        {
+            return CallViewMethod<Hash>(IdoMethod.GetWhitelistId, projectId);
+        }
+        
+        
         
         
     }
