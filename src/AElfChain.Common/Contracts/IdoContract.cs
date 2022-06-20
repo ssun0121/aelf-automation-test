@@ -12,8 +12,10 @@ namespace AElfChain.Common.Contracts
 {
     public enum IdoMethod
     {
-        //Action
+        //Admin
         Initialize,
+        
+        //PM action
         Register,
         AddWhitelists,
         RemoveWhitelists,
@@ -22,22 +24,23 @@ namespace AElfChain.Common.Contracts
         UpdateAdditionalInfo,
         Cancel,
         NextPeriod,
-        Invest,
-        UnInvest,
         LockLiquidity,
         Withdraw,
+
+        //investor action
+        Invest,
+        UnInvest,
         ClaimLiquidatedDamage,
         Claim,
-        SetWhitelistId,
+        ReFund,
         
         //View
-
-
         GetProjectInfo,
         GetWhitelistId,
         GetInvestDetail,
         GetProjectListInfo,
-        GetProfitDetail
+        GetProfitDetail,
+        GetLiquidatedDamageDetails
     }
 
     public class IdoContract :BaseContract<IdoMethod>
@@ -80,40 +83,19 @@ namespace AElfChain.Common.Contracts
         {
             return ExecuteMethodWithResult(IdoMethod.RemoveWhitelists, removeWhitelistsInput);
         }
-        
-        public TransactionResultDto Invest(string user, string currency, Int64 investAmount, Hash projectId)
+
+        public TransactionResultDto Cancel(string creator, Hash projectId)
         {
-            var tester = GetNewTester(user);
-            return tester.ExecuteMethodWithResult(IdoMethod.Invest, new InvestInput
-            {
-                Currency = currency,
-                InvestAmount = investAmount,
-                ProjectId = projectId
-            });
+            var tester = GetNewTester(creator);
+            return tester.ExecuteMethodWithResult(IdoMethod.Cancel, projectId);
         }
         
-        public TransactionResultDto UnInvest(string user, Hash projectId)
-        {
-            var tester = GetNewTester(user);
-            return tester.ExecuteMethodWithResult(IdoMethod.UnInvest, projectId);
-        }
-
-
-
         public TransactionResultDto LockLiquidity(Hash projectId)
         {
             return ExecuteMethodWithResult(IdoMethod.LockLiquidity, projectId);
         }
-
-        public TransactionResultDto Claim(Hash projectId, string user)
-        {
-            return ExecuteMethodWithResult(IdoMethod.Claim, new ClaimInput
-            {
-                ProjectId = projectId,
-                User = user.ConvertAddress()
-            });
-        }
-
+        
+        
         public TransactionResultDto NextPeriod(Hash projectId)
         {
             return ExecuteMethodWithResult(IdoMethod.NextPeriod, projectId);
@@ -133,6 +115,46 @@ namespace AElfChain.Common.Contracts
             var tester = GetNewTester(creator);
             return tester.ExecuteMethodWithResult(IdoMethod.Withdraw, projectId);
         }
+        
+        public TransactionResultDto Invest(string user, string currency, Int64 investAmount, Hash projectId)
+        {
+            var tester = GetNewTester(user);
+            return tester.ExecuteMethodWithResult(IdoMethod.Invest, new InvestInput
+            {
+                Currency = currency,
+                InvestAmount = investAmount,
+                ProjectId = projectId
+            });
+        }
+        
+        public TransactionResultDto UnInvest(string user, Hash projectId)
+        {
+            var tester = GetNewTester(user);
+            return tester.ExecuteMethodWithResult(IdoMethod.UnInvest, projectId);
+        }
+        
+
+        public TransactionResultDto Claim(Hash projectId, string user)
+        {
+            return ExecuteMethodWithResult(IdoMethod.Claim, new ClaimInput
+            {
+                ProjectId = projectId,
+                User = user.ConvertAddress()
+            });
+        }
+
+        public TransactionResultDto ReFund(string user, Hash projectId)
+        {
+            var tester = GetNewTester(user);
+            return tester.ExecuteMethodWithResult(IdoMethod.ReFund, projectId);
+        }
+
+        public TransactionResultDto ClaimLiquidatedDamage(string user, Hash projectId)
+        {
+            var tester = GetNewTester(user);
+            return tester.ExecuteMethodWithResult(IdoMethod.ClaimLiquidatedDamage, projectId);
+        }
+        
         
         public ProjectInfo GetProjectInfo(Hash projectId)
         {
@@ -167,8 +189,11 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<Hash>(IdoMethod.GetWhitelistId, projectId);
         }
-        
-        
+
+        public LiquidatedDamageDetails GetLiquidatedDamageDetails(Hash projectId)
+        {
+            return CallViewMethod<LiquidatedDamageDetails>(IdoMethod.GetLiquidatedDamageDetails, projectId);
+        }
         
         
     }

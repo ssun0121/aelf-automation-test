@@ -80,7 +80,9 @@ service IdoContract {
     rpc GetWhitelistId(aelf.Hash) returns (aelf.Hash) {
         option (aelf.is_view) = true;
     }
-
+    rpc GetLiquidatedDamageDetails(aelf.Hash) returns (LiquidatedDamageDetails) {
+        option (aelf.is_view) = true;
+    }
 }
 
 //input
@@ -190,7 +192,8 @@ message ProjectListInfo{
     int32 first_distribute_proportion = 8;
     int32 rest_distribute_proportion = 9;
     int64 period_duration = 10;
-    bool isListed = 11;
+    bool is_listed = 11;
+    bool is_withdraw = 12;
 }
 message InvestDetail{
     string invest_symbol = 1;
