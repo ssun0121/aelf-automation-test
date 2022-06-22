@@ -114,90 +114,48 @@ namespace AElf.Automation.Contracts.ScenarioTest
             CreateTokensAndIssue();
             CreatePairs();
         }
-        
-        [TestMethod]
-        public void RegisterWithNullWhitelistId(string acceptedToken, string projectToken, out Hash projectId, bool enableWhitelist = true)
-        {
-            CreatePair(acceptedToken, projectToken);
 
-            var registerInput = CreateRegisterInput(acceptedToken, projectToken, enableWhitelist);
+        [TestMethod]
+        public void Register()
+        {
+            var registerInput = CreateRegisterInput(AcceptedCurrency[0], ProjectCurrency[0], enableWhitelist:true);
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            //get Register event
+            //check Register event
             var registerLogs =
                 ProjectRegistered.Parser.ParseFrom(
                     ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
-            projectId = registerLogs.ProjectId;
-
+            var projectId = registerLogs.ProjectId;
+            registerLogs.Creator.ShouldBe(InitAccount.ConvertAddress());
+            CheckRegisterEventValues(registerLogs, registerInput);
+            
             var projectInfo = _idoContract.GetProjectInfo(projectId);
             Logger.Info($"project info: {projectInfo}");
             var whiteListId = _idoContract.CallViewMethod<Hash>(IdoMethod.GetWhitelistId, projectId);
             Logger.Info($"white list: {whiteListId.ToHex()}");
             
-            //registerLogs.WhitelistId.ShouldBe(whiteListId);
+            //check NewWhitelistIdSet event
+            var whitelistSetLogs =
+                NewWhitelistIdSet.Parser.ParseFrom(
+                    ByteString.FromBase64(GetEventStr(registerResult, "NewWhitelistIdSet")));
+            whitelistSetLogs.ProjectId.ShouldBe(projectId);
+            whitelistSetLogs.WhitelistId.ShouldBe(whiteListId);
         }
-
+        
         [TestMethod]
         public void RegisterMultiPeriodProject()
         {
             var acceptedToken = AcceptedCurrency[1];
             var projectToken = ProjectCurrency[1];
-            var registerInput = CreateRegisterInput(acceptedToken, projectToken, totalPeriod:3, firstDistributeProportion:50,restDistributeProportion:10);
+            var registerInput = CreateRegisterInput(acceptedToken, projectToken, totalPeriod:3, firstDistributeProportion:50_000000,restDistributeProportion:25_000000);
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             
             //exception test
-            var errorCase = CreateRegisterInput(acceptedToken, projectToken, totalPeriod:3, firstDistributeProportion:50,restDistributeProportion:50);
+            var errorCase = CreateRegisterInput(acceptedToken, projectToken, totalPeriod:3, firstDistributeProportion:50_000000,restDistributeProportion:25_000001);
             var errorResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, errorCase);
             errorResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-        }
-        
-        [TestMethod]
-        public void RegisterWithExistWhitelistId()
-        {
-            var acceptedToken = "ELF";
-            var projectToken = "ABC";
-            CreatePair(acceptedToken, projectToken);
-            var whiteList = CreateWhiteList();
-
-            var registerInput = CreateRegisterInput(acceptedToken, projectToken, true, whiteList);
-            var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
-            registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            //get Register event
-            var registerLogs =
-                ProjectRegistered.Parser.ParseFrom(
-                    ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
-            var projectId = registerLogs.ProjectId;
-            registerLogs.WhitelistId.ShouldBe(whiteList);
-
-            var projectInfo = _idoContract.GetProjectInfo(projectId);
-            Logger.Info($"project info: {projectInfo}");
-            var whiteListId = _idoContract.CallViewMethod<Hash>(IdoMethod.GetWhitelistId, projectId);
-            Logger.Info($"white list: {whiteListId.ToHex()}");
-            whiteListId.ShouldBe(whiteList);
-
-        }
-        
-        [TestMethod]
-        public Hash CreateWhiteList()
-        {
-            var list = new List<Address>{InitAccount.ConvertAddress()};
-            var managerList = new AddressList {Value = {list}};
-            var projectId = HashHelper.ComputeFrom("Test");
-            var result = _whitelistContract.ExecuteMethodWithResult(WhiteListContractMethod.CreateWhitelist, new CreateWhitelistInput()
-            {
-                Creator = _idoContract.Contract,
-                ProjectId = HashHelper.ComputeFrom("Test"),
-                ManagerList = managerList,
-                ExtraInfoList = new ExtraInfoList()
-            });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            var eventStr = GetEventStr(result, "WhitelistCreated");
-            var whitelistInfo = WhitelistCreated.Parser.ParseFrom(ByteString.FromBase64(eventStr));
-            return whitelistInfo.WhitelistId;
         }
 
         [TestMethod]
@@ -211,29 +169,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var registerInput = CreateRegisterInput(acceptedToken, projectToken);
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-        }
-
-        [TestMethod]
-        public void ChangeWhitelistState()
-        {
-            RegisterWithNullWhitelistId("ELF", "ABC", out var projectId,true);
-            
-            var whitelistId = _idoContract.CallViewMethod<Hash>(IdoMethod.GetWhitelistId, projectId);
-            {
-                var disableResult = _idoContract.DisableWhitelist(projectId);
-                disableResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-                
-                var isEnableWhitelist = _idoContract.GetProjectInfo(projectId).IsEnableWhitelist;
-                isEnableWhitelist.ShouldBe(false);
-            }
-            {
-                var enableResult = _idoContract.EnableWhitelist(projectId);
-                enableResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-                
-                var isEnableWhitelist = _idoContract.GetProjectInfo(projectId).IsEnableWhitelist;
-                isEnableWhitelist.ShouldBe(true);
-            }
-
         }
         
         [TestMethod]
@@ -259,7 +194,183 @@ namespace AElf.Automation.Contracts.ScenarioTest
             projectAdditionInfo["logo网址"].ShouldBe("http://www.project.fake");
             projectAdditionInfo["首页网址"].ShouldBe("http://www.project.fake");
             
+            //check event
+            var updateAddtionalInfoLogs =
+                AdditionalInfoUpdated.Parser.ParseFrom(
+                    ByteString.FromBase64(GetEventStr(updateAddtionalInfo, "AdditionalInfoUpdated")));
+            updateAddtionalInfoLogs.AdditionalInfo.Data.ShouldBe(data);
+            updateAddtionalInfoLogs.ProjectId.ShouldBe(projectId);
+
         }
+        
+        [TestMethod]
+        public void CancelRegisteredProject()
+        {
+            RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[1],out var projectId);
+            var cancelResult = _idoContract.Cancel(InitAccount,projectId);
+            cancelResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var projectInfo = _idoContract.GetProjectInfo(projectId);
+            projectInfo.Enabled.ShouldBe(false);
+            
+            //check cancel event
+            var cancelLogs =
+                ProjectCanceled.Parser.ParseFrom(ByteString.FromBase64(GetEventStr(cancelResult, "ProjectCanceled")));
+            cancelLogs.ProjectId.ShouldBe(projectId);
+        }
+        
+        [TestMethod]
+        public void CancellationTimeExpired()
+        {
+            RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[1],out var projectId);
+            Thread.Sleep(120 * 1000);
+            var cancelResult = _idoContract.Cancel(InitAccount,projectId);
+            cancelResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+
+            var projectInfo = _idoContract.GetProjectInfo(projectId);
+            projectInfo.Enabled.ShouldBe(true);
+        }
+        
+        [TestMethod]
+        public void AddOrRemoveWhitelistToProject()
+        {
+            //create project
+            RegisterWithNullWhitelistId("ELF", "ABC", out var projectId);
+
+            //add user to whitelist
+            var addWhitelistsInput = new AddWhitelistsInput
+            {
+                ProjectId = projectId
+            };
+            addWhitelistsInput.Users.Add(UserA.ConvertAddress());
+            var addResult = _idoContract.AddWhitelist(InitAccount, addWhitelistsInput);
+            addResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var whitelistId = _idoContract.GetWhitelistId(projectId);
+            var addressInWhitelist = _whitelistContract.GetWhitelistDetail(whitelistId).Value[0].AddressList.Value;
+            addressInWhitelist.ShouldContain(UserA.ConvertAddress());
+            //remove user from whitelist
+            var removeWhitelistsInput = new RemoveWhitelistsInput
+            {
+                ProjectId = projectId
+            };
+            removeWhitelistsInput.Users.Add(UserA.ConvertAddress());
+            var removeResult = _idoContract.RemoveWhitelist(removeWhitelistsInput);
+            removeResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var addressInWhitelistAfter = _whitelistContract.GetWhitelistDetail(whitelistId).Value[0].AddressList.Value;
+            addressInWhitelistAfter.ShouldNotContain(UserA.ConvertAddress());
+        }
+
+        [TestMethod]
+        public void InvestToWhiteListDisabledProject()
+        {
+            var acceptedToken = AcceptedCurrency[0];
+            var projectToken = ProjectCurrency[2];
+            RegisterWithNullWhitelistId(acceptedToken, projectToken, out var projectId, false);
+            
+            //invest
+            Invest(UserA, projectId, acceptedToken, 10_00000000);
+
+        }
+
+        [TestMethod]
+        public void Invest()
+        {
+            //create project
+            RegisterWithNullWhitelistId(AcceptedCurrency[0], ProjectCurrency[0], out var projectId);
+            var projectInfo = _idoContract.GetProjectInfo(projectId);
+            //add whitelist
+            var addWhitelistsInput = new AddWhitelistsInput
+            {
+                ProjectId = projectId
+            };
+            addWhitelistsInput.Users.Add(UserA.ConvertAddress());
+            var addResult = _idoContract.AddWhitelist(InitAccount, addWhitelistsInput);
+            addResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            //invest
+            _idoContract.SetAccount(UserA);
+            var currency = _idoContract.GetProjectInfo(projectId).AcceptedCurrency;
+            var investAmount = 10_00000000;
+            
+            var approveToken = _tokenContract.ApproveToken(UserA, _idoContract.ContractAddress, investAmount, currency);
+            approveToken.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var invest = _idoContract.Invest(UserA, currency, investAmount, projectId);
+            invest.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var investDetail = _idoContract.GetInvestDetail(projectId, UserA);
+            investDetail.Amount.ShouldBe(investAmount);
+            investDetail.InvestSymbol.ShouldBe(currency);
+            investDetail.IsUnInvest.ShouldBe(false);
+            
+            //check invest event
+            var investLogs = Invested.Parser.ParseFrom(ByteString.FromBase64(GetEventStr(invest, "Invested")));
+            var totalProjectTokenAmountStr = new BigIntValue(investAmount).Mul(projectInfo.PreSalePrice).Div(100000000);
+            var totalProjectTokenAmount = Parse(totalProjectTokenAmountStr.Value);
+            investLogs.Amount.ShouldBe(investAmount);
+            investLogs.User.ShouldBe(UserA.ConvertAddress());
+            investLogs.InvestSymbol.ShouldBe(AcceptedCurrency[0]);
+            investLogs.ProjectCurrency.ShouldBe(ProjectCurrency[0]);
+            investLogs.ProjectId.ShouldBe(projectId);
+            investLogs.TotalAmount.ShouldBe(investDetail.Amount);
+            investLogs.ToClaimAmount.ShouldBe(totalProjectTokenAmount);
+            
+            Logger.Info($"projectId ({projectId.ToHex()})");
+        }
+        
+        [TestMethod]
+        [DataRow("036e0710e9ebf0a4029a34e1aac4da9298f5a21634a830d2cf57790522ae0563")]
+        public void Claim(string projectHex)
+        {
+            var projectId = Hash.LoadFromHex(projectHex);
+            var projectInfo = _idoContract.GetProjectInfo(projectId);
+            var investAmount = _idoContract.GetInvestDetail(projectId, UserA).Amount;
+            var preSalePrice = projectInfo.PreSalePrice;
+            
+            //pre-check
+            var userBalance = _tokenContract.GetUserBalance(UserA, projectInfo.ProjectCurrency);
+            var profitDetail = _idoContract.GetProfitDetail(projectId, UserA);
+            Logger.Info($"profitDetail before({profitDetail})");
+            Logger.Info($"project token balance before({userBalance})");
+
+            var duration = projectInfo.EndTime.Seconds.Sub(projectInfo.StartTime.Seconds);
+            Logger.Info(duration);
+            Thread.Sleep((int)duration * 1000);
+            
+            //NextPeriod
+            var nextPeriod = _idoContract.NextPeriod(projectId);
+            nextPeriod.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            //claim
+            var claim = _idoContract.Claim(projectId, UserA);
+            claim.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            //post-check
+            var userBalanceAfterClaim = _tokenContract.GetUserBalance(UserA, projectInfo.ProjectCurrency);
+            var profitDetailAfterClaim = _idoContract.GetProfitDetail(projectId, UserA);
+            Logger.Info($"profitDetail after({profitDetailAfterClaim})");
+            Logger.Info($"project token balance after({userBalanceAfterClaim})");
+
+            //nextperiod event check
+            var nextPeriodLogStr = GetEventStr(nextPeriod, "PeriodUpdated");
+            var nextPeriodLogs = PeriodUpdated.Parser.ParseFrom(ByteString.FromBase64(nextPeriodLogStr));
+            nextPeriodLogs.NewPeriod.ShouldBe(1);
+            nextPeriodLogs.ProjectId.ShouldBe(projectId);
+            
+            //claim event check
+            var claimLogStr = GetEventStr(claim, "Claimed");
+            var claimLogs = Claimed.Parser.ParseFrom(ByteString.FromBase64(claimLogStr));
+            Logger.Info($"actual transfer balance ({userBalanceAfterClaim.Sub(userBalance)})");
+            Logger.Info($"profit calculate ({investAmount.Mul(preSalePrice).Div(100000000)})");
+            Logger.Info($"claimLogs({claimLogs.Amount})({claimLogs.TotalClaimedAmount})({claimLogs.LatestPeriod})({claimLogs.TotalPeriod})");
+            
+            claimLogs.Amount.ShouldBe(investAmount.Mul(preSalePrice).Div(100000000));
+            claimLogs.LatestPeriod.ShouldBe(1);
+            claimLogs.TotalPeriod.ShouldBe(1);
+            //claimLogs.TotalClaimedAmount.ShouldBe(investAmount.Mul(preSalePrice).Div(100000000));
+            claimLogs.ProjectCurrency.ShouldBe(projectInfo.ProjectCurrency);
+        }
+
 
         [TestMethod]
         public void InvestWithInvalidOrBoundaryValue()
@@ -326,6 +437,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 approveToken.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
                 Logger.Info($"current raised amount({currentProjectInfo.CurrentRaisedAmount}) ({investAmount}) ({currentProjectInfo.ToRaisedAmount})");
                 var invest = _idoContract.Invest(UserB, projectInfo.AcceptedCurrency, investAmount, projectId);
+                Logger.Info($"");
                 Logger.Info($"userA amount:({_idoContract.GetInvestDetail(projectId,UserB)})");
                 invest.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
                 invest.Error.ShouldContain("The investment quota is already full");
@@ -355,7 +467,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void UnInvestAtInvalidTime()
+        public void UnInvestWithInvalidValue()
         {
             RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[0],out var projectId, enableWhitelist:false);
             var projectInfo = _idoContract.GetProjectInfo(projectId);
@@ -374,6 +486,28 @@ namespace AElf.Automation.Contracts.ScenarioTest
             }
             
         }
+        
+        [TestMethod]
+        public void ClaimWhileUnInvest()
+        {
+            var acceptToken = AcceptedCurrency[1];
+            var projectToken = ProjectCurrency[0];
+            RegisterWithNullWhitelistId(acceptToken, projectToken, out var projectId, false);
+            
+            //invest
+            Invest(UserA, projectId, acceptToken, 10_00000000);
+            
+            //uninvest
+            UnInvest(UserA, projectId);
+            
+            //wait till end
+            Thread.Sleep(120 * 1000);
+            
+            //do claim
+            var claim = _idoContract.Claim(projectId, UserA);
+            claim.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+        }
+
 
         [TestMethod]
         public void UpdateClaimPeriodAtInvalidTime()
@@ -383,12 +517,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var updatePeriod = _idoContract.NextPeriod(projectId);
             updatePeriod.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            updatePeriod.Error.ShouldContain("Time is not ready");
         }
             
 
         [TestMethod]
         // 未售出清算 销毁或返还
-        // 除锁定流动性以外的众筹币转给项目方
+        // 将所有众筹币转给项目方
         // 违约金转给项目方
         public void Withdraw()
         {
@@ -403,11 +538,11 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 projectInfo.CrowdFundingIssueAmount.Mul(projectListInfo.LiquidityLockProportion.Add(ProportionMax)).Div(ProportionMax);
             Logger.Info($"balance of project token need to transfer to idocontratc({balance}({projectListInfo.LiquidityLockProportion.Div(100)}))");
 
-            //var approve = _tokenContract.ApproveToken(InitAccount, _idoContract.ContractAddress, balance,
-            //    projectInfo.ProjectCurrency);
-            //var transfer = _tokenContract.TransferBalance(InitAccount, _idoContract.ContractAddress, balance,
-            //    projectInfo.ProjectCurrency);
-            //transfer.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var approve = _tokenContract.ApproveToken(InitAccount, _idoContract.ContractAddress, balance,
+                projectInfo.ProjectCurrency);
+            var transfer = _tokenContract.TransferBalance(InitAccount, _idoContract.ContractAddress, balance,
+                projectInfo.ProjectCurrency);
+            transfer.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             //invest
             AddWhitelist(projectId, UserA);
@@ -459,13 +594,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"expected burn ({expectBurn})");
             expectBurn.ShouldBe(actualBurn);
             
-            //验证项目方收到的违约金和剩余众筹币 bug
+            //验证项目方收到的违约金和众筹币 bug
             var liquidatedDamage =LiquidatedDamageProportion.Mul(10_00000000).Div(ProportionMax);
             var expectedTotalTransfer = liquidatedDamage.Add(10_00000000);
             var actualTotalTransfer = balanceAfterWithdraw.Sub(balanceBeforeWithdraw);
             actualTotalTransfer.ShouldBe(expectedTotalTransfer);
-
-
+            
             var projectListInfoAfterWithdraw = _idoContract.GetProjectListInfo(projectId);
             projectListInfoAfterWithdraw.IsWithdraw.ShouldBe(true);
             
@@ -474,32 +608,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var withdrawTwice = _idoContract.Withdraw(InitAccount, projectId);
             withdrawTwice.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
 
-
-        }
-
-        [TestMethod]
-        public void CancelRegisteredProject()
-        {
-            RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[1],out var projectId);
-            var cancelResult = _idoContract.Cancel(InitAccount,projectId);
-            cancelResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            var projectInfo = _idoContract.GetProjectInfo(projectId);
-            projectInfo.Enabled.ShouldBe(false);
         }
         
-        [TestMethod]
-        public void CancellationTimeExpired()
-        {
-            RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[1],out var projectId);
-            Thread.Sleep(120 * 1000);
-            var cancelResult = _idoContract.Cancel(InitAccount,projectId);
-            cancelResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-
-            var projectInfo = _idoContract.GetProjectInfo(projectId);
-            projectInfo.Enabled.ShouldBe(true);
-        }
-
         [TestMethod]
         public void Refund()
         {
@@ -560,194 +670,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var userbClaimDamagedTwice = _idoContract.ClaimLiquidatedDamage(UserB, projectId);
             userbClaimDamagedTwice.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
 
-        }
-        
-        
-        
-        private void UnInvest(string user, Hash projectId)
-        {
-            var unInvest = _idoContract.UnInvest(user, projectId);
-            unInvest.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
-
-        private void Invest(string user, Hash projectId, string currency, long investAmount)
-        {
-            var approveToken = _tokenContract.ApproveToken(user, _idoContract.ContractAddress, investAmount, currency);
-            approveToken.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            var invest = _idoContract.Invest(user, currency, investAmount, projectId);
-            invest.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
-
-        private void AddWhitelist(Hash projectId, string user)
-        {
-            var addWhitelistsInput = new AddWhitelistsInput
-            {
-                ProjectId = projectId
-            };
-            addWhitelistsInput.Users.Add(user.ConvertAddress());
-            var addResult = _idoContract.AddWhitelist(InitAccount, addWhitelistsInput);
-            addResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
-        
-        [TestMethod]
-        public void InvestWithRegister()
-        {
-            //create project
-            RegisterWithNullWhitelistId("ELF", "ABC", out var projectId);
-            //add whitelist
-            var addWhitelistsInput = new AddWhitelistsInput
-            {
-                ProjectId = projectId
-            };
-            addWhitelistsInput.Users.Add(UserA.ConvertAddress());
-            var addResult = _idoContract.AddWhitelist(InitAccount, addWhitelistsInput);
-            addResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
-            //invest
-            _idoContract.SetAccount(UserA);
-            var currency = _idoContract.GetProjectInfo(projectId).AcceptedCurrency;
-            var investAmount = 10_00000000;
-            
-            //approve
-            var approveToken = _tokenContract.ApproveToken(UserA, _idoContract.ContractAddress, investAmount, currency);
-            approveToken.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var invest = _idoContract.Invest(UserA, currency, investAmount, projectId);
-            invest.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            var investDetail = _idoContract.GetInvestDetail(projectId, UserA);
-            investDetail.Amount.ShouldBe(investAmount);
-            investDetail.InvestSymbol.ShouldBe(currency);
-            investDetail.IsUnInvest.ShouldBe(false);
-
-            Thread.Sleep(120 * 1000);
-            LockLiquidity(projectId);
-        }
-
-        [TestMethod]
-        public void AddOrRemoveWhitelistToProject()
-        {
-            //create project
-            RegisterWithNullWhitelistId("ELF", "ABC", out var projectId);
-
-            //add user to whitelist
-            var addWhitelistsInput = new AddWhitelistsInput
-            {
-                ProjectId = projectId
-            };
-            addWhitelistsInput.Users.Add(UserA.ConvertAddress());
-            var addResult = _idoContract.AddWhitelist(InitAccount, addWhitelistsInput);
-            addResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            var whitelistId = _idoContract.GetWhitelistId(projectId);
-            var addressInWhitelist = _whitelistContract.GetWhitelistDetail(whitelistId).Value[0].AddressList.Value;
-            addressInWhitelist.ShouldContain(UserA.ConvertAddress());
-            //remove user from whitelist
-            var removeWhitelistsInput = new RemoveWhitelistsInput
-            {
-                ProjectId = projectId
-            };
-            removeWhitelistsInput.Users.Add(UserA.ConvertAddress());
-            var removeResult = _idoContract.RemoveWhitelist(removeWhitelistsInput);
-            removeResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var addressInWhitelistAfter = _whitelistContract.GetWhitelistDetail(whitelistId).Value[0].AddressList.Value;
-            addressInWhitelistAfter.ShouldNotContain(UserA.ConvertAddress());
-        }
-
-        [TestMethod]
-        public void InvestToWhiteListDisabledProject()
-        {
-            var acceptedToken = AcceptedCurrency[0];
-            var projectToken = ProjectCurrency[2];
-            RegisterWithNullWhitelistId(acceptedToken, projectToken, out var projectId, false);
-            
-            //invest
-            Invest(UserA, projectId, acceptedToken, 10_00000000);
-
-        }
-        
-        [TestMethod]
-        [DataRow("d8a98f64f21fe4dcebcea883cca3f0e76ed50a47245a98be6b6bbe7d4937ed10")]
-        public void Claim(string projectHex)
-        {
-            var projectId = Hash.LoadFromHex(projectHex);
-            var projectInfo = _idoContract.GetProjectInfo(projectId);
-            var investAmount = _idoContract.GetInvestDetail(projectId, UserA).Amount;
-            var preSalePrice = projectInfo.PreSalePrice;
-            
-            //pre-check
-            var userBalance = _tokenContract.GetUserBalance(UserA, projectInfo.ProjectCurrency);
-            var profitDetail = _idoContract.GetProfitDetail(projectId, UserA);
-            Logger.Info($"profitDetail before({profitDetail})");
-            Logger.Info($"project token balance before({userBalance})");
-            
-            //NextPeriod
-            var nextPeriod = _idoContract.NextPeriod(projectId);
-            nextPeriod.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
-            //claim
-            var claim = _idoContract.Claim(projectId, UserA);
-            claim.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            
-            //post-check
-            var userBalanceAfterClaim = _tokenContract.GetUserBalance(UserA, projectInfo.ProjectCurrency);
-            var profitDetailAfterClaim = _idoContract.GetProfitDetail(projectId, UserA);
-            Logger.Info($"profitDetail after({profitDetailAfterClaim})");
-            Logger.Info($"project token balance after({userBalanceAfterClaim})");
-
-            //nextperiod event check
-            var nextPeriodLogStr = GetEventStr(nextPeriod, "PeriodUpdated");
-            var nextPeriodLogs = PeriodUpdated.Parser.ParseFrom(ByteString.FromBase64(nextPeriodLogStr));
-            nextPeriodLogs.NewPeriod.ShouldBe(1);
-            nextPeriodLogs.ProjectId.ShouldBe(projectId);
-            
-            //claim event check
-            var claimLogStr = GetEventStr(claim, "Claimed");
-            var claimLogs = Claimed.Parser.ParseFrom(ByteString.FromBase64(claimLogStr));
-            Logger.Info($"actual transfer balance ({userBalanceAfterClaim.Sub(userBalance)})");
-            Logger.Info($"profit calculate ({investAmount.Mul(preSalePrice).Div(100000000)})");
-            Logger.Info($"claimLogs({claimLogs.Amount})({claimLogs.TotalClaimedAmount})({claimLogs.LatestPeriod})({claimLogs.TotalPeriod})");
-            
-            claimLogs.Amount.ShouldBe(investAmount.Mul(preSalePrice).Div(100000000));
-            claimLogs.LatestPeriod.ShouldBe(1);
-            claimLogs.TotalPeriod.ShouldBe(1);
-            claimLogs.TotalClaimedAmount.ShouldBe(investAmount.Mul(preSalePrice).Div(100000000));
-            claimLogs.ProjectCurrency.ShouldBe(projectInfo.ProjectCurrency);
-        }
-
-        [TestMethod]
-        public void ClaimWhileUnInvest()
-        {
-            var acceptToken = AcceptedCurrency[1];
-            var projectToken = ProjectCurrency[0];
-            RegisterWithNullWhitelistId(acceptToken, projectToken, out var projectId, false);
-            
-            //invest
-            Invest(UserA, projectId, acceptToken, 10_00000000);
-            
-            //uninvest
-            UnInvest(UserA, projectId);
-            
-            //wait till end
-            Thread.Sleep(120 * 1000);
-            
-            //do claim
-            var claim = _idoContract.Claim(projectId, UserA);
-            claim.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-        }
-
-        private void RegisterMultiPeriodProjectWithNullWhitelistId(string accepted, string project, out Hash projectId)
-        {
-            var registerInput = CreateRegisterInput(accepted, project, false, totalPeriod:3, firstDistributeProportion:50,restDistributeProportion:25, periodDuration:30);
-            var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
-            registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
-            //get Register event
-            var registerLogs =
-                ProjectRegistered.Parser.ParseFrom(
-                    ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
-            projectId = registerLogs.ProjectId;
         }
         
         [TestMethod]
@@ -904,7 +826,47 @@ namespace AElf.Automation.Contracts.ScenarioTest
             GetUserBalance(UserC,ProjectCurrency[0]).Sub(usercbalanceBeforeClaim).ShouldBe(200_00000000);
             
         }
+        
+        private void UnInvest(string user, Hash projectId)
+        {
+            var unInvest = _idoContract.UnInvest(user, projectId);
+            unInvest.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
 
+        private void Invest(string user, Hash projectId, string currency, long investAmount)
+        {
+            var approveToken = _tokenContract.ApproveToken(user, _idoContract.ContractAddress, investAmount, currency);
+            approveToken.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var invest = _idoContract.Invest(user, currency, investAmount, projectId);
+            invest.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        private void AddWhitelist(Hash projectId, string user)
+        {
+            var addWhitelistsInput = new AddWhitelistsInput
+            {
+                ProjectId = projectId
+            };
+            addWhitelistsInput.Users.Add(user.ConvertAddress());
+            var addResult = _idoContract.AddWhitelist(InitAccount, addWhitelistsInput);
+            addResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        private void RegisterMultiPeriodProjectWithNullWhitelistId(string accepted, string project, out Hash projectId)
+        {
+            var registerInput = CreateRegisterInput(accepted, project, false, totalPeriod:3, firstDistributeProportion:50,restDistributeProportion:25, periodDuration:30);
+            var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
+            registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            //get Register event
+            var registerLogs =
+                ProjectRegistered.Parser.ParseFrom(
+                    ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
+            projectId = registerLogs.ProjectId;
+        }
+        
+        
         private long GetUserBalance(string user, string symbol)
         {
              return _tokenContract.GetUserBalance(user, symbol);
@@ -948,37 +910,32 @@ namespace AElf.Automation.Contracts.ScenarioTest
             }
 
         }
-
         
-        private string GetTokenPairSymbol(string tokenA, string tokenB)
+        private void RegisterWithNullWhitelistId(string acceptedToken, string projectToken, out Hash projectId, bool enableWhitelist = true)
         {
-            var symbols = SortSymbols(tokenA, tokenB);
-            return $"ALP {symbols[0]}-{symbols[1]}";
-        }
+            var registerInput = CreateRegisterInput(acceptedToken, projectToken, enableWhitelist);
+            var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
+            registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-        private string GetEventStr(TransactionResultDto resultDto, string eventName)
-        {
-            var registerLogStr = resultDto.Logs.First(l => l.Name.Equals(eventName)).NonIndexed;
-            return registerLogStr;
+            //get RegisterId
+            var registerLogs =
+                ProjectRegistered.Parser.ParseFrom(
+                    ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
+            projectId = registerLogs.ProjectId;
         }
-
-        private RegisterInput CreateRegisterInput(string acceptedToken, string projectToken, bool enableWhitelist = true, Hash whitelistId = null, int totalPeriod = 1, int firstDistributeProportion = 0, int restDistributeProportion = 0, int periodDuration = 0)
+        private RegisterInput CreateRegisterInput(string acceptedToken, string projectToken, bool enableWhitelist = true, Hash whitelistId = null, int totalPeriod = 1, int firstDistributeProportion = 100_000000, int restDistributeProportion = 0, int periodDuration = 0)
         {
-        
-            //var test = input.ToRaisedAmount.Mul(input.PreSalePrice).Div(Mantissa);
-            //var test = input.FirstDistributeProportion.Add(input.TotalPeriod.Sub(1)
-              //  .Mul(input.RestDistributeProportion));
             var registerInput = new RegisterInput()
             {
                 AcceptedCurrency = acceptedToken,
                 ProjectCurrency = projectToken,
                 AdditionalInfo = new AdditionalInfo(),
-                CrowdFundingIssueAmount = 100_00000000, //发行量
+                CrowdFundingIssueAmount = 1000_00000000, //发行量
                 CrowdFundingType = "标价销售",//众筹类型
-                StartTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 3))),
+                StartTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 5))),
                 EndTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0,100))),
                 FirstDistributeProportion = firstDistributeProportion,//首次发放比例
-                PreSalePrice = 2_00000000, //众筹价格 1众筹币换多少个项目币
+                PreSalePrice = 20_00000000, //众筹价格 1众筹币换多少个项目币
                 PublicSalePrice = 9_00000000, //公售价格 高于众筹价格5%
                 MinSubscription = 1_00000000, //最低认购数量
                 MaxSubscription = 27_00000000, //最高认购数量
@@ -1006,6 +963,37 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             return registerInput;
         }
+
+        private Hash CreateWhiteList()
+        {
+            var list = new List<Address>{InitAccount.ConvertAddress()};
+            var managerList = new AddressList {Value = {list}};
+            var projectId = HashHelper.ComputeFrom("Test");
+            var result = _whitelistContract.ExecuteMethodWithResult(WhiteListContractMethod.CreateWhitelist, new CreateWhitelistInput()
+            {
+                Creator = _idoContract.Contract,
+                ProjectId = HashHelper.ComputeFrom("Test"),
+                ManagerList = managerList,
+                ExtraInfoList = new ExtraInfoList()
+            });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var eventStr = GetEventStr(result, "WhitelistCreated");
+            var whitelistInfo = WhitelistCreated.Parser.ParseFrom(ByteString.FromBase64(eventStr));
+            return whitelistInfo.WhitelistId;
+        }
+        private string GetTokenPairSymbol(string tokenA, string tokenB)
+        {
+            var symbols = SortSymbols(tokenA, tokenB);
+            return $"ALP {symbols[0]}-{symbols[1]}";
+        }
+        
+        private string GetEventStr(TransactionResultDto resultDto, string eventName)
+        {
+            var registerLogStr = resultDto.Logs.First(l => l.Name.Equals(eventName)).NonIndexed;
+            return registerLogStr;
+        }
+        
         private void CreatePair(string symbolA, string symbolB)
         {
             var tokens = SortSymbols(symbolA, symbolB);
@@ -1026,35 +1014,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             return symbols.OrderBy(s => s).ToArray();
         }
-        
-        private void CreateToken(string symbol, Address issuer, long totalSupply)
-        {
-            var createResult = _tokenContract.ExecuteMethodWithResult(TokenMethod.Create,
-                new CreateInput
-                {
-                    Symbol = symbol,
-                    Decimals = 8,
-                    Issuer = issuer,
-                    TokenName = $"{symbol} token",
-                    TotalSupply = totalSupply,
-                    IsBurnable = true
-                });
-            createResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
-            var issueResult = _tokenContract.ExecuteMethodWithResult(TokenMethod.Issue, new IssueInput
-            {
-                Symbol = symbol,
-                Amount = totalSupply,
-                To = InitAccount.ConvertAddress(),
-            });
-            issueResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            var balance = _tokenContract.GetUserBalance(InitAccount, symbol);
-            balance.ShouldBe(totalSupply);
-
-            DistributeToken(symbol, 1000_00000000, UserA.ConvertAddress());
-        }
-        
         private void CreateToken(string symbol, int decimals, Address issuer, long totalSupply)
         {
             var result = _tokenContract.ExecuteMethodWithResult(TokenMethod.Create,
@@ -1105,46 +1065,45 @@ namespace AElf.Automation.Contracts.ScenarioTest
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             Logger.Info($"Successfully issue amount {amount} to {toAddress}");
         }
-
-        [TestMethod]
-        public void CreateTokensAndIssue()
+        
+        private void CreateTokensAndIssue()
         {
-            for (int i = 0; i < AcceptedCurrency.Length; i++)
+            foreach (var acceptSymbol in AcceptedCurrency)
             {
-                var depositTokenResult = _tokenContract.GetTokenInfo(AcceptedCurrency[i]);
+                var depositTokenResult = _tokenContract.GetTokenInfo(acceptSymbol);
                 if (depositTokenResult.Equals(new TokenInfo()))
                 {
-                    CreateToken(AcceptedCurrency[i], 8, InitAccount.ConvertAddress(), 10000000000000000);
-                    IssueBalance(AcceptedCurrency[i], 1000000000000, UserA.ConvertAddress());
-                    IssueBalance(AcceptedCurrency[i], 1000000000000, UserB.ConvertAddress());
+                    CreateToken(acceptSymbol, 8, InitAccount.ConvertAddress(), 10000000000000000);
+                    IssueBalance(acceptSymbol, 1000000000000, UserA.ConvertAddress());
+                    IssueBalance(acceptSymbol, 1000000000000, UserB.ConvertAddress());
                 }
-                if (_tokenContract.GetUserBalance(UserA,AcceptedCurrency[i]) < 10000000000)
+                if (GetUserBalance(UserA,acceptSymbol) < 10000000000)
                 {
-                    IssueBalance(AcceptedCurrency[i], 1000000000000, UserA.ConvertAddress());
+                    IssueBalance(acceptSymbol, 1000000000000, UserA.ConvertAddress());
                 }
-                if (_tokenContract.GetUserBalance(UserB,AcceptedCurrency[i]) < 10000000000)
+                if (GetUserBalance(UserB,acceptSymbol) < 10000000000)
                 {
-                    IssueBalance(AcceptedCurrency[i], 1000000000000, UserB.ConvertAddress());
+                    IssueBalance(acceptSymbol, 1000000000000, UserB.ConvertAddress());
                 }
-                if (_tokenContract.GetUserBalance(UserC,AcceptedCurrency[i]) < 10000000000)
+                if (GetUserBalance(UserC,acceptSymbol) < 10000000000)
                 {
-                    IssueBalance(AcceptedCurrency[i], 1000000000000, UserC.ConvertAddress());
-                }
-            }
-            for (int i = 0; i < ProjectCurrency.Length; i++)
-            {
-                var depositTokenResult = _tokenContract.GetTokenInfo(ProjectCurrency[i]);
-                if (depositTokenResult.Equals(new TokenInfo()))
-                {
-                    CreateToken(ProjectCurrency[i], 8, InitAccount.ConvertAddress(), 10000000000000000);
-                    IssueBalance(ProjectCurrency[i], 1000000000000, InitAccount.ConvertAddress());
-                }
-                if (_tokenContract.GetUserBalance(InitAccount,AcceptedCurrency[i]) <= 1000000000000)
-                {
-                    IssueBalance(ProjectCurrency[i], 1000000000000, InitAccount.ConvertAddress());
+                    IssueBalance(acceptSymbol, 1000000000000, UserC.ConvertAddress());
                 }
             }
 
+            foreach (var projectSymbol in ProjectCurrency)
+            {
+                var depositTokenResult = _tokenContract.GetTokenInfo(projectSymbol);
+                if (depositTokenResult.Equals(new TokenInfo()))
+                {
+                    CreateToken(projectSymbol, 8, InitAccount.ConvertAddress(), 10000000000000000);
+                    IssueBalance(projectSymbol, 1000000000000, InitAccount.ConvertAddress());
+                }
+                if (GetUserBalance(InitAccount,projectSymbol) <= 1000000000000)
+                {
+                    IssueBalance(projectSymbol, 1000000000000, InitAccount.ConvertAddress());
+                }
+            }
         }
         
         private void CreatePairs()
@@ -1162,6 +1121,41 @@ namespace AElf.Automation.Contracts.ScenarioTest
             }
         }
         
+        private void CheckRegisterEventValues(ProjectRegistered registered, RegisterInput expected)
+        {
+            registered.Creator.ShouldBe(InitAccount.ConvertAddress());
+            registered.AcceptedCurrency.ShouldBe(expected.AcceptedCurrency);
+            registered.AdditionalInfo.ShouldBe(expected.AdditionalInfo);
+            registered.EndTime.ShouldBe(expected.EndTime);
+            registered.MaxSubscription.ShouldBe(expected.MaxSubscription);
+            registered.MinSubscription.ShouldBe(expected.MinSubscription);
+            registered.PeriodDuration.ShouldBe(expected.PeriodDuration);
+            registered.ProjectCurrency.ShouldBe(expected.ProjectCurrency);
+            registered.StartTime.ShouldBe(expected.StartTime);
+            registered.TotalPeriod.ShouldBe(expected.TotalPeriod);
+            registered.UnlockTime.ShouldBe(expected.UnlockTime);
+            registered.CrowdFundingType.ShouldBe(expected.CrowdFundingType);
+            registered.FirstDistributeProportion.ShouldBe(expected.FirstDistributeProportion);
+            registered.IsEnableWhitelist.ShouldBe(expected.IsEnableWhitelist);
+            registered.PreSalePrice.ShouldBe(expected.PreSalePrice);
+            registered.PublicSalePrice.ShouldBe(expected.PublicSalePrice);
+            registered.RestDistributeProportion.ShouldBe(expected.RestDistributeProportion);
+            registered.CrowdFundingIssueAmount.ShouldBe(expected.CrowdFundingIssueAmount);
+            registered.IsBurnRestToken.ShouldBe(expected.IsBurnRestToken);
+
+            var toRaisedAmount = Parse(new BigIntValue(expected.CrowdFundingIssueAmount).Mul(100000000).Div(expected.PreSalePrice).Value);
+            registered.ToRaisedAmount.ShouldBe(toRaisedAmount);
+        }
+
+        private static long Parse(string input)
+        {
+            if (!long.TryParse(input, out var output))
+            {
+                throw new Exception($"Failed to parse {input}");
+            }
+
+            return output;
+        }
         
         [TestMethod]
         public void TestSomething()
