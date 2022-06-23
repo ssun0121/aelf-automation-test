@@ -134,10 +134,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info($"project info: {projectInfo}");
             var whiteListId = _idoContract.CallViewMethod<Hash>(IdoMethod.GetWhitelistId, projectId);
             Logger.Info($"white list: {whiteListId.ToHex()}");
-            
-            Logger.Info($"RegisterInput:starttime({registerInput.StartTime})({registerInput.EndTime})");
-            Logger.Info($"GetProjectInfo:starttime({projectInfo.StartTime})endtime({projectInfo.EndTime})");
-            Logger.Info($"RegisterEvent:starttime({registerLogs.StartTime})endtime({registerLogs.EndTime})");
             //check NewWhitelistIdSet event
             var whitelistSetLogs =
                 NewWhitelistIdSet.Parser.ParseFrom(
@@ -180,8 +176,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             RegisterWithNullWhitelistId("ELF", "ABC", out var projectId);
             
             var data = new Dictionary<string, string>();
-            data["logo网址"] = "http://www.project.fake";
-            data["首页网址"] = "http://www.project.fake";
+            data["logo"] = "http://www.project.fake";
+            data["website"] = "http://www.project.fake";
             var addtionalInfo = new AdditionalInfo
             {
                 Data = {data}
@@ -192,10 +188,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectAdditionInfo = _idoContract.GetProjectInfo(projectId).AdditionalInfo.Data;
             Logger.Info(projectAdditionInfo);
             Logger.Info(projectAdditionInfo.Keys);
-            projectAdditionInfo.ContainsKey("logo网址").ShouldBe(true);
-            projectAdditionInfo.ContainsKey("首页网址").ShouldBe(true);
-            projectAdditionInfo["logo网址"].ShouldBe("http://www.project.fake");
-            projectAdditionInfo["首页网址"].ShouldBe("http://www.project.fake");
+            projectAdditionInfo.ContainsKey("logo").ShouldBe(true);
+            projectAdditionInfo.ContainsKey("website").ShouldBe(true);
+            projectAdditionInfo["logo"].ShouldBe("http://www.project.fake");
+            projectAdditionInfo["website"].ShouldBe("http://www.project.fake");
             
             //check event
             var updateAddtionalInfoLogs =
@@ -257,25 +253,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var balance = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
             //invest uninvest several times
             Invest(UserA, projectId, AcceptedCurrency[0], 10_00000000);
-            var invest1balance = _tokenContract.GetUserBalance(UserA,AcceptedCurrency[0]);
-            invest1balance.Add(10_00000000).ShouldBe(balance);
             UnInvest(UserA,projectId);
-            var uninvest1balance = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
-            uninvest1balance.Sub(9_00000000).ShouldBe(invest1balance);
             Thread.Sleep(60 * 1000);
             Invest(UserA, projectId, AcceptedCurrency[0], 8_00000000);
-            var invest2balance = _tokenContract.GetUserBalance(UserA,AcceptedCurrency[0]);
-            invest2balance.Add(8_00000000).ShouldBe(uninvest1balance);
             UnInvest(UserA,projectId);
-            var uninvest2balance = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
-            uninvest2balance.Sub(7_20000000).ShouldBe(invest2balance);
             Thread.Sleep(60 * 1000);
             Invest(UserA, projectId, AcceptedCurrency[0], 9_00000000);
-            var invest3balance = _tokenContract.GetUserBalance(UserA,AcceptedCurrency[0]);
-            invest3balance.Add(9_00000000).ShouldBe(uninvest2balance);
             UnInvest(UserA,projectId);
-            var uninvest3balance = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
-            uninvest3balance.Sub(8_10000000).ShouldBe(invest3balance);
 
             //cancel
             var cancelResult = _idoContract.Cancel(InitAccount,projectId);
@@ -587,9 +571,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             
 
         [TestMethod]
-        // 未售出清算 销毁或返还
-        // 将所有众筹币转给项目方
-        // 违约金转给项目方
         public void Withdraw()
         {
             //register
@@ -634,28 +615,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             projectInfo = _idoContract.GetProjectInfo(projectId);
             
-            //验证未售出清算 burn 
-            //1. burn事件
+            //verify burn amount
             var burnLogStr = GetEventStr(withdraw, "Burned");
             var burnLogs = Burned.Parser.ParseFrom(ByteString.FromBase64(burnLogStr));
             var actualBurn =
                 projectInfo.CrowdFundingIssueAmount.Sub(projectInfo.PreSalePrice.Mul(projectInfo.CurrentRaisedAmount).Div(100000000));
-            Logger.Info($"burn event({burnLogs})");
-            Logger.Info($"burn actual({actualBurn})");
-            Logger.Info($"PreSalePrice({projectInfo.PreSalePrice})");
-            Logger.Info($"CurrentRaisedAmount({projectInfo.CurrentRaisedAmount})");
-            Logger.Info($"projectInfo({projectInfo})");
-            
-            //burnLogs.Burner.ShouldBe(_idoContract.Contract);
-            //burnLogs.Symbol.ShouldBe(projectInfo.ProjectCurrency);
             burnLogs.Amount.ShouldBe(actualBurn);
-
-            //2. ido合约中项目币减少burn的数量
+            
             var expectBurn = projectInfo.CrowdFundingIssueAmount.Sub(projectInfo.PreSalePrice.Mul(10_00000000).Div(100000000));
             Logger.Info($"expected burn ({expectBurn})");
             expectBurn.ShouldBe(actualBurn);
             
-            //验证项目方收到的违约金和众筹币 bug
+            //verify liquidateDamage and accepted balance transferred to pm
             var liquidatedDamage =LiquidatedDamageProportion.Mul(10_00000000).Div(ProportionMax);
             var expectedTotalTransfer = liquidatedDamage.Add(10_00000000);
             var actualTotalTransfer = balanceAfterWithdraw.Sub(balanceBeforeWithdraw);
@@ -752,18 +723,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectThreeInfo = _idoContract.GetProjectInfo(projectThreeId);
             var projectFourInfo = _idoContract.GetProjectInfo(projectFourId);
 
-            var projectOneListInfo = _idoContract.GetProjectListInfo(projectOneId);
-            var projectTwoListInfo = _idoContract.GetProjectListInfo(projectTwoId);
-            var projectThreeListInfo = _idoContract.GetProjectListInfo(projectThreeId);
-            var projectFourListInfo = _idoContract.GetProjectListInfo(projectFourId);
-            //investor
-            //var investAmount = 10_00000000;
             //invest
             Invest(UserA, projectOneId, projectOneInfo.AcceptedCurrency, 10_00000000);
             Invest(UserA, projectTwoId, projectTwoInfo.AcceptedCurrency, 20_00000000);
             Invest(UserA, projectThreeId, projectThreeInfo.AcceptedCurrency, 5_00000000);
             Invest(UserA, projectFourId, projectFourInfo.AcceptedCurrency, 5_00000000);
 
+            Logger.Info($"profit detail({_idoContract.GetProfitDetail(projectOneId,UserA)})");
+            Logger.Info($"profit detail({_idoContract.GetProfitDetail(projectTwoId,UserA)})");
+            Logger.Info($"profit detail({_idoContract.GetProfitDetail(projectThreeId,UserA)})");
+            Logger.Info($"profit detail({_idoContract.GetProfitDetail(projectFourId,UserA)})");
+            
             //balance pre-check
             var balanceAcceptedCurrency0 = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
             var balanceAcceptedCurrency1 = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[1]);
@@ -779,9 +749,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             //canceled project 4
             var cancel = _idoContract.Cancel(InitAccount, projectFourId);
             cancel.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            //refund in project 4
-            //var refund = _idoContract.ReFund(UserA, projectFourId);
-            //refund.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             
             //wait till the end
             Thread.Sleep(120 * 1000);
@@ -791,8 +758,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 _idoContract.NextPeriod(projectOneId);
                 _idoContract.NextPeriod(projectTwoId);
-                _idoContract.NextPeriod(projectTwoId);
-                _idoContract.NextPeriod(projectTwoId);
+                _idoContract.NextPeriod(projectThreeId);
+                _idoContract.NextPeriod(projectFourId);
                 if (i != 2)
                     Thread.Sleep(60 * 1000);
             }
@@ -806,8 +773,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             claimProjectThree.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
             claimProjectThree.Error.ShouldContain("no invest record");
             var claimProjectFour = _idoContract.Claim(projectFourId, UserA);
-            claimProjectThree.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
-            claimProjectThree.Error.ShouldContain("project is not enabled");
+            claimProjectFour.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            claimProjectFour.Error.ShouldContain("project is not enabled");
 
 
             //post check balance
@@ -815,8 +782,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var balanceProjectCurrency1After = _tokenContract.GetUserBalance(UserA, ProjectCurrency[1]);
             var balanceProjectCurrency2After = _tokenContract.GetUserBalance(UserA, ProjectCurrency[2]);
             
-            balanceProjectCurrency0After.Sub(balanceProjectCurrency0).ShouldBe(100_00000000);
-            balanceProjectCurrency1After.Sub(balanceProjectCurrency1).ShouldBe(200_00000000);
+            balanceProjectCurrency0After.Sub(balanceProjectCurrency0).ShouldBe(200_00000000);
+            balanceProjectCurrency1After.Sub(balanceProjectCurrency1).ShouldBe(400_00000000);
             balanceProjectCurrency2After.Sub(balanceProjectCurrency2).ShouldBe(0);
             
         }
@@ -862,7 +829,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             //usera claim in period 0
             var useraClaimPeriodOne = _idoContract.Claim(projectOneId, UserA);
             useraClaimPeriodOne.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            GetUserBalance(UserA,ProjectCurrency[0]).Sub(userabalanceBeforeClaim).ShouldBe(50_00000000);
+            GetUserBalance(UserA,ProjectCurrency[0]).Sub(userabalanceBeforeClaim).ShouldBe(100_00000000);
 
             //update period
             for (int i = 0; i < 2; i++)
@@ -874,7 +841,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             //usera claim after period 2
             var useraClaimPeriodThree = _idoContract.Claim(projectOneId, UserA);
             useraClaimPeriodThree.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            GetUserBalance(UserA,ProjectCurrency[0]).Sub(userabalanceBeforeClaim).ShouldBe(100_00000000);
+            GetUserBalance(UserA,ProjectCurrency[0]).Sub(userabalanceBeforeClaim).ShouldBe(200_00000000);
 
             //userb cannot calim
             var userbClaimPeriodThree = _idoContract.Claim(projectOneId, UserB);
@@ -916,7 +883,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         
         private void RegisterMultiPeriodProjectWithNullWhitelistId(string accepted, string project, out Hash projectId)
         {
-            var registerInput = CreateRegisterInput(accepted, project, false, totalPeriod:3, firstDistributeProportion:50,restDistributeProportion:25, periodDuration:30);
+            var registerInput = CreateRegisterInput(accepted, project, false, totalPeriod:3, firstDistributeProportion:50_000000,restDistributeProportion:25_000000, periodDuration:30);
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             
@@ -991,35 +958,21 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 AcceptedCurrency = acceptedToken,
                 ProjectCurrency = projectToken,
                 AdditionalInfo = new AdditionalInfo(),
-                CrowdFundingIssueAmount = 1000_00000000, //发行量
-                CrowdFundingType = "标价销售",//众筹类型
-                StartTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 3))),
+                CrowdFundingIssueAmount = 1000_00000000,
+                CrowdFundingType = "Sale",
+                StartTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 4))),
                 EndTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(hour, 0,100))),
-                FirstDistributeProportion = firstDistributeProportion,//首次发放比例
-                PreSalePrice = 20_00000000, //众筹价格 1众筹币换多少个项目币
-                PublicSalePrice = 9_00000000, //公售价格 高于众筹价格5%
-                MinSubscription = 1_00000000, //最低认购数量
-                MaxSubscription = 27_00000000, //最高认购数量
-                ListMarketInfo = new ListMarketInfo()
-                {
-                    Data =
-                    {
-                        new ListMarket()
-                        {
-                            Market = awakenSwapAddress.ConvertAddress(),
-                            Weight = 100
-                        }
-                    }
-                }, //上市信息
-                LiquidityLockProportion = 60, //众筹代币的流动性锁定比例
-                UnlockTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 30000))), //众筹结束后保持流动性多久，流动性锁定时间
-                IsEnableWhitelist = enableWhitelist,//是否启用白名单
+                FirstDistributeProportion = firstDistributeProportion,
+                PreSalePrice = 20_00000000, 
+                PublicSalePrice = 9_00000000, 
+                MinSubscription = 1_00000000, 
+                MaxSubscription = 27_00000000,
+                IsEnableWhitelist = enableWhitelist,
                 WhitelistId = whitelistId,
-                IsBurnRestToken = true,//未出售代币清算方式 true为销毁 false为返还项目方
-                TotalPeriod = totalPeriod,//是否分期发放 取1时不分期
-                //ToRaisedAmount = 200_00000000,
-                RestDistributeProportion = restDistributeProportion, //每期发放比例
-                PeriodDuration = periodDuration,//发放周期
+                IsBurnRestToken = true,
+                TotalPeriod = totalPeriod,
+                RestDistributeProportion = restDistributeProportion, 
+                PeriodDuration = periodDuration,
             };
 
             return registerInput;
