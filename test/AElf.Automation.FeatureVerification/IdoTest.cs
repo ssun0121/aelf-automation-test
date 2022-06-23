@@ -1126,22 +1126,5 @@ namespace AElf.Automation.Contracts.ScenarioTest
             return output;
         }
         
-        [TestMethod]
-        public void TestSomething()
-        {
-            var registerStr =
-                "CiIKINAe8Qed6GoL28wP/pRkyHvi8GJLCmdhTLysrs3HA6NmEgVVU0RUVBoGUEVPUExFIgzmoIfku7fplIDllK4ogNDbw/QCMICo1rkHOgsIm8DLlQYQqLjEWkILCPrAy5UGEMi+9lpIgMLXL1CA9rqHCliA0pOtA2IoCiYKIgogC2utqg6ajBBsijb2K27U+RKBWisvYLlXQUGGqbWlRDsQZGg8cgsIxqrNlQYQiIfHW4gBAZABAZoBAKABgOSX0BKqASIKIGfxcCx8R6TqWimYM2HpJsqTuTew47qGQktis9EBIcersAGAwtcv";
-            var registerLog = ProjectRegistered.Parser.ParseFrom(ByteString.FromBase64(registerStr));
-            Logger.Info($"start time ({registerLog.StartTime}) endtime ({registerLog.EndTime})");
-
-            var invest =
-                "CiIKIEuaQ2WWbPNRvz80SSWDsIJeoOaywVWD0Vn7PEgYrxOIEiIKIEd3SsyLE1vlJpi2wuppcZ22if+E+ParyUrw4hZe5YnOGgVVU0RUVCCAlOvcAyiAlOvcAzIGUEVPUExFOICQ38BK";
-            var investLog1 = Invested.Parser.ParseFrom(ByteString.FromBase64(invest));
-            Logger.Info($"first invest({investLog1})");
-
-            var uninvest = "a44dbfe54e95ffa8d4c116ba83bfc832b289f3801e7f1fdad1da5a78e01910b6";
-
-        }
-
     }
 }
