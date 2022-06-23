@@ -49,7 +49,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         //线下部署 第一套
         private string awakenTokenAddress = "vqRuJR3LDDMHbrgqaLmsLAhKSQgrbH1r5xrs4aVDx9EezViGF";
         private string awakenSwapAddress = "62j1oMP2D8y4f6YHHL9WyhdtcFiLhMtrs7tBqXkMwJudz9AY5";
-        private string idoAddress = "b4qRwAME9XoEanYP7xyvie2SBBXgeeEHjdR2Tab7KrFqSzAhW";
+        private string idoAddress = "c9tMPCqjRDNV3Z4H5Gx4dMn5SbnrYjfA1dD1Bmc8E2ExXSbpH";
         private string whitelistAddress = "288zpvtQg1Qwz4m3hydPJ6hGDsXUzvQ7tWz41ZYwmKDpYwJeCM";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string UserA { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
@@ -114,27 +114,30 @@ namespace AElf.Automation.Contracts.ScenarioTest
             CreateTokensAndIssue();
             CreatePairs();
         }
-
+        
         [TestMethod]
         public void Register()
         {
-            var registerInput = CreateRegisterInput(AcceptedCurrency[0], ProjectCurrency[0], enableWhitelist:true);
+            var registerInput = CreateRegisterInput(AcceptedCurrency[0], ProjectCurrency[0], enableWhitelist:true,firstDistributeProportion:100_000000,hour:1);
+
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
             //check Register event
             var registerLogs =
                 ProjectRegistered.Parser.ParseFrom(
                     ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
             var projectId = registerLogs.ProjectId;
             registerLogs.Creator.ShouldBe(InitAccount.ConvertAddress());
+
             CheckRegisterEventValues(registerLogs, registerInput);
-            
             var projectInfo = _idoContract.GetProjectInfo(projectId);
             Logger.Info($"project info: {projectInfo}");
             var whiteListId = _idoContract.CallViewMethod<Hash>(IdoMethod.GetWhitelistId, projectId);
             Logger.Info($"white list: {whiteListId.ToHex()}");
             
+            Logger.Info($"RegisterInput:starttime({registerInput.StartTime})({registerInput.EndTime})");
+            Logger.Info($"GetProjectInfo:starttime({projectInfo.StartTime})endtime({projectInfo.EndTime})");
+            Logger.Info($"RegisterEvent:starttime({registerLogs.StartTime})endtime({registerLogs.EndTime})");
             //check NewWhitelistIdSet event
             var whitelistSetLogs =
                 NewWhitelistIdSet.Parser.ParseFrom(
@@ -230,6 +233,60 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectInfo = _idoContract.GetProjectInfo(projectId);
             projectInfo.Enabled.ShouldBe(true);
         }
+
+        [TestMethod]
+        public void ClaimMultiDamagedLiquidity()
+        {
+            //register
+            //RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[0],out var projectId, false, hour:1);
+            var registerInput = CreateRegisterInput(AcceptedCurrency[0], ProjectCurrency[0], enableWhitelist:false,firstDistributeProportion:100_000000,hour:1);
+
+            var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
+            registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            //check Register event
+            var registerLogs =
+                ProjectRegistered.Parser.ParseFrom(
+                    ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
+            var projectId = registerLogs.ProjectId;
+            var projectInfo = _idoContract.GetProjectInfo(projectId);            
+            Logger.Info($"RegisterInput:starttime({registerInput.StartTime})({registerInput.EndTime})");
+            Logger.Info($"GetProjectInfo:starttime({projectInfo.StartTime})endtime({projectInfo.EndTime})");
+            Logger.Info($"RegisterEvent:starttime({registerLogs.StartTime})endtime({registerLogs.EndTime})");
+
+            var balance = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
+            //invest uninvest several times
+            Invest(UserA, projectId, AcceptedCurrency[0], 10_00000000);
+            var invest1balance = _tokenContract.GetUserBalance(UserA,AcceptedCurrency[0]);
+            invest1balance.Add(10_00000000).ShouldBe(balance);
+            UnInvest(UserA,projectId);
+            var uninvest1balance = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
+            uninvest1balance.Sub(9_00000000).ShouldBe(invest1balance);
+            Thread.Sleep(60 * 1000);
+            Invest(UserA, projectId, AcceptedCurrency[0], 8_00000000);
+            var invest2balance = _tokenContract.GetUserBalance(UserA,AcceptedCurrency[0]);
+            invest2balance.Add(8_00000000).ShouldBe(uninvest1balance);
+            UnInvest(UserA,projectId);
+            var uninvest2balance = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
+            uninvest2balance.Sub(7_20000000).ShouldBe(invest2balance);
+            Thread.Sleep(60 * 1000);
+            Invest(UserA, projectId, AcceptedCurrency[0], 9_00000000);
+            var invest3balance = _tokenContract.GetUserBalance(UserA,AcceptedCurrency[0]);
+            invest3balance.Add(9_00000000).ShouldBe(uninvest2balance);
+            UnInvest(UserA,projectId);
+            var uninvest3balance = _tokenContract.GetUserBalance(UserA, AcceptedCurrency[0]);
+            uninvest3balance.Sub(8_10000000).ShouldBe(invest3balance);
+
+            //cancel
+            var cancelResult = _idoContract.Cancel(InitAccount,projectId);
+            cancelResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var claimDamaged = _idoContract.ClaimLiquidatedDamage(UserA, projectId);
+            claimDamaged.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            _tokenContract.GetUserBalance(UserA,AcceptedCurrency[0]).ShouldBe(balance);
+
+        }
         
         [TestMethod]
         public void AddOrRemoveWhitelistToProject()
@@ -319,13 +376,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
         
         [TestMethod]
-        [DataRow("036e0710e9ebf0a4029a34e1aac4da9298f5a21634a830d2cf57790522ae0563")]
+        [DataRow("752cb13cd84db9bd147e2ca21e7aa62e4d9a8e42061edda91d335f7746da6e47")]
         public void Claim(string projectHex)
         {
             var projectId = Hash.LoadFromHex(projectHex);
             var projectInfo = _idoContract.GetProjectInfo(projectId);
             var investAmount = _idoContract.GetInvestDetail(projectId, UserA).Amount;
             var preSalePrice = projectInfo.PreSalePrice;
+            
+            var balance = projectInfo.CrowdFundingIssueAmount;
+            var approve = _tokenContract.ApproveToken(InitAccount, _idoContract.ContractAddress, balance,
+                projectInfo.ProjectCurrency);
+            var transfer = _tokenContract.TransferBalance(InitAccount, _idoContract.ContractAddress, balance,
+                projectInfo.ProjectCurrency);
+            transfer.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             
             //pre-check
             var userBalance = _tokenContract.GetUserBalance(UserA, projectInfo.ProjectCurrency);
@@ -362,7 +426,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var claimLogs = Claimed.Parser.ParseFrom(ByteString.FromBase64(claimLogStr));
             Logger.Info($"actual transfer balance ({userBalanceAfterClaim.Sub(userBalance)})");
             Logger.Info($"profit calculate ({investAmount.Mul(preSalePrice).Div(100000000)})");
-            Logger.Info($"claimLogs({claimLogs.Amount})({claimLogs.TotalClaimedAmount})({claimLogs.LatestPeriod})({claimLogs.TotalPeriod})");
+            Logger.Info($"claimLogs({claimLogs.Amount})({claimLogs.LatestPeriod})({claimLogs.TotalPeriod})");
             
             claimLogs.Amount.ShouldBe(investAmount.Mul(preSalePrice).Div(100000000));
             claimLogs.LatestPeriod.ShouldBe(1);
@@ -473,7 +537,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectInfo = _idoContract.GetProjectInfo(projectId);
 
             {
-                var unInvest = _idoContract.UnInvest(UserA, projectId);
+                Thread.Sleep(5 * 1000);
+                var unInvest = _idoContract.UnInvest(UserB, projectId);
                 unInvest.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
             }
 
@@ -533,11 +598,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var projectListInfo = _idoContract.GetProjectListInfo(projectId);
             
             //calculate projectcurrency amount need to transafer to idocontract 
-            //（1+流动性锁定比例）* 发行量
-            var balance =
-                projectInfo.CrowdFundingIssueAmount.Mul(projectListInfo.LiquidityLockProportion.Add(ProportionMax)).Div(ProportionMax);
-            Logger.Info($"balance of project token need to transfer to idocontratc({balance}({projectListInfo.LiquidityLockProportion.Div(100)}))");
-
+            var balance = projectInfo.CrowdFundingIssueAmount;
             var approve = _tokenContract.ApproveToken(InitAccount, _idoContract.ContractAddress, balance,
                 projectInfo.ProjectCurrency);
             var transfer = _tokenContract.TransferBalance(InitAccount, _idoContract.ContractAddress, balance,
@@ -911,7 +972,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         }
         
-        private void RegisterWithNullWhitelistId(string acceptedToken, string projectToken, out Hash projectId, bool enableWhitelist = true)
+        private void RegisterWithNullWhitelistId(string acceptedToken, string projectToken, out Hash projectId, bool enableWhitelist = true, int hour = 1)
         {
             var registerInput = CreateRegisterInput(acceptedToken, projectToken, enableWhitelist);
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
@@ -923,7 +984,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
             projectId = registerLogs.ProjectId;
         }
-        private RegisterInput CreateRegisterInput(string acceptedToken, string projectToken, bool enableWhitelist = true, Hash whitelistId = null, int totalPeriod = 1, int firstDistributeProportion = 100_000000, int restDistributeProportion = 0, int periodDuration = 0)
+        private RegisterInput CreateRegisterInput(string acceptedToken, string projectToken, bool enableWhitelist = true, Hash whitelistId = null, int totalPeriod = 1, int firstDistributeProportion = 100_000000, int restDistributeProportion = 0, int periodDuration = 0, int hour = 0)
         {
             var registerInput = new RegisterInput()
             {
@@ -932,8 +993,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 AdditionalInfo = new AdditionalInfo(),
                 CrowdFundingIssueAmount = 1000_00000000, //发行量
                 CrowdFundingType = "标价销售",//众筹类型
-                StartTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 5))),
-                EndTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0,100))),
+                StartTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 3))),
+                EndTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(hour, 0,100))),
                 FirstDistributeProportion = firstDistributeProportion,//首次发放比例
                 PreSalePrice = 20_00000000, //众筹价格 1众筹币换多少个项目币
                 PublicSalePrice = 9_00000000, //公售价格 高于众筹价格5%
@@ -963,25 +1024,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             return registerInput;
         }
-
-        private Hash CreateWhiteList()
-        {
-            var list = new List<Address>{InitAccount.ConvertAddress()};
-            var managerList = new AddressList {Value = {list}};
-            var projectId = HashHelper.ComputeFrom("Test");
-            var result = _whitelistContract.ExecuteMethodWithResult(WhiteListContractMethod.CreateWhitelist, new CreateWhitelistInput()
-            {
-                Creator = _idoContract.Contract,
-                ProjectId = HashHelper.ComputeFrom("Test"),
-                ManagerList = managerList,
-                ExtraInfoList = new ExtraInfoList()
-            });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-
-            var eventStr = GetEventStr(result, "WhitelistCreated");
-            var whitelistInfo = WhitelistCreated.Parser.ParseFrom(ByteString.FromBase64(eventStr));
-            return whitelistInfo.WhitelistId;
-        }
+        
         private string GetTokenPairSymbol(string tokenA, string tokenB)
         {
             var symbols = SortSymbols(tokenA, tokenB);
@@ -993,23 +1036,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var registerLogStr = resultDto.Logs.First(l => l.Name.Equals(eventName)).NonIndexed;
             return registerLogStr;
         }
-        
-        private void CreatePair(string symbolA, string symbolB)
-        {
-            var tokens = SortSymbols(symbolA, symbolB);
-            var pairListCurrent = _awakenSwapContract.GetPairs();
-            if (pairListCurrent.Value.Contains($"{tokens[0]}-{tokens[1]}"))
-                return;
-            
-            _awakenSwapContract.ExecuteMethodWithResult(SwapMethod.CreatePair, new CreatePairInput
-            {
-                SymbolPair = $"{tokens[0]}-{tokens[1]}"
-            });
 
-            var pairList = _awakenSwapContract.GetPairs();
-            pairList.Value.ShouldContain($"{tokens[0]}-{tokens[1]}");
-        }
-        
         private string[] SortSymbols(params string[] symbols)
         {
             return symbols.OrderBy(s => s).ToArray();
@@ -1035,24 +1062,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var symbols = SortSymbols(tokenA, tokenB);
             return $"{symbols[0]}-{symbols[1]}";
         }
-        
-        private void DistributeToken(string symbol,long amount,Address to)
-        {
-            _tokenContract.ExecuteMethodWithResult(TokenMethod.Transfer, new AElf.Contracts.MultiToken.TransferInput
-            {
-                Amount = amount,
-                Symbol = symbol,
-                To = to
-            });
-            
-            var balance = _tokenContract.CallViewMethod<GetBalanceOutput>(TokenMethod.GetBalance, new AElf.Contracts.MultiToken.GetBalanceInput
-            {
-                Symbol = symbol,
-                Owner = to
-            }).Balance;
-            balance.ShouldBe(amount);
-        }
-        
+
         private void IssueBalance(string symbol, long amount, Address toAddress)
         {
             var result = _tokenContract.ExecuteMethodWithResult(TokenMethod.Issue, new IssueInput
@@ -1112,11 +1122,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 foreach (var projectSymbol in ProjectCurrency)
                 {
-                    var createPair = _awakenSwapContract.CreatePair(GetTokenPair(acceptSymbol, projectSymbol), out var pairAddress);
-                    createPair.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-                    var createPairStr = GetEventStr(createPair, "PairCreated");
-                    var createPairLogs = PairCreated.Parser.ParseFrom(ByteString.FromBase64(createPairStr));
-                    Logger.Info($"pair created({createPairLogs.Pair})");
+                    var tokens = SortSymbols(acceptSymbol, projectSymbol);
+                    var pairListCurrent = _awakenSwapContract.GetPairs();
+                    if (!pairListCurrent.Value.Contains($"{tokens[0]}-{tokens[1]}"))
+                    {
+                        var createPair = _awakenSwapContract.CreatePair(GetTokenPair(acceptSymbol, projectSymbol), out var pairAddress);
+                        createPair.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+                        var createPairStr = GetEventStr(createPair, "PairCreated");
+                        var createPairLogs = PairCreated.Parser.ParseFrom(ByteString.FromBase64(createPairStr));
+                        Logger.Info($"pair created({createPairLogs.Pair})");
+                    }
+                    
                 }
             }
         }
@@ -1160,32 +1176,18 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void TestSomething()
         {
-            //IssueBalance("ABC", 100_00000000, _idoContract.Contract);
-            //Logger.Info(_tokenContract.GetUserBalance(_idoContract.ContractAddress, "ABC"));
-            //Logger.Info(_tokenContract.GetUserBalance(_idoContract.ContractAddress, "ELF"));
-            Logger.Info(_tokenContract.GetTokenInfo("ABC"));
-            Logger.Info(_awakenTokenContract.GetTokenInfo(GetTokenPairSymbol("ABC","ELF")));
-            var addLiqStr =
-                "CiIKIMgCU+tuWHMDrzHED9q0HbSlvBE9F8GM2r8hMkaECupCEgNFTEYaA0FCQyCAjI2eAiiA7PWOFDIiCiBn8XAsfEek6lopmDNh6SbKk7k3sOO6hkJLYrPRASHHqzoiCiDPdo8KUVJiyRMkDMapc/eWRscNPB5kecIyBa+iI4ZRukD/o6faBg==";
-            var addLiqLog = LiquidityAdded.Parser.ParseFrom(ByteString.FromBase64(addLiqStr));
-            Logger.Info($"addLiqLog.AmountA {addLiqLog.AmountA}");
-            Logger.Info($"addLiqLog.AmountB {addLiqLog.AmountB}");
-            Logger.Info($"addLiqLog.symbolA {addLiqLog.SymbolA}");
-            Logger.Info($"addLiqLog.symbolB {addLiqLog.SymbolB}");
-            var investStr =
-                "CiIKINipj2TyH+Tc686og8yj8Odu1QpHJFqYvmtrvn1JN+0QEiIKIEd3SsyLE1vlJpi2wuppcZ22if+E+ParyUrw4hZe5YnOGgNFTEYggJTr3AMogJTr3AMyA0FCQziAyK+gJQ==";
-            var investLog = Invested.Parser.ParseFrom(ByteString.FromBase64(investStr));
-            Logger.Info($"projectId({investLog.ProjectId})");
+            var registerStr =
+                "CiIKINAe8Qed6GoL28wP/pRkyHvi8GJLCmdhTLysrs3HA6NmEgVVU0RUVBoGUEVPUExFIgzmoIfku7fplIDllK4ogNDbw/QCMICo1rkHOgsIm8DLlQYQqLjEWkILCPrAy5UGEMi+9lpIgMLXL1CA9rqHCliA0pOtA2IoCiYKIgogC2utqg6ajBBsijb2K27U+RKBWisvYLlXQUGGqbWlRDsQZGg8cgsIxqrNlQYQiIfHW4gBAZABAZoBAKABgOSX0BKqASIKIGfxcCx8R6TqWimYM2HpJsqTuTew47qGQktis9EBIcersAGAwtcv";
+            var registerLog = ProjectRegistered.Parser.ParseFrom(ByteString.FromBase64(registerStr));
+            Logger.Info($"start time ({registerLog.StartTime}) endtime ({registerLog.EndTime})");
 
-            foreach (var i in AcceptedCurrency)
-            {
-                Logger.Info(_tokenContract.GetTokenInfo(i));
-            }
+            var invest =
+                "CiIKIEuaQ2WWbPNRvz80SSWDsIJeoOaywVWD0Vn7PEgYrxOIEiIKIEd3SsyLE1vlJpi2wuppcZ22if+E+ParyUrw4hZe5YnOGgVVU0RUVCCAlOvcAyiAlOvcAzIGUEVPUExFOICQ38BK";
+            var investLog1 = Invested.Parser.ParseFrom(ByteString.FromBase64(invest));
+            Logger.Info($"first invest({investLog1})");
 
-            var projectHex = "28b660f8a87402ec80d7950ea0b57b5ee83e34abda64f176ffa87e284dbd6485";
-            Logger.Info(_idoContract.GetProjectInfo(Hash.LoadFromHex(projectHex)));
-            
-            Logger.Info(_tokenContract.GetUserBalance(_idoContract.ContractAddress, ProjectCurrency[1]));
+            var uninvest = "a44dbfe54e95ffa8d4c116ba83bfc832b289f3801e7f1fdad1da5a78e01910b6";
+
         }
 
     }
