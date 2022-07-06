@@ -14,6 +14,7 @@ namespace AElfChain.Common.Contracts
     {
         //Admin
         Initialize,
+        ReFundAll,
         
         //PM action
         Register,
@@ -35,12 +36,14 @@ namespace AElfChain.Common.Contracts
         ReFund,
         
         //View
+        GetPendingProjectAddress,
         GetProjectInfo,
         GetWhitelistId,
         GetInvestDetail,
         GetProjectListInfo,
         GetProfitDetail,
-        GetLiquidatedDamageDetails
+        GetLiquidatedDamageDetails,
+        GetProjectAddressByProjectHash
     }
 
     public class IdoContract :BaseContract<IdoMethod>
@@ -110,6 +113,11 @@ namespace AElfChain.Common.Contracts
             });
         }
 
+        public TransactionResultDto ReFundAll(string admin, ReFundAllInput input)
+        {
+            var tester = GetNewTester(admin);
+            return tester.ExecuteMethodWithResult(IdoMethod.ReFundAll, input);
+        }
         public TransactionResultDto Withdraw(string creator, Hash projectId)
         {
             var tester = GetNewTester(creator);
@@ -194,7 +202,15 @@ namespace AElfChain.Common.Contracts
         {
             return CallViewMethod<LiquidatedDamageDetails>(IdoMethod.GetLiquidatedDamageDetails, projectId);
         }
-        
-        
+
+        public Address GetPendingProjectAddress(string user)
+        {
+            return CallViewMethod<Address>(IdoMethod.GetPendingProjectAddress, user.ConvertAddress());
+        }
+
+        public Address GetProjectAddressByProjectHash(Hash projectId)
+        {
+            return CallViewMethod<Address>(IdoMethod.GetProjectAddressByProjectHash, projectId);
+        }
     }
 }

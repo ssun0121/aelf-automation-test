@@ -47,10 +47,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
 
         //线下部署 第一套
-        private string awakenTokenAddress = "vqRuJR3LDDMHbrgqaLmsLAhKSQgrbH1r5xrs4aVDx9EezViGF";
-        private string awakenSwapAddress = "62j1oMP2D8y4f6YHHL9WyhdtcFiLhMtrs7tBqXkMwJudz9AY5";
-        private string idoAddress = "c9tMPCqjRDNV3Z4H5Gx4dMn5SbnrYjfA1dD1Bmc8E2ExXSbpH";
-        private string whitelistAddress = "288zpvtQg1Qwz4m3hydPJ6hGDsXUzvQ7tWz41ZYwmKDpYwJeCM";
+        private string awakenTokenAddress = "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS";
+        private string awakenSwapAddress = "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG";
+        private string idoAddress = "2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo";
+        private string whitelistAddress = "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ";
         private string InitAccount { get; } = "nn659b9X1BLhnu5RWmEUbuuV7J9QKVVSN54j9UmeCbF3Dve5D";
         private string UserA { get; } = "YUW9zH5GhRboT5JK4vXp5BLAfCDv28rRmTQwo418FuaJmkSg8";
         private string UserB { get; } = "FHdcx45K5kovWsAKSb3rrdyNPFus8eoJ1XTQE7aXFHTgfpgzN";
@@ -118,16 +118,22 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void Register()
         {
+            var virtualAddress = GetVirtualAddress(InitAccount);
             var registerInput = CreateRegisterInput(AcceptedCurrency[0], ProjectCurrency[0], enableWhitelist:true,firstDistributeProportion:100_000000,hour:1);
+            TransferProjectTokenToVirtualAddress(InitAccount, virtualAddress, registerInput.ProjectCurrency, registerInput.CrowdFundingIssueAmount);
 
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
             //check Register event
             var registerLogs =
                 ProjectRegistered.Parser.ParseFrom(
                     ByteString.FromBase64(GetEventStr(registerResult, "ProjectRegistered")));
             var projectId = registerLogs.ProjectId;
             registerLogs.Creator.ShouldBe(InitAccount.ConvertAddress());
+
+            //check project virtual address
+            _idoContract.GetProjectAddressByProjectHash(projectId).ShouldBe(virtualAddress);
 
             CheckRegisterEventValues(registerLogs, registerInput);
             var projectInfo = _idoContract.GetProjectInfo(projectId);
@@ -145,16 +151,24 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void RegisterMultiPeriodProject()
         {
-            var acceptedToken = AcceptedCurrency[1];
-            var projectToken = ProjectCurrency[1];
-            var registerInput = CreateRegisterInput(acceptedToken, projectToken, totalPeriod:3, firstDistributeProportion:50_000000,restDistributeProportion:25_000000);
-            var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
-            registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
-            //exception test
-            var errorCase = CreateRegisterInput(acceptedToken, projectToken, totalPeriod:3, firstDistributeProportion:50_000000,restDistributeProportion:25_000001);
-            var errorResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, errorCase);
-            errorResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+            {
+                var registerInput = CreateRegisterInput(AcceptedCurrency[1], ProjectCurrency[0], totalPeriod:3, firstDistributeProportion:50_000000,restDistributeProportion:25_000000,periodDuration:600);
+                var virtualAddress = GetVirtualAddress(InitAccount);
+                TransferProjectTokenToVirtualAddress(InitAccount, virtualAddress, registerInput.ProjectCurrency, registerInput.CrowdFundingIssueAmount);
+
+                var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
+                registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            }
+
+            //exception situation: The sum of the percentages is greater than one hundred percent 
+            {
+                var registerInput = CreateRegisterInput(AcceptedCurrency[1], ProjectCurrency[0], totalPeriod:3, firstDistributeProportion:50_000000,restDistributeProportion:25_000001);
+                var virtualAddress = GetVirtualAddress(InitAccount);
+                TransferProjectTokenToVirtualAddress(InitAccount, virtualAddress, registerInput.ProjectCurrency, registerInput.CrowdFundingIssueAmount);
+                var errorResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
+                errorResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
+
+            }
         }
 
         [TestMethod]
@@ -162,10 +176,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             //sender is not token issuer
             _idoContract.SetAccount(UserA);
-            
-            var acceptedToken = "ELF";
-            var projectToken = "ABC";
-            var registerInput = CreateRegisterInput(acceptedToken, projectToken);
+            var registerInput = CreateRegisterInput(AcceptedCurrency[0], ProjectCurrency[1]);
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.NodeValidationFailed);
         }
@@ -173,7 +184,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void UpdateAdditionalInfo()
         {
-            RegisterWithNullWhitelistId("ELF", "ABC", out var projectId);
+            RegisterWithNullWhitelistId(AcceptedCurrency[0], ProjectCurrency[1], out var projectId);
             
             var data = new Dictionary<string, string>();
             data["logo"] = "http://www.project.fake";
@@ -234,9 +245,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void ClaimMultiDamagedLiquidity()
         {
             //register
-            //RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[0],out var projectId, false, hour:1);
+            var virtualAddress = GetVirtualAddress(InitAccount);
             var registerInput = CreateRegisterInput(AcceptedCurrency[0], ProjectCurrency[0], enableWhitelist:false,firstDistributeProportion:100_000000,hour:1);
-
+            TransferProjectTokenToVirtualAddress(InitAccount, virtualAddress, registerInput.ProjectCurrency, registerInput.CrowdFundingIssueAmount);
+            
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -276,7 +288,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void AddOrRemoveWhitelistToProject()
         {
             //create project
-            RegisterWithNullWhitelistId("ELF", "ABC", out var projectId);
+            RegisterWithNullWhitelistId(AcceptedCurrency[1], ProjectCurrency[0], out var projectId);
 
             //add user to whitelist
             var addWhitelistsInput = new AddWhitelistsInput
@@ -318,7 +330,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void Invest()
         {
             //create project
-            RegisterWithNullWhitelistId(AcceptedCurrency[0], ProjectCurrency[0], out var projectId);
+            RegisterWithNullWhitelistId(AcceptedCurrency[0], ProjectCurrency[2], out var projectId);
             var projectInfo = _idoContract.GetProjectInfo(projectId);
             //add whitelist
             var addWhitelistsInput = new AddWhitelistsInput
@@ -351,7 +363,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             investLogs.Amount.ShouldBe(investAmount);
             investLogs.User.ShouldBe(UserA.ConvertAddress());
             investLogs.InvestSymbol.ShouldBe(AcceptedCurrency[0]);
-            investLogs.ProjectCurrency.ShouldBe(ProjectCurrency[0]);
+            investLogs.ProjectCurrency.ShouldBe(ProjectCurrency[2]);
             investLogs.ProjectId.ShouldBe(projectId);
             investLogs.TotalAmount.ShouldBe(investDetail.Amount);
             investLogs.ToClaimAmount.ShouldBe(totalProjectTokenAmount);
@@ -360,21 +372,14 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
         
         [TestMethod]
-        [DataRow("752cb13cd84db9bd147e2ca21e7aa62e4d9a8e42061edda91d335f7746da6e47")]
+        [DataRow("ccc2c72381b0e3509fd548df218cdb1aeca01df2b6ac1a47b465ebf3c2fcf093")]
         public void Claim(string projectHex)
         {
             var projectId = Hash.LoadFromHex(projectHex);
             var projectInfo = _idoContract.GetProjectInfo(projectId);
             var investAmount = _idoContract.GetInvestDetail(projectId, UserA).Amount;
             var preSalePrice = projectInfo.PreSalePrice;
-            
-            var balance = projectInfo.CrowdFundingIssueAmount;
-            var approve = _tokenContract.ApproveToken(InitAccount, _idoContract.ContractAddress, balance,
-                projectInfo.ProjectCurrency);
-            var transfer = _tokenContract.TransferBalance(InitAccount, _idoContract.ContractAddress, balance,
-                projectInfo.ProjectCurrency);
-            transfer.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
+
             //pre-check
             var userBalance = _tokenContract.GetUserBalance(UserA, projectInfo.ProjectCurrency);
             var profitDetail = _idoContract.GetProfitDetail(projectId, UserA);
@@ -517,7 +522,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void UnInvestWithInvalidValue()
         {
-            RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[0],out var projectId, enableWhitelist:false);
+            RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[1],out var projectId, enableWhitelist:false);
             var projectInfo = _idoContract.GetProjectInfo(projectId);
 
             {
@@ -540,7 +545,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void ClaimWhileUnInvest()
         {
             var acceptToken = AcceptedCurrency[1];
-            var projectToken = ProjectCurrency[0];
+            var projectToken = ProjectCurrency[1];
             RegisterWithNullWhitelistId(acceptToken, projectToken, out var projectId, false);
             
             //invest
@@ -561,7 +566,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void UpdateClaimPeriodAtInvalidTime()
         {
-            RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[0],out var projectId, enableWhitelist:false);
+            RegisterWithNullWhitelistId(AcceptedCurrency[0],ProjectCurrency[1],out var projectId, enableWhitelist:false);
             var projectInfo = _idoContract.GetProjectInfo(projectId);
 
             var updatePeriod = _idoContract.NextPeriod(projectId);
@@ -574,7 +579,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void Withdraw()
         {
             //register
-            RegisterWithNullWhitelistId(AcceptedCurrency[0], ProjectCurrency[0], out var projectId);
+            RegisterWithNullWhitelistId(AcceptedCurrency[0], ProjectCurrency[2], out var projectId);
             var projectInfo = _idoContract.GetProjectInfo(projectId);
             var projectListInfo = _idoContract.GetProjectListInfo(projectId);
             
@@ -854,7 +859,41 @@ namespace AElf.Automation.Contracts.ScenarioTest
             GetUserBalance(UserC,ProjectCurrency[0]).Sub(usercbalanceBeforeClaim).ShouldBe(200_00000000);
             
         }
+
+        private Address GetVirtualAddress(string user)
+        {
+            return _idoContract.GetPendingProjectAddress(user);
+        }
+
+        private void TransferProjectTokenToVirtualAddress(string user, Address virtualAddress, string symbol, long amount)
+        {
+            ApproveToken(user, virtualAddress, amount, symbol);
+            TransferBalance(user, virtualAddress, amount,symbol);
+        }
         
+        private void TransferBalance(string from, Address to, long amount, string symbol = "")
+        {
+            _tokenContract.SetAccount(from);
+            var result = _tokenContract.ExecuteMethodWithResult(TokenMethod.Transfer, new TransferInput
+            {
+                Symbol = NodeOption.GetTokenSymbol(symbol),
+                To = to,
+                Amount = amount,
+            });
+
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        private void ApproveToken(string from, Address to, long amount, string symbol = "")
+        {
+            _tokenContract.SetAccount(from);
+            var result = _tokenContract.ExecuteMethodWithResult(TokenMethod.Approve, new ApproveInput
+            {
+                Symbol = NodeOption.GetTokenSymbol(symbol),
+                Amount = amount,
+                Spender = to
+            });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
         private void UnInvest(string user, Hash projectId)
         {
             var unInvest = _idoContract.UnInvest(user, projectId);
@@ -883,7 +922,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
         
         private void RegisterMultiPeriodProjectWithNullWhitelistId(string accepted, string project, out Hash projectId)
         {
+            var virtualAddress = GetVirtualAddress(InitAccount);
             var registerInput = CreateRegisterInput(accepted, project, false, totalPeriod:3, firstDistributeProportion:50_000000,restDistributeProportion:25_000000, periodDuration:30);
+            TransferProjectTokenToVirtualAddress(InitAccount, virtualAddress, registerInput.ProjectCurrency, registerInput.CrowdFundingIssueAmount);
+
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             
@@ -941,7 +983,9 @@ namespace AElf.Automation.Contracts.ScenarioTest
         
         private void RegisterWithNullWhitelistId(string acceptedToken, string projectToken, out Hash projectId, bool enableWhitelist = true, int hour = 1)
         {
+            var virtualAddress = GetVirtualAddress(InitAccount);
             var registerInput = CreateRegisterInput(acceptedToken, projectToken, enableWhitelist);
+            TransferProjectTokenToVirtualAddress(InitAccount, virtualAddress, registerInput.ProjectCurrency, registerInput.CrowdFundingIssueAmount);
             var registerResult = _idoContract.ExecuteMethodWithResult(IdoMethod.Register, registerInput);
             registerResult.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
@@ -960,7 +1004,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 AdditionalInfo = new AdditionalInfo(),
                 CrowdFundingIssueAmount = 1000_00000000,
                 CrowdFundingType = "Sale",
-                StartTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 4))),
+                StartTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(0, 0, 10))),
                 EndTime = Timestamp.FromDateTime(DateTime.UtcNow.Add(new TimeSpan(hour, 0,100))),
                 FirstDistributeProportion = firstDistributeProportion,
                 PreSalePrice = 20_00000000, 
@@ -969,7 +1013,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 MaxSubscription = 27_00000000,
                 IsEnableWhitelist = enableWhitelist,
                 WhitelistId = whitelistId,
-                IsBurnRestToken = true,
+                IsBurnRestToken = false,
                 TotalPeriod = totalPeriod,
                 RestDistributeProportion = restDistributeProportion, 
                 PeriodDuration = periodDuration,
