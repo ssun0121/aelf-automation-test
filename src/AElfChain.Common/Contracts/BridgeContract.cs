@@ -5,23 +5,48 @@ namespace AElfChain.Common.Contracts
     public enum BridgeMethod
     {
         Initialize,
+        ChangeController,
+        ChangeAdmin,
+        ChangeTransactionFeeController,
+        
+        //To AElf
         CreateSwap,
         SwapToken,
         ChangeSwapRatio,
         Deposit,
         Withdraw,
-
-        ChangeMaximalLeafCount,
         
+        //To others
+        AddToken,
+        RemoveToken,
+        CreateReceipt,
+        
+        //Gas Fee
+        SetGasFee,
+        SetGasPrice,
+        SetPriceRatio,
+        SetFeeFloatingRatio,
+        GetGasFee,
+        GetGasPrice,
+        GetPriceRatio,
+        GetFeeFloatingRatio,
+        
+        //View
+        GetReceiptIdInfo,
+        GetOwnerLockReceipt,
+        GetLockTokens,
+        GetReceiptInfo,
+        GetSwapPairInfo,
+
         GetSwapInfo,
         GetSwapAmounts,
-        GetSwapPair,
+        GetRegimentIdBySpaceId,
         GetSwappedReceiptIdList,
-        GetRegimentAddressByRecorderId,
-
-        GetReceiptCount,
-        GetReceiptHash,
-        GetReceiptHashList,
+        GetSwappedReceiptInfoList,
+        GetSpaceIdBySwapId,
+        GetContractController,
+        GetContractAdmin,
+        GetTransactionFeeRatioController
     }
 
     public class BridgeContract : BaseContract<BridgeMethod>

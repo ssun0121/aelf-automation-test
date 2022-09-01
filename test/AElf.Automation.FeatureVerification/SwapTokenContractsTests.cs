@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using AElf.Contracts.Association;
 using AElf.Contracts.Bridge;
-using AElf.Contracts.MerkleTreeGeneratorContract;
+using AElf.Contracts.MerkleTreeContract;
 using AElf.Contracts.MultiToken;
 using AElf.Contracts.ReceiptMakerContract;
 using AElf.Contracts.Regiment;
+using AElf.CSharp.Core;
 using AElf.Standards.ACS3;
 using AElf.Types;
 using AElfChain.Common;
@@ -18,9 +19,8 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MTRecorder;
 using Shouldly;
-using GetMerkleTreeInput = AElf.Contracts.MerkleTreeGeneratorContract.GetMerkleTreeInput;
+using CreateRegimentInput = AElf.Contracts.Regiment.CreateRegimentInput;
 
 namespace AElf.Automation.Contracts.ScenarioTest
 {
@@ -36,20 +36,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private ParliamentContract _parliament;
 
         private OracleContract _oracleContract;
+        private ReportContract _reportContract;
         private BridgeContract _bridgeContract;
-        private MerkleTreeRecorderContract _merkleTreeRecorderContract;
-        private MerkleTreeGeneratorContract _merkleTreeGeneratorContract;
+        private MerkleTreeContract _merkleTreeContract;
         private RegimentContract _regimentContract;
         private Address _stringAggregator;
         private Address _defaultParliament;
 
-        private string TestAccount { get; } = "2R1rgEKkG84XGtbx6fvxExzChaXEyJrfSnvMpuKCGrUFoR5SKz";
+        private string TestAccount { get; } = "";
         //2qjoi1ZxwmH2XqQFyMhykjW364Ce2cBxxRp47zrvZFT4jqW8Ru
         //ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni
         //2R1rgEKkG84XGtbx6fvxExzChaXEyJrfSnvMpuKCGrUFoR5SKz
         //2ExtaRkjDiFhkGH8hwLZYVpRAnXe7awa25C61KVWy47uwnRw4s
-        private string InitAccount { get; } = "2R1rgEKkG84XGtbx6fvxExzChaXEyJrfSnvMpuKCGrUFoR5SKz";
-        private string Admin { get; } = "2ExtaRkjDiFhkGH8hwLZYVpRAnXe7awa25C61KVWy47uwnRw4s";
+        private string InitAccount { get; } = "";
+        private string Admin { get; } = "";
 
         private readonly List<string> _associationMember = new List<string>
         {
@@ -85,12 +85,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         //sr4zX6E7yVVL7HevExVcWv2ru3HSZakhsJMXfzxzfpnXofnZw
         //xsnQafDAhNTeYcooptETqWnYBksFGGXxfcQyJJ5tmu6Ak9ZZt
         //
-        private string _oracleContractAddress = "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG";
-        private string _bridgeContractAddress = "2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo";
-        private string _merkleTreeRecorderContractAddress = "sr4zX6E7yVVL7HevExVcWv2ru3HSZakhsJMXfzxzfpnXofnZw";
-        private string _merkleTreeGeneratorContractAddress = "xsnQafDAhNTeYcooptETqWnYBksFGGXxfcQyJJ5tmu6Ak9ZZt";
-        private string _regimentContractAddress = "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ";
-        private string _stringAggregatorAddress = "2nyC8hqq3pGnRu8gJzCsTaxXB6snfGxmL2viimKXgEfYWGtjEh";
+        private string _oracleContractAddress = "";
+        private string _reportContractAddress = "";
+        private string _bridgeContractAddress = "";
+        private string _merkleTreeAddress = "";
+        private string _regimentContractAddress = "";
+        private string _stringAggregatorAddress = "";
         
         // private string _oracleContractAddress = "2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS";
         // private string _bridgeContractAddress = "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG";
@@ -109,11 +109,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private readonly bool isNeedCreate = false;
         //DKQJtqZDqCfUDFPysHqqDeZNHdzHBmKTZe1bedcRnY5B147Go
         private string _regiment = "DKQJtqZDqCfUDFPysHqqDeZNHdzHBmKTZe1bedcRnY5B147Go";
+        private string _regimentId = "";
         private long payment = 0;
         private int maximalLeafCount = 1024;
-        private string ETHELFPairId = "bb16f381b0f2e795a988285dec3a68affacdccd7d3ac2e74edc808c102efcd95";
-        private string ETHUSDTPairId = "";
-        private string BSCPairId = "77b29565b24c6d4fdcab2d9d192f08354b68f37b06b82c7d3656f349056da0d4";
+        private string ETHELFSwapId = "";
+        private string ETHUSDTSwapId = "";
+        private string BSCSwapId = "";
         //bb16f381b0f2e795a988285dec3a68affacdccd7d3ac2e74edc808c102efcd95
         //caaa8140bb484e1074872350687df0b1262436cdec3042539e78eb615b376d5e
         //03ccf1c18a7a82391f936ce58db7ee4b6fd9eca4a1ae7ee930f4a750a0a5653a
@@ -136,15 +137,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _oracleContract = _oracleContractAddress == ""
                 ? new OracleContract(NodeManager, InitAccount)
                 : new OracleContract(NodeManager, InitAccount, _oracleContractAddress);
+            _reportContract = _reportContractAddress == ""
+                ? new ReportContract(NodeManager, InitAccount)
+                : new ReportContract(NodeManager, InitAccount, _reportContractAddress);
             _bridgeContract = _bridgeContractAddress == ""
                 ? new BridgeContract(NodeManager, InitAccount)
                 : new BridgeContract(NodeManager, InitAccount, _bridgeContractAddress);
-            _merkleTreeRecorderContract = _merkleTreeRecorderContractAddress == ""
-                ? new MerkleTreeRecorderContract(NodeManager, InitAccount)
-                : new MerkleTreeRecorderContract(NodeManager, InitAccount, _merkleTreeRecorderContractAddress);
-            _merkleTreeGeneratorContract = _merkleTreeGeneratorContractAddress == ""
-                ? new MerkleTreeGeneratorContract(NodeManager, InitAccount)
-                : new MerkleTreeGeneratorContract(NodeManager, InitAccount, _merkleTreeGeneratorContractAddress);
+            _merkleTreeContract = _merkleTreeAddress == ""
+                ? new MerkleTreeContract(NodeManager, InitAccount)
+                : new MerkleTreeContract(NodeManager, InitAccount, _merkleTreeAddress);
             _regimentContract = _regimentContractAddress == ""
                 ? new RegimentContract(NodeManager, InitAccount)
                 : new RegimentContract(NodeManager, InitAccount, _regimentContractAddress);
@@ -213,9 +214,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 {
                     OracleContractAddress = _oracleContract.Contract,
                     RegimentContractAddress = _regimentContract.Contract,
-                    MerkleTreeRecorderContractAddress = _merkleTreeRecorderContract.Contract,
-                    MerkleTreeGeneratorContractAddress = _merkleTreeGeneratorContract.Contract,
-                    MerkleTreeLeafLimit = maximalLeafCount
+                    MerkleTreeContractAddress = _merkleTreeContract.Contract,
+                    ReportContractAddress = _reportContract.Contract
                 });
             initializeBridge.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
             Logger.Info(_oracleContract.CallViewMethod<Address>(OracleMethod.GetController,new Empty()));
@@ -241,9 +241,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var regimentCreated = RegimentCreated.Parser.ParseFrom(ByteString.FromBase64(logEventDto));
             Logger.Info($"Manager: {regimentCreated.Manager}\n" +
                         $"Create Time: {regimentCreated.CreateTime}\n" +
-                        $"Regiment Address: {regimentCreated.RegimentAddress}\n");
+                        $"Regiment Address: {regimentCreated.RegimentAddress}\n" +
+                        $"Regiment Id: {regimentCreated.RegimentId}");
             regimentCreated.Manager.ShouldBe(_oracleContract.CallAccount);
             regimentCreated.Manager.ShouldBe(Admin.ConvertAddress());
+            var regimentId = HashHelper.ComputeFrom(regimentCreated.RegimentAddress);
+            regimentId.ShouldBe(regimentCreated.RegimentId);
+
         }
 
         #region bridge
@@ -251,8 +255,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void ChangeSwapRatio()
         {
-            var pairId = BSCPairId;
-            var pairIdHash = Hash.LoadFromHex(pairId);
+            var swapId = ETHELFSwapId;
+            var pairIdHash = Hash.LoadFromHex(swapId);
             _bridgeContract.SetAccount(Admin);
             var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.ChangeSwapRatio, new ChangeSwapRatioInput
             {
@@ -276,51 +280,53 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 TargetShare = 1
             };
             var depositAmount = 100_00000000;
-            var originTokenSizeInByte = 32;
             var symbol = SwapSymbol;
+            var fromChainId = "Kovan";
             _tokenContract.TransferBalance(InitAccount, Admin, depositAmount * 2, symbol);
             _tokenContract.ApproveToken(Admin, _bridgeContractAddress, depositAmount, symbol);
             var balance = _tokenContract.GetUserBalance(Admin, symbol);
             _bridgeContract.SetAccount(Admin);
             var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.CreateSwap, new CreateSwapInput
             {
-                OriginTokenNumericBigEndian = true,
-                OriginTokenSizeInByte = originTokenSizeInByte,
-                RegimentAddress = _regiment.ConvertAddress(),
+                RegimentId = Hash.LoadFromHex(_regimentId),
+                MerkleTreeLeafLimit = 1024,
                 SwapTargetTokenList =
                 {
                     new SwapTargetToken
                     {
-                        DepositAmount = depositAmount,
+                        FromChainId = fromChainId,
                         SwapRatio = swapRatio,
-                        TargetTokenSymbol = symbol
+                        Symbol = symbol
                     }
                 }
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            var pairId = Hash.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
-            var swapId = SwapPairAdded.Parser
-                .ParseFrom(ByteString.FromBase64(result.Logs.First(l => l.Name.Contains(nameof(SwapPairAdded)))
-                    .NonIndexed))
-                .SwapId;
-            var recorder = Recorder.Parser.ParseFrom(ByteString.FromBase64(result.Logs
-                .First(l => l.Name.Contains(nameof(RecorderCreated)))
-                .NonIndexed));
-            Logger.Info($"{pairId}");
+            var swapId = Hash.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
+            var swapLogs = SwapInfoAdded.Parser
+                .ParseFrom(ByteString.FromBase64(result.Logs.First(l => l.Name.Contains(nameof(SwapInfoAdded)))
+                    .NonIndexed));
+            swapLogs.SwapId.ShouldBe(swapId);
             
-            pairId.ShouldBe(swapId);
-            recorder.Admin.ShouldBe(_bridgeContract.Contract);
-            recorder.MaximalLeafCount.ShouldBe(maximalLeafCount);
+            var space = SpaceCreated.Parser.ParseFrom(ByteString.FromBase64(result.Logs
+                .First(l => l.Name.Contains(nameof(SpaceCreated)))
+                .NonIndexed));
+            Logger.Info(space);
+            Logger.Info($"{swapId.ToHex()}");
+            
             var afterBalance = _tokenContract.GetUserBalance(Admin, symbol);
             afterBalance.ShouldBe(balance - depositAmount);
             
-            var swapPair = GetSwapPair(swapId,symbol);
+            var swapPair = GetSwapPairInfo(swapId.ToHex(),symbol);
             swapPair.DepositAmount.ShouldBe(depositAmount);
             swapPair.SwappedAmount.ShouldBe(0);
             swapPair.SwappedTimes.ShouldBe(0);
-            swapPair.SwapRatio.ShouldBe(swapRatio);
-            swapPair.TargetTokenSymbol.ShouldBe(symbol);
-            swapPair.OriginTokenSizeInByte.ShouldBe(originTokenSizeInByte);
+            var swapInfo = GetSwapInfo(swapId.ToHex());
+            swapInfo.RegimentId.ShouldBe(Hash.LoadFromHex(_regimentId));
+            swapInfo.SwapTargetTokenList.First().Symbol.ShouldBe(symbol);
+            swapInfo.SwapTargetTokenList.First().SwapRatio.ShouldBe(swapRatio);
+            swapInfo.SwapTargetTokenList.First().FromChainId.ShouldBe(fromChainId);
+            Logger.Info(swapPair);
+            Logger.Info(swapInfo);
         }
 
         [TestMethod]
@@ -328,10 +334,13 @@ namespace AElf.Automation.Contracts.ScenarioTest
         {
             var sender = "zptx91dhHVJjJRxf5Wg5KAoMrDrWX6i1H2FAyKAiv2q8VZfbg";
             var receiveAddress = sender;
-            var pairId = ETHUSDTPairId;
+            var swapId= ETHELFSwapId;
             var swapSymbol = UsdSymbol;
             var originAmount = "80000000";
-            var receiptId = 7;
+            var receiptId = "";
+            var swapInfo = GetSwapInfo(swapId);
+            var chainId = swapInfo.SwapTargetTokenList.First().FromChainId;
+            var depositAmount = GetSwapPairInfo(swapId, Symbol).DepositAmount;
             var balance = _tokenContract.GetUserBalance(receiveAddress, swapSymbol);
             // var expectedAmount = long.Parse(originAmount.Substring(0, originAmount.Length - 10));
             // var expectedAmount = Convert.ToInt64(long.Parse(originAmount.Substring(0, originAmount.Length - 10))*1.05);            
@@ -342,10 +351,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 OriginAmount = originAmount,
                 ReceiptId = receiptId,
-                SwapId = Hash.LoadFromHex(pairId),
-                
+                SwapId = Hash.LoadFromHex(swapId)
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var swapLogs = result.Logs.First(l => l.Name.Equals(nameof(TokenSwapped)));
+            var tokenSwapped = TokenSwapped.Parser.ParseFrom(ByteString.FromBase64(swapLogs.NonIndexed));
+            tokenSwapped.Address.ShouldBe(receiveAddress.ConvertAddress());
+            tokenSwapped.Amount.ShouldBe(expectedAmount);
+            tokenSwapped.Symbol.ShouldBe(swapSymbol);
+            tokenSwapped.ReceiptId.ShouldBe(receiptId);
+            tokenSwapped.FromChainId.ShouldBe(chainId);
+            
             var logs = result.Logs.First(l => l.Name.Equals(nameof(Transferred)));
             var amount = Transferred.Parser.ParseFrom(ByteString.FromBase64(logs.NonIndexed)).Amount;
             amount.ShouldBe(expectedAmount);
@@ -355,17 +371,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
             var checkAmount = _bridgeContract.CallViewMethod<SwapAmounts>(BridgeMethod.GetSwapAmounts, new GetSwapAmountsInput
             {
-                SwapId = Hash.LoadFromHex(pairId),
+                SwapId = Hash.LoadFromHex(swapId),
                 ReceiptId = receiptId
             });
             checkAmount.Receiver.ShouldBe(receiveAddress.ConvertAddress());
             checkAmount.ReceivedAmounts[swapSymbol].ShouldBe(expectedAmount);
             
+            var afterDepositAmount = GetSwapPairInfo(swapId, Symbol).DepositAmount;
+            afterDepositAmount.ShouldBe(depositAmount.Sub(tokenSwapped.Amount));
+            
             var checkSwappedReceiptIdList = _bridgeContract.CallViewMethod<ReceiptIdList>(BridgeMethod.GetSwappedReceiptIdList,
                 new GetSwappedReceiptIdListInput
                 {
                     ReceiverAddress = receiveAddress.ConvertAddress(),
-                    SwapId = Hash.LoadFromHex(pairId)
+                    SwapId = Hash.LoadFromHex(swapId)
                 });
             checkSwappedReceiptIdList.Value.ShouldContain(receiptId);
             Logger.Info(expectedAmount);
@@ -374,16 +393,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void CheckManager()
         {
-            var pairId = BSCPairId;
-            var pairIdHash = Hash.LoadFromHex(pairId);
-            var swapPairInfo =
-                _bridgeContract.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, pairIdHash);
-            var manager =
-                _regimentContract.CallViewMethod<RegimentInfo>(RegimentMethod.GetRegimentInfo,
-                    swapPairInfo.RegimentAddress).Manager ;
+            var swapId = ETHELFSwapId;
+            var swapIdHash = Hash.LoadFromHex(swapId);
+            var manager = GetRegimentManger(swapId);
             Logger.Info(manager.ToBase58());
-            var swapPair = _bridgeContract.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = pairIdHash, TargetTokenSymbol = SwapSymbol});
+            var swapPair = _bridgeContract.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+                {SwapId = swapIdHash, Symbol = SwapSymbol});
             Logger.Info(swapPair.DepositAmount);
         }
 
@@ -391,58 +406,49 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void Deposit()
         {
             var depositAmount = 1000000_00000000;
-            var pairId = BSCPairId;
+            var swapId = ETHELFSwapId;
             var token = SwapSymbol;
-            var pairIdHash = Hash.LoadFromHex(pairId);     
+            var swapIdHash = Hash.LoadFromHex(swapId);     
             // _tokenContract.IssueBalance(InitAccount, Admin, depositAmount, token);
-
-            var swapPairInfo =
-                _bridgeContract.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, pairIdHash);
-            var manager =
-                _regimentContract.CallViewMethod<RegimentInfo>(RegimentMethod.GetRegimentInfo,
-                    swapPairInfo.RegimentAddress).Manager ;
-            var swapPair = _bridgeContract.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = pairIdHash, TargetTokenSymbol = token});
+            
+            var manager = GetRegimentManger(swapId);
+            var swapPair = GetSwapPairInfo(swapId, Symbol);
             _tokenContract.ApproveToken(manager.ToBase58(), _bridgeContractAddress, depositAmount, token);
 
             _bridgeContract.SetAccount(manager.ToBase58());
             var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.Deposit, new DepositInput
             {
-                SwapId = pairIdHash,
+                SwapId = swapIdHash,
                 TargetTokenSymbol = token,
                 Amount = depositAmount
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            
-            var afterSwapPair = _bridgeContract.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = pairIdHash, TargetTokenSymbol = token});
+
+            var afterSwapPair = GetSwapPairInfo(swapId, Symbol);
             afterSwapPair.DepositAmount.ShouldBe(swapPair.DepositAmount + depositAmount);
         }
 
         [TestMethod]
         public void Withdraw()
         {
-            var pairId = ETHUSDTPairId;
-            var pairIdHash = Hash.LoadFromHex(pairId);
+            var swapId = ETHELFSwapId;
+            var swapIdHash = Hash.LoadFromHex(swapId);
             var symbol = UsdSymbol;
             var swapPairInfo =
-                _bridgeContract.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, pairIdHash);
-            var manager =
-                _regimentContract.CallViewMethod<RegimentInfo>(RegimentMethod.GetRegimentInfo, swapPairInfo.RegimentAddress).Manager;
-            var swapPair = _bridgeContract.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = pairIdHash, TargetTokenSymbol = symbol});
+                _bridgeContract.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, swapIdHash);
+            var manager = GetRegimentManger(swapId);
+            var swapPair = GetSwapPairInfo(swapId, symbol);
 
             var managerBalance = _tokenContract.GetUserBalance(manager.ToBase58(), symbol);
             var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.Withdraw,new WithdrawInput
             {
-                SwapId = pairIdHash,
+                SwapId = swapIdHash,
                 Amount = swapPair.DepositAmount,
                 TargetTokenSymbol = symbol
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            var afterSwapPair = _bridgeContract.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = pairIdHash, TargetTokenSymbol = symbol});
+            var afterSwapPair = GetSwapPairInfo(swapId, symbol);
             afterSwapPair.DepositAmount.ShouldBe(0);
 
             var afterManagerBalance = _tokenContract.GetUserBalance(manager.ToBase58(), symbol);
@@ -450,209 +456,186 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void GetReceiptHash()
+        public void GetReceiptIdInfo()
         {
-            var receiptHash = _bridgeContract.CallViewMethod<Hash>(BridgeMethod.GetReceiptHash, new Int64Value{Value = 174});
-            Logger.Info(receiptHash.ToHex());
+            var receiptId = "";
+            var receiptInfo = _bridgeContract.CallViewMethod<ReceiptIdInfo>(BridgeMethod.GetReceiptIdInfo, Hash.LoadFromHex(receiptId));
+            Logger.Info(receiptInfo);
         }
 
         [TestMethod]
-        public void GetReceiptHashList()
+        public void GetReceiptHashListInfo()
         {
-            var receiptHashList =
-                _bridgeContract.CallViewMethod<GetReceiptHashListOutput>(BridgeMethod.GetReceiptHashList, new GetReceiptHashListInput
+            var swapId = ETHELFSwapId;
+            var receiver = "";
+            var receiptIdList =
+                _bridgeContract.CallViewMethod<ReceiptIdList>(BridgeMethod.GetSwappedReceiptIdList, 
+                    new GetSwappedReceiptIdListInput
                 {
-                    FirstLeafIndex = 0,
-                    LastLeafIndex = 599
+                   SwapId = Hash.LoadFromHex(swapId),
+                   ReceiverAddress = Address.FromBase58(receiver)
                 });
-            Logger.Info(receiptHashList.ReceiptHashList.Count);
+            Logger.Info(receiptIdList);
+            
+            var receiptInfoList =
+                _bridgeContract.CallViewMethod<ReceiptInfoList>(BridgeMethod.GetSwappedReceiptInfoList, 
+                    new GetSwappedReceiptInfoListInput
+                    {
+                        SwapId = Hash.LoadFromHex(swapId),
+                        ReceiverAddress = Address.FromBase58(receiver)
+                    });
+            Logger.Info(receiptInfoList);
+            
         }
 
         #endregion
 
-        #region Merkle
+         #region Merkle
 
-        /*
-        //Generator
-        GetReceiptMaker,
-        GetMerkleTree,
-        GetFullTreeCount,
-        GetMerklePath
-        //Recorder
-        GetRecorder,
-        GetMerkleTree,
-        MerkleProof,
-        GetOwner,
-        GetRecorderCount,
-        GetLeafLocatedMerkleTree,
-        GetLastRecordedLeafIndex,
-        GetSatisfiedTreeCount
-         */
+         /*
+             ConstructMerkleTree,
+             GetMerklePath,
+             MerkleProof,
+             GetRegimentSpaceCount,
+             GetRegimentSpaceIdList,
+             GetSpaceInfo,
+             GetMerkleTreeByIndex,
+             GetMerkleTreeCountBySpace,
+             GetLastMerkleTreeIndex,
+             GetLastLeafIndex,
+             GetFullTreeCount,
+             GetLeafLocatedMerkleTree,
+             GetRemainLeafCount
 
-        [TestMethod]
-        public void GetLastRecordedLeafIndex_GetLocatedMerkleTree()
-        {
-            var leaf = _merkleTreeRecorderContract.CallViewMethod<Int64Value>(MerkleTreeRecorderMethod.GetLastRecordedLeafIndex, 
-                new RecorderIdInput { RecorderId = 1 });
-            Logger.Info(leaf);
-            var localTree = _merkleTreeRecorderContract.CallViewMethod<GetLeafLocatedMerkleTreeOutput>(
-                MerkleTreeRecorderMethod.GetLeafLocatedMerkleTree, new GetLeafLocatedMerkleTreeInput
-                {
-                    LeafIndex = leaf.Value,
-                    RecorderId = 1
-                });
-            Logger.Info(localTree);
-        }
+          */
 
-        [TestMethod]
-        public void GetMerkleTree()
-        {
-            var recorderId = 2;
+         [TestMethod]
+         public void GetRegimentInfo()
+         {
+             var swapId = ETHELFSwapId;
+             var regimentId = GetRegimentId(swapId);
+             var spaceCount = _merkleTreeContract.CallViewMethod<Int64Value>(MerkleTreeMethod.GetRegimentSpaceCount, regimentId);
+             var regimentSpaceIdList = _merkleTreeContract.CallViewMethod<HashList>(MerkleTreeMethod.GetRegimentSpaceIdList, regimentId);
+             regimentSpaceIdList.Value.Count.ShouldBe((int)spaceCount.Value);
+             var spaceInfo = _merkleTreeContract.CallViewMethod<SpaceInfo>(MerkleTreeMethod.GetRegimentSpaceCount, regimentId);
+             spaceInfo.Operators.ShouldBe(regimentId);
+         }
 
-            var receiptCount = _bridgeContract.CallViewMethod<Int64Value>(BridgeMethod.GetReceiptCount, new Int64Value {Value = recorderId});
-            Logger.Info(receiptCount.Value);
-            var leaf = _merkleTreeRecorderContract.CallViewMethod<Int64Value>(MerkleTreeRecorderMethod.GetLastRecordedLeafIndex, 
-                new RecorderIdInput { RecorderId = recorderId });
-            var localTree = _merkleTreeRecorderContract.CallViewMethod<GetLeafLocatedMerkleTreeOutput>(
-                MerkleTreeRecorderMethod.GetLeafLocatedMerkleTree, new GetLeafLocatedMerkleTreeInput
-                {
-                    LeafIndex = leaf.Value,
-                    RecorderId = recorderId
-                });
-            Logger.Info(localTree);
-            
-            receiptCount.Value.ShouldBe(leaf.Value + 1);
+         [TestMethod]
+         public void GetMerkleTree()
+         {
+             var swapId = ETHELFSwapId;
+             var spaceId = GetSpaceId(swapId);
+             
+             var leaf = _merkleTreeContract.CallViewMethod<Int64Value>(MerkleTreeMethod.GetLastLeafIndex, 
+                 new GetLastLeafIndexInput { SpaceId = spaceId });
+             Logger.Info($"Last leaf index: {leaf.Value}");
+             var fullTree = _merkleTreeContract.CallViewMethod<Int64Value>(MerkleTreeMethod.GetFullTreeCount, spaceId);
+             Logger.Info($"Full Tree count: {fullTree.Value}");
 
-            var fullTree = _merkleTreeGeneratorContract.CallViewMethod<Int64Value>(
-                MerkleTreeGeneratorMethod.GetFullTreeCount,
-                new GetFullTreeCountInput
-                {
-                    RecorderId = recorderId,
-                    ReceiptMaker = _bridgeContract.Contract
-                });
-            Logger.Info(fullTree.Value);
-            var merkle = _merkleTreeGeneratorContract.CallViewMethod<GetMerkleTreeOutput>(MerkleTreeGeneratorMethod.GetMerkleTree,
-                new GetMerkleTreeInput
-                {
-                    RecorderId = recorderId,
-                    ReceiptMakerAddress = _bridgeContract.Contract,
-                    ExpectedFullTreeIndex = fullTree.Value
-                });
-            merkle.IsFullTree.ShouldBeFalse();
-            merkle.FirstIndex.ShouldBe(localTree.FirstLeafIndex);
-            merkle.LastIndex.ShouldBe(leaf.Value);
+             var localTree = _merkleTreeContract.CallViewMethod<GetLeafLocatedMerkleTreeOutput>(
+                 MerkleTreeMethod.GetLeafLocatedMerkleTree, new GetLeafLocatedMerkleTreeInput
+                 {
+                     LeafIndex = leaf.Value,
+                     SpaceId = spaceId
+                 });
+             Logger.Info(localTree);
+             leaf.Value.Div(maximalLeafCount).ShouldBe(localTree.MerkleTreeIndex);
+             localTree.FirstLeafIndex.ShouldBe(localTree.MerkleTreeIndex.Mul(maximalLeafCount));
+             localTree.LastLeafIndex.ShouldBe(localTree.FirstLeafIndex.Add(maximalLeafCount - 1));
+             localTree.SpaceId.ShouldBe(spaceId);
 
-            var merkleTree =
-                _merkleTreeRecorderContract.CallViewMethod<MTRecorder.MerkleTree>(MerkleTreeRecorderMethod.GetMerkleTree,
-                    new MTRecorder.GetMerkleTreeInput
-                    {
-                        RecorderId = recorderId,
-                        LastLeafIndex = leaf.Value,
-                    });
-            merkleTree.FirstLeafIndex.ShouldBe(merkle.FirstIndex);
-            merkleTree.LastLeafIndex.ShouldBe(merkle.LastIndex);
-            merkleTree.MerkleTreeRoot.ShouldBe(merkle.MerkleTreeRoot);
-        }
+             var lastMerkleTreeIndex =
+                 _merkleTreeContract.CallViewMethod<Int64Value>(MerkleTreeMethod.GetLastMerkleTreeIndex, spaceId);
+             lastMerkleTreeIndex.Value.ShouldBe(localTree.MerkleTreeIndex);
+         }
 
-        [TestMethod]
-        public void GetMerkleTreePath()
-        {
-            var recorderId = 1;
-            var receiptCount = _bridgeContract.CallViewMethod<Int64Value>(BridgeMethod.GetReceiptCount, new Int64Value{Value = recorderId} );
-            Logger.Info(receiptCount.Value);
-            var leaf = _merkleTreeRecorderContract.CallViewMethod<Int64Value>(MerkleTreeRecorderMethod.GetLastRecordedLeafIndex, 
-                new RecorderIdInput { RecorderId = recorderId });
-            var maker = _merkleTreeGeneratorContract.CallViewMethod<GetReceiptMakerOutput>(
-                MerkleTreeGeneratorMethod.GetReceiptMaker, _bridgeContract.Contract);
-            var merkleTree =
-                _merkleTreeRecorderContract.CallViewMethod<MTRecorder.MerkleTree>(MerkleTreeRecorderMethod.GetMerkleTree,
-                    new MTRecorder.GetMerkleTreeInput
-                    {
-                        RecorderId = recorderId,
-                        LastLeafIndex = receiptCount.Value - 1
-                    });
-            Logger.Info($"{leaf.Value} {merkleTree.FirstLeafIndex} {merkleTree.LastLeafIndex}");
-            long id = 7;
-            var merklePath = _merkleTreeGeneratorContract.CallViewMethod<MerklePath>(MerkleTreeGeneratorMethod.GetMerklePath,
-                new GetMerklePathInput
-                {
-                    ReceiptId = id,
-                    FirstLeafIndex = 0,
-                    LastLeafIndex = receiptCount.Value - 1,
-                    ReceiptMaker = maker.ReceiptMakerAddress,
-                    RecorderId = recorderId
-                });
-            
-            for (var i = 0; i < receiptCount.Value; i++)
-            { 
-                var receiptHash = _bridgeContract.CallViewMethod<Hash>(BridgeMethod.GetReceiptHash, new GetReceiptHashInput
-                {
-                    RecorderId = recorderId,
-                    ReceiptId = i
-                });  
-                Logger.Info(receiptHash.ToHex());
-            }
-            var firstHash = _bridgeContract.CallViewMethod<Hash>(BridgeMethod.GetReceiptHash, new GetReceiptHashInput
-            {
-                RecorderId = recorderId,
-                ReceiptId = id
-            });  
-            
-            var root = merklePath.ComputeRootWithLeafNode(firstHash);
-            root.ShouldBe(merkleTree.MerkleTreeRoot);
-            
-            var merkleProof =
-                _merkleTreeRecorderContract.CallViewMethod<BoolValue>(MerkleTreeRecorderMethod.MerkleProof,
-                    new MerkleProofInput
-                    {
-                        RecorderId = recorderId,
-                        MerklePath = merklePath,
-                        LeafNode = firstHash,
-                        LastLeafIndex = receiptCount.Value - 1
-                    });
-            merkleProof.Value.ShouldBeTrue();
-        }
+         [TestMethod]
+         public void GetMerkleTreePath()
+         {
+             var swapId = ETHELFSwapId;
+             var spaceId = GetSpaceId(swapId);
+             var receiver = "";
+             var leaf = _merkleTreeContract.CallViewMethod<Int64Value>(MerkleTreeMethod.GetLastLeafIndex, 
+                 new GetLastLeafIndexInput { SpaceId = spaceId });
 
-        #endregion
+             var localTree = _merkleTreeContract.CallViewMethod<GetLeafLocatedMerkleTreeOutput>(
+                 MerkleTreeMethod.GetLeafLocatedMerkleTree, new GetLeafLocatedMerkleTreeInput
+                 {
+                     LeafIndex = leaf.Value,
+                     SpaceId = spaceId
+                 });
+             Logger.Info(localTree);
+             leaf.Value.Div(maximalLeafCount).ShouldBe(localTree.MerkleTreeIndex);
+             localTree.FirstLeafIndex.ShouldBe(localTree.MerkleTreeIndex.Mul(maximalLeafCount));
+             localTree.LastLeafIndex.ShouldBe(localTree.FirstLeafIndex.Add(maximalLeafCount - 1));
+             localTree.SpaceId.ShouldBe(spaceId);
 
-        [TestMethod]
-        public void GetReceiptCount()
-        {
-            var receiptCount = _bridgeContract.CallViewMethod<Int64Value>(BridgeMethod.GetReceiptCount, new Int64Value{Value = 2});
-            var maker = _merkleTreeGeneratorContract.CallViewMethod<GetReceiptMakerOutput>(
-                MerkleTreeGeneratorMethod.GetReceiptMaker, _bridgeContract.Contract);
-            maker.ReceiptMakerAddress.ShouldBe(_bridgeContract.Contract);
-            Logger.Info(receiptCount);
-            Logger.Info(maker);
-        }
+             var receiptInfos = _bridgeContract.CallViewMethod<ReceiptInfoList>(BridgeMethod.GetSwappedReceiptInfoList,
+                 new GetSwappedReceiptInfoListInput
+                 {
+                     ReceiverAddress = Address.FromBase58(receiver),
+                     SwapId = Hash.LoadFromHex(swapId)
+                 });
+             var receiptId = receiptInfos.Value.First().ReceiptId;
+             TryGetReceiptIndex(receiptId, out var receiptIndex);
+             
+             var merklePath = _merkleTreeContract.CallViewMethod<MerklePath>(MerkleTreeMethod.GetMerklePath,
+                 new GetMerklePathInput
+                 {
+                     SpaceId = spaceId,
+                     LeafNodeIndex = receiptIndex - 1,
+                     ReceiptMaker = Address.FromBase58(receiver)
+                 });
+             
+             // var firstHash = _bridgeContract.CallViewMethod<Hash>(BridgeMethod.GetReceiptHash, new GetReceiptHashInput
+             // {
+             //     RecorderId = recorderId,
+             //     ReceiptId = id
+             // });  
+             //
+             // var root = merklePath.ComputeRootWithLeafNode(firstHash);
+             // root.ShouldBe(localTree.MerkleTreeRoot);
+             //
+             // var merkleProof =
+             //     _merkleTreeContract.CallViewMethod<BoolValue>(MerkleTreeMethod.MerkleProof,
+             //         new MerkleProofInput
+             //         {
+             //             SpaceId = spaceId,
+             //             MerklePath = merklePath,
+             //             LeafNode = firstHash,
+             //             LastLeafIndex = receiptCount.Value - 1
+             //         });
+             // merkleProof.Value.ShouldBeTrue();
+         }
+
+         #endregion
+        
 
         [TestMethod]
         public void GetSwappedReceiptIdList()
         {
             var sender = "WRRiSjFdJjivFN4ZGcQswAd45foLH4jusNi2HYb35D6CtwGVL";
 
-            var pairId = BSCPairId;
-            var pairIdHash = Hash.LoadFromHex(pairId);  
+            var swapId = ETHELFSwapId;
+            var swapIdHash = Hash.LoadFromHex(swapId);  
             var list = _bridgeContract.CallViewMethod<ReceiptIdList>(BridgeMethod.GetSwappedReceiptIdList,
                 new GetSwappedReceiptIdListInput
                 {
                     ReceiverAddress = sender.ConvertAddress(),
-                    SwapId = pairIdHash
+                    SwapId = swapIdHash
                 });
             Logger.Info(list);
         }
 
         [TestMethod]
-        public void GetSwapInfo()
+        public SwapInfo GetSwapInfo(string swapId)
         {
-            var pairId = BSCPairId;
             var swapSymbol = SwapSymbol;
-            var pairIdHash = Hash.LoadFromHex(pairId);  
+            var pairIdHash = Hash.LoadFromHex(swapId);  
             var info = _bridgeContract.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, pairIdHash);
             Logger.Info(info);
-            var swapPair = _bridgeContract.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = pairIdHash, TargetTokenSymbol = swapSymbol});
-            Logger.Info(swapPair);
+            return info;
         }
 
         [TestMethod]
@@ -676,36 +659,54 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _tokenContract.ApproveToken(_associationMember.First(), _oracleContract.ContractAddress, 100000000, Symbol);
         }
 
-        [TestMethod]
-        public void GetRecord()
+        private Hash GetSpaceId(string swapId)
         {
-            var recorderId = 1;
-            var record =
-                _merkleTreeRecorderContract.CallViewMethod<Recorder>(MerkleTreeRecorderMethod.GetRecorder,
-                    new RecorderIdInput {RecorderId = recorderId});
-            Logger.Info(record);
-            var getLastRecordedLeafIndex =
-                _merkleTreeRecorderContract.CallViewMethod<Int64Value>(
-                    MerkleTreeRecorderMethod.GetLastRecordedLeafIndex, new RecorderIdInput
-                    { RecorderId = recorderId });
-            Logger.Info(getLastRecordedLeafIndex);
+            var spaceId =
+                _bridgeContract.CallViewMethod<Hash>(BridgeMethod.GetSpaceIdBySwapId,Hash.LoadFromHex(swapId));
+            Logger.Info(spaceId.ToHex());
+            return spaceId;
         }
 
-        [TestMethod]
-        public void Check()
+        private Hash GetRegimentId(string swapId)
         {
-            var get = _bridgeContract.CallViewMethod<Address>(BridgeMethod.GetRegimentAddressByRecorderId,
-                new Int64Value {Value = 0});
-            Logger.Info(get.ToBase58());
+            var spaceId =
+                _bridgeContract.CallViewMethod<Hash>(BridgeMethod.GetSpaceIdBySwapId, Hash.LoadFromHex(swapId));
+            var regimentId = _bridgeContract.CallViewMethod<Hash>(BridgeMethod.GetRegimentIdBySpaceId, spaceId);
+            Logger.Info(regimentId.ToHex());
+            return regimentId;
         }
 
-        private SwapPair GetSwapPair(Hash pairId, string symbol)
+        private SwapPairInfo GetSwapPairInfo(string swapId, string symbol)
         {
-            return _bridgeContract.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
+            return _bridgeContract.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInfoInput
             {
-                SwapId = pairId,
-                TargetTokenSymbol = symbol
+                SwapId = Hash.LoadFromHex(swapId),
+                Symbol = symbol
             });
+        }
+
+        private Address GetRegimentManger(string swapId)
+        {
+            var swapPairInfo =
+                _bridgeContract.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, Hash.LoadFromHex(swapId));
+            var regimentAddress =
+                _regimentContract.CallViewMethod<Address>(RegimentMethod.GetRegimentAddress, swapPairInfo.RegimentId);
+            var manager =
+                _regimentContract.CallViewMethod<RegimentInfo>(RegimentMethod.GetRegimentInfo,
+                    regimentAddress).Manager;
+            return manager;
+        }
+        
+        private Hash ComputeLeafHash(decimal amount, Address receiverAddress, string receiptId)
+        {
+            var amountHash = HashHelper.ComputeFrom(amount.ToString());
+            var receiptIdHash = HashHelper.ComputeFrom(receiptId);
+            var targetAddressHash = HashHelper.ComputeFrom(receiverAddress.ToBase58());
+            return HashHelper.ConcatAndCompute(amountHash, targetAddressHash, receiptIdHash);
+        }
+        private bool TryGetReceiptIndex(string receiptId, out long receiptIndex)
+        {
+            return long.TryParse(receiptId.Split(".").Last(), out receiptIndex);
         }
 
         [TestMethod]

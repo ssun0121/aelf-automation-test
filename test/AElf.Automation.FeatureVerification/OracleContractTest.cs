@@ -21,6 +21,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 using AddAdminsInput = AElf.Contracts.Oracle.AddAdminsInput;
 using AddRegimentMemberInput = AElf.Contracts.Oracle.AddRegimentMemberInput;
+using CallbackInfo = AElf.Contracts.Oracle.CallbackInfo;
 using CreateRegimentInput = AElf.Contracts.Oracle.CreateRegimentInput;
 using DeleteAdminsInput = AElf.Contracts.Oracle.DeleteAdminsInput;
 using DeleteRegimentMemberInput = AElf.Contracts.Oracle.DeleteRegimentMemberInput;

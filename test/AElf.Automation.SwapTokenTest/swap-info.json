@@ -6,8 +6,6 @@
     "Password": 12345678
   },
   "Bridge": "2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG",
-  "MerkleTreeRecorder": "2RHf2fxsnEaM3wb6N1yGqPupNZbcCY98LgWbGSFWmWzgEs5Sjo",
-  "MerkleTreeGenerator": "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ",
   "Regiment": "",
   "PairId": "324ee6644b77496e5589a49443fad506fdc968223ce94e1fdfdd9ef1d4b4dcb2",
   "ReceiveAccount": [

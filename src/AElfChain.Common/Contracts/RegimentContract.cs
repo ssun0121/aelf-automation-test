@@ -18,13 +18,15 @@ namespace AElfChain.Common.Contracts
         
         ChangeController,
         ResetConfig,
+        
         //View
         GetController,
         GetConfig,
+        GetRegimentId,
+        GetRegimentAddress,
         GetRegimentInfo,
         IsRegimentMember,
         GetRegimentMemberList
-
     }
 
     public class RegimentContract : BaseContract<RegimentMethod>

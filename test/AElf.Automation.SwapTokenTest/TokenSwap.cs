@@ -20,8 +20,6 @@ namespace AElf.Automation.SwapTokenTest
 
         public readonly string InitAccount;
         public readonly BridgeContract Bridge;
-        public readonly MerkleTreeGeneratorContract Mtg;
-        public readonly MerkleTreeRecorderContract Mtr;
         public readonly TokenContract TokenService;
         public readonly RegimentContract Regiment;
         public static Hash PairId;
@@ -33,8 +31,6 @@ namespace AElf.Automation.SwapTokenTest
             var contractServices = GetContractServices();
             TokenService = contractServices.TokenService;
             Bridge = contractServices.BridgeService;
-            Mtg = contractServices.MtGeneratorService;
-            Mtr = contractServices.MtRecorderService;
             Regiment = contractServices.RegimentService;
             InitAccount = contractServices.CallAccount;
         }
@@ -55,11 +51,11 @@ namespace AElf.Automation.SwapTokenTest
         public void GetSwapInfo()
         {
             var swapInfo = Bridge.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, PairId);
-            SwapSymbol = swapInfo.SwapTargetTokenMap.First().Key;
+            SwapSymbol = swapInfo.SwapTargetTokenList.First().Symbol;
             Logger.Info($"SwapId: {swapInfo.SwapId.ToHex()}\n" +
-                        $"RecorderId: {swapInfo.RecorderId}\n" +
-                        $"RegimentAddress: {swapInfo.RegimentAddress}\n" +
-                        $"SwapToken: {swapInfo.SwapTargetTokenMap.First().Key}");
+                        $"RecorderId: {swapInfo.SpaceId.ToHex()}\n" +
+                        $"RegimentAddress: {swapInfo.RegimentId.ToHex()}\n" +
+                        $"SwapToken: {swapInfo.SwapTargetTokenList.First().Symbol}");
         }
 
         public void SwapToken(ReceiptInfo receiptInfo)
@@ -79,13 +75,13 @@ namespace AElf.Automation.SwapTokenTest
                 return;
 
             var expectedAmount = long.Parse(originAmount.Substring(0, originAmount.Length - 10));
-            var swapPair = Bridge.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = PairId, TargetTokenSymbol = SwapSymbol});
+            var swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+                {SwapId = PairId, Symbol = SwapSymbol});
             if (swapPair.DepositAmount < expectedAmount)
             {
                 Deposit(expectedAmount);
-                swapPair = Bridge.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                    {SwapId = PairId, TargetTokenSymbol = SwapSymbol});
+                swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+                    {SwapId = PairId, Symbol = SwapSymbol});
             }
 
             var balance = TokenService.GetUserBalance(receiveAddress, SwapSymbol);
@@ -102,8 +98,8 @@ namespace AElf.Automation.SwapTokenTest
             amount.ShouldBe(expectedAmount);
             var after = TokenService.GetUserBalance(receiveAddress, SwapSymbol);
             after.ShouldBe(balance + expectedAmount);
-            var afterSwapPair = Bridge.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = PairId, TargetTokenSymbol = SwapSymbol});
+            var afterSwapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+                {SwapId = PairId, Symbol = SwapSymbol});
             afterSwapPair.DepositAmount.ShouldBe(swapPair.DepositAmount - expectedAmount);
 
             var checkAmount = Bridge.CallViewMethod<SwapAmounts>(BridgeMethod.GetSwapAmounts, new GetSwapAmountsInput
@@ -117,7 +113,7 @@ namespace AElf.Automation.SwapTokenTest
             afterList.ShouldContain(receiptId);
         }
 
-        private List<long> CheckSwappedReceiptIdList(string receiveAddress)
+        private List<string> CheckSwappedReceiptIdList(string receiveAddress)
         {
             var checkSwappedReceiptIdList = Bridge.CallViewMethod<ReceiptIdList>(BridgeMethod.GetSwappedReceiptIdList,
                 new GetSwappedReceiptIdListInput
@@ -136,9 +132,9 @@ namespace AElf.Automation.SwapTokenTest
                 Bridge.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, PairId);
             var manager =
                 Regiment.CallViewMethod<RegimentInfo>(RegimentMethod.GetRegimentInfo,
-                    swapPairInfo.RegimentAddress).Manager;
-            var swapPair = Bridge.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = PairId, TargetTokenSymbol = SwapSymbol});
+                    swapPairInfo.RegimentId).Manager;
+            var swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+                {SwapId = PairId, Symbol = SwapSymbol});
 
             Bridge.SetAccount(manager.ToBase58());
             var result = Bridge.ExecuteMethodWithResult(BridgeMethod.Deposit, new DepositInput
@@ -149,8 +145,8 @@ namespace AElf.Automation.SwapTokenTest
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            var afterSwapPair = Bridge.CallViewMethod<SwapPair>(BridgeMethod.GetSwapPair, new GetSwapPairInput
-                {SwapId = PairId, TargetTokenSymbol = SwapSymbol});
+            var afterSwapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+                {SwapId = PairId, Symbol = SwapSymbol});
             afterSwapPair.DepositAmount.ShouldBe(swapPair.DepositAmount + depositAmount);
         }
     }

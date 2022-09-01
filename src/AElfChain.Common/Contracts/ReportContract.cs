@@ -6,34 +6,39 @@ namespace AElfChain.Common.Contracts
     {
         //Action
         Initialize,
-        // off chain aggregator
-        RegisterOffChainAggregation,
-        RemoveOffChainQueryInfo,
-        AddOffChainQueryInfo,
-        AddRegisterWhiteList,
-        RemoveFromRegisterWhiteList,
-        ChangeOffChainQueryInfo,
         QueryOracle,
         CancelQueryOracle,
-        
-        ApplyObserver,
-        QuitObserver,
-        MortgageTokens,
-        WithdrawTokens,
-        ProposeAdjustApplyObserverFee,
-        AdjustApplyObserverFee,
-        
         ProposeReport,
         ConfirmReport,
         RejectReport,
+        MortgageTokens,
+        WithdrawTokens,
+        SetSkipMemberList,
+        
+        // off chain aggregator
+        RegisterOffChainAggregation,
+        BindOffChainAggregation,
+        RemoveOffChainQueryInfo,
+        AddOffChainQueryInfo,
+        ChangeOffChainQueryInfo,
+        AddRegisterWhiteList,
+        RemoveFromRegisterWhiteList,
+        ChangeOracleContractAddress,
+        
+        // Observer management.
+        ApplyObserver,
+        QuitObserver,
+        AdjustApplyObserverFee,
+        AdjustReportFee,
         
         //View
+        GetMerklePath,
+
         GetReport,
         GetSignature,
         GetSignatureMap,
         GetOffChainAggregationInfo,
         GetReportQueryRecord,
-        GetMerklePath,
         GetCurrentRoundId,
         
         GenerateRawReport,
@@ -41,7 +46,10 @@ namespace AElfChain.Common.Contracts
         
         IsInRegisterWhiteList,
         IsObserver,
-        GetMortgagedTokenAmount
+        GetMortgagedTokenAmount,
+        GetObserverList,
+        GetSkipMemberList,
+        GetTokenByChainId
     }
 
     public class ReportContract : BaseContract<ReportMethod>

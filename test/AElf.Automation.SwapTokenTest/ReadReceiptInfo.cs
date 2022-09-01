@@ -7,7 +7,7 @@ namespace AElf.Automation.SwapTokenTest
 {
     public class ReceiptInfo
     {
-        [JsonProperty("id")] public long ReceiptId { get; set; }
+        [JsonProperty("id")] public string ReceiptId { get; set; }
         [JsonProperty("address")] public string Receiver { get; set; }
         [JsonProperty("amount")] public string Amount { get; set; }
     }

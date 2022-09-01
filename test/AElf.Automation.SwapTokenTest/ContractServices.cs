@@ -26,8 +26,6 @@ namespace AElf.Automation.SwapTokenTest
         public GenesisContract GenesisService { get; set; }
         public TokenContract TokenService { get; set; }
         public BridgeContract BridgeService { get; set; }
-        public MerkleTreeRecorderContract MtRecorderService { get; set; }
-        public MerkleTreeGeneratorContract MtGeneratorService { get; set; }
         public RegimentContract RegimentService { get; set; }
 
         public string CallAccount { get; set; }
@@ -46,10 +44,6 @@ namespace AElf.Automation.SwapTokenTest
             TokenService = GenesisService.GetTokenContract();
             BridgeService = new BridgeContract(NodeManager, CallAccount,
                 Bridge);
-            MtRecorderService = new MerkleTreeRecorderContract(NodeManager, CallAccount,
-                MerkleTreeRecorder);
-            MtGeneratorService = new MerkleTreeGeneratorContract(NodeManager, CallAccount,
-                MerkleTreeGenerator);
             RegimentService = new RegimentContract(NodeManager, CallAccount,
                 Regiment);
         }
