@@ -17,12 +17,23 @@ service BridgeContract {
     option (aelf.base) = "receipt_maker.proto";
 
     rpc Initialize (InitializeInput) returns (google.protobuf.Empty) {}
-
     rpc ChangeController(aelf.Address) returns (google.protobuf.Empty){}
     rpc ChangeAdmin(aelf.Address) returns (google.protobuf.Empty) {}
     rpc ChangeTransactionFeeController(aelf.Address) returns (google.protobuf.Empty){}
 
-    //To AElf.
+    rpc GetContractController(google.protobuf.Empty) returns (aelf.Address){
+        option (aelf.is_view) = true;
+    }
+    rpc GetContractAdmin(google.protobuf.Empty) returns (aelf.Address){
+        option (aelf.is_view) = true;
+    }
+    rpc GetTransactionFeeRatioController(google.protobuf.Empty) returns (aelf.Address){
+        option (aelf.is_view) = true;
+    }
+
+
+    //Others to AElf.
+    //Action methods.
     rpc CreateSwap (CreateSwapInput) returns (aelf.Hash) {
     }
     rpc SwapToken (SwapTokenInput) returns (google.protobuf.Empty) {
@@ -35,58 +46,10 @@ service BridgeContract {
     }
     rpc RecordReceiptHash (CallbackInput) returns (google.protobuf.Empty) {
     }
-
-    //AElf to others.
-    rpc AddToken(AddTokenInput) returns(google.protobuf.Empty){
-    }
-    rpc RemoveToken(RemoveTokenInput) returns (google.protobuf.Empty){
-    }
-    rpc CreateReceipt(CreateReceiptInput) returns (google.protobuf.Empty){
-    }
-
-    //Gas Fee
-    rpc SetGasLimit(SetGasLimitInput) returns(google.protobuf.Empty){
-    }
-    rpc SetGasPrice(SetGasPriceInput) returns (google.protobuf.Empty){
-    }
-    rpc SetPriceRatio(SetPriceRatioInput) returns (google.protobuf.Empty){
-    }
-    rpc SetFeeFloatingRatio(SetFeeFloatingRatioInput) returns (google.protobuf.Empty){
-    }
-    rpc GetGasLimit(google.protobuf.StringValue) returns (google.protobuf.Int64Value){
-        option (aelf.is_view) = true;
-    }
-    rpc GetGasPrice(google.protobuf.StringValue) returns(google.protobuf.Int64Value){
-        option (aelf.is_view) = true;
-    }
-    rpc GetPriceRatio(google.protobuf.StringValue) returns (google.protobuf.Int64Value){
-        option (aelf.is_view) = true;
-    }
-    rpc GetFeeFloatingRatio(google.protobuf.StringValue) returns (google.protobuf.StringValue){
-        option (aelf.is_view) = true;
-    }
-    rpc GetFeeByChainId(google.protobuf.StringValue) returns (google.protobuf.Int64Value){
-        option (aelf.is_view) = true;
-    }
+    //View methods.
     rpc GetSwapIdByToken(GetSwapIdByTokenInput) returns (aelf.Hash){
         option (aelf.is_view) = true;
     }
-
-    rpc GetReceiptIdInfo(aelf.Hash) returns (ReceiptIdInfo){
-        option (aelf.is_view) = true;
-    }
-    rpc GetOwnerLockReceipt(GetOwnerLockReceiptInput) returns (ReceiptIdList){
-        option (aelf.is_view) = true;
-    }
-    rpc GetLockTokens(GetLockTokensInput) returns(google.protobuf.Int64Value){
-        option (aelf.is_view) = true;
-    }
-    rpc GetReceiptInfo(GetReceiptInfoInput) returns (Receipt){
-        option (aelf.is_view) = true;
-    }
-
-    // view methods
-
     rpc GetSwapInfo (aelf.Hash) returns (SwapInfo) {
         option (aelf.is_view) = true;
     }
@@ -108,13 +71,54 @@ service BridgeContract {
     rpc GetSpaceIdBySwapId (aelf.Hash) returns (aelf.Hash){
         option (aelf.is_view) = true;
     }
-    rpc GetContractController(google.protobuf.Empty) returns (aelf.Address){
+
+
+    //AElf to others.
+    //Action methods.
+    rpc AddToken(AddTokenInput) returns(google.protobuf.Empty){
+    }
+    rpc RemoveToken(RemoveTokenInput) returns (google.protobuf.Empty){
+    }
+    rpc CreateReceipt(CreateReceiptInput) returns (google.protobuf.Empty){
+    }
+    //Gas Fee.
+    rpc SetGasLimit(SetGasLimitInput) returns(google.protobuf.Empty){
+    }
+    rpc SetGasPrice(SetGasPriceInput) returns (google.protobuf.Empty){
+    }
+    rpc SetPriceRatio(SetPriceRatioInput) returns (google.protobuf.Empty){
+    }
+    rpc SetFeeFloatingRatio(SetFeeFloatingRatioInput) returns (google.protobuf.Empty){
+    }
+    //View methods.
+    rpc GetGasLimit(google.protobuf.StringValue) returns (google.protobuf.Int64Value){
         option (aelf.is_view) = true;
     }
-    rpc GetContractAdmin(google.protobuf.Empty) returns (aelf.Address){
+    rpc GetGasPrice(google.protobuf.StringValue) returns(google.protobuf.Int64Value){
         option (aelf.is_view) = true;
     }
-    rpc GetTransactionFeeRatioController(google.protobuf.Empty) returns (aelf.Address){
+    rpc GetPriceRatio(google.protobuf.StringValue) returns (google.protobuf.Int64Value){
+        option (aelf.is_view) = true;
+    }
+    rpc GetFeeFloatingRatio(google.protobuf.StringValue) returns (google.protobuf.StringValue){
+        option (aelf.is_view) = true;
+    }
+    rpc GetFeeByChainId(google.protobuf.StringValue) returns (google.protobuf.Int64Value){
+        option (aelf.is_view) = true;
+    }
+    rpc GetReceiptIdInfo(aelf.Hash) returns (ReceiptIdInfo){
+        option (aelf.is_view) = true;
+    }
+    rpc GetOwnerLockReceipt(GetOwnerLockReceiptInput) returns (ReceiptIdList){
+        option (aelf.is_view) = true;
+    }
+    rpc GetLockTokens(GetLockTokensInput) returns(google.protobuf.Int64Value){
+        option (aelf.is_view) = true;
+    }
+    rpc GetReceiptInfo(GetReceiptInfoInput) returns (Receipt){
+        option (aelf.is_view) = true;
+    }
+    rpc GetTokenWhitelist(google.protobuf.StringValue) returns (TokenSymbolList){
         option (aelf.is_view) = true;
     }
 
@@ -129,10 +133,9 @@ message InitializeInput {
     aelf.Address controller = 6;
 }
 //To AElf message.
-message CreateSwapInput {
-    repeated SwapTargetToken swap_target_token_list = 1;
-    aelf.Hash regiment_id = 2;
-    int32 merkle_tree_leaf_limit = 3;
+message SwapRatio {
+    int64 origin_share = 1;
+    int64 target_share = 2;
 }
 
 message SwapTargetToken {
@@ -148,16 +151,10 @@ message SwapInfo {
     aelf.Hash space_id = 4;
 }
 
-
 message SwapPairInfo {
     int64 swapped_amount = 1;
     int64 swapped_times = 2;
     int64 deposit_amount = 3;
-}
-
-message SwapRatio {
-    int64 origin_share = 1;
-    int64 target_share = 2;
 }
 
 message SwapAmounts {
@@ -185,7 +182,6 @@ message ReceiptIdList {
     repeated string value = 1;
 }
 
-
 message ReceiptIdInfo{
     string chain_id = 1;
     string symbol = 2;
@@ -195,6 +191,18 @@ message SendingInfo {
     int64 receipt_id = 1;
     string sending_tx_id = 2;
     string sending_time = 3;
+}
+
+message CreateSwapInput {
+    repeated SwapTargetToken swap_target_token_list = 1;
+    aelf.Hash regiment_id = 2;
+    int32 merkle_tree_leaf_limit = 3;
+}
+
+message DepositInput {
+    aelf.Hash swap_id = 1;
+    string target_token_symbol = 2;
+    int64 amount = 3;
 }
 
 message ChangeSwapRatioInput {
@@ -210,15 +218,10 @@ message SwapTokenInput {
     aelf.Address receiver_address = 4;
 }
 
-message DepositInput {
+message WithdrawInput {
     aelf.Hash swap_id = 1;
     string target_token_symbol = 2;
     int64 amount = 3;
-}
-
-message GetSwapPairInput {
-    aelf.Hash swap_id = 1;
-    string symbol = 2;
 }
 
 message GetSwapAmountsInput {
@@ -229,12 +232,6 @@ message GetSwapAmountsInput {
 message GetSwapPairInfoInput{
     aelf.Hash swap_id = 1;
     string symbol = 2;
-}
-
-message WithdrawInput {
-    aelf.Hash swap_id = 1;
-    string target_token_symbol = 2;
-    int64 amount = 3;
 }
 
 message GetSwappedReceiptIdListInput {
@@ -258,16 +255,45 @@ message ReceiptList{
     repeated Receipt value = 1;
 }
 
-message AddTokenInput{
-    StringList symbol = 1;
+message ChainToken{
+    string chain_id = 1;
+    string symbol = 2;
+}
+
+message ChainTokenList{
+    repeated ChainToken value = 1;
 }
 
 message TokenSymbolList {
-    StringList symbol = 1;
+    repeated string symbol = 1;
+}
+
+message GasPrice{
+    string chain_id = 1;
+    int64 gas_price = 2;
+}
+
+message GasLimit{
+    string chain_id = 1;
+    int64 gas_limit = 2;
+}
+
+message PriceRatio{
+    string target_chain_id = 1;
+    int64 price_ratio = 2;
+}
+
+message FeeRatio{
+    string chain_id = 1;
+    int64 ratio = 2;
+}
+
+message AddTokenInput{
+    repeated ChainToken value = 1;
 }
 
 message RemoveTokenInput{
-    StringList symbol = 1;
+    repeated ChainToken value = 1;
 }
 
 message CreateReceiptInput{
@@ -285,32 +311,14 @@ message SetGasPriceInput{
     repeated GasPrice gas_price_list = 1;
 }
 
-message GasPrice{
-    string chain_id = 1;
-    int64 gas_price = 2;
-}
-
-message GasLimit{
-    string chain_id = 1;
-    int64 gas_limit = 2;
-}
-
 message SetPriceRatioInput{
     repeated PriceRatio value = 1;
-}
-
-message PriceRatio{
-    string target_chain_id = 1;
-    int64 price_ratio = 2;
 }
 
 message SetFeeFloatingRatioInput{
     repeated FeeRatio value = 1;
 }
-message FeeRatio{
-    string chain_id = 1;
-    int64 ratio = 2;
-}
+
 message GetReceiptInfoInput{
     string receipt_id = 1;
 }
@@ -321,10 +329,6 @@ message GetOwnerLockReceiptInput{
 
 message GetLockTokensInput{
     aelf.Address owner = 1;
-}
-
-message StringList{
-    repeated string value = 1;
 }
 
 message GetSwapIdByTokenInput{
@@ -362,12 +366,12 @@ message SwapInfoAdded {
 
 message TokenWhitelistAdded{
     option (aelf.is_event) = true;
-    StringList token_list = 1;
+    ChainTokenList chain_token_list = 1;
 }
 
 message TokenWhitelistRemoved{
     option (aelf.is_event) = true;
-    StringList token_list = 1;
+    ChainTokenList chain_token_list = 1;
 }
 
 message ReceiptCreated{

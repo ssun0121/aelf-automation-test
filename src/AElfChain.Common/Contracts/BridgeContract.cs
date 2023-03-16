@@ -25,11 +25,13 @@ namespace AElfChain.Common.Contracts
         SetGasFee,
         SetGasPrice,
         SetPriceRatio,
+        SetGasLimit,
         SetFeeFloatingRatio,
         GetGasFee,
         GetGasPrice,
         GetPriceRatio,
         GetFeeFloatingRatio,
+        GetGasLimit,
         
         //View
         GetReceiptIdInfo,
@@ -46,7 +48,9 @@ namespace AElfChain.Common.Contracts
         GetSpaceIdBySwapId,
         GetContractController,
         GetContractAdmin,
-        GetTransactionFeeRatioController
+        GetTransactionFeeRatioController,
+        GetTokenWhitelist,
+        GetReceiptHashList
     }
 
     public class BridgeContract : BaseContract<BridgeMethod>

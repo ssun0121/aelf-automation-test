@@ -75,12 +75,12 @@ namespace AElf.Automation.SwapTokenTest
                 return;
 
             var expectedAmount = long.Parse(originAmount.Substring(0, originAmount.Length - 10));
-            var swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+            var swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInfoInput
                 {SwapId = PairId, Symbol = SwapSymbol});
             if (swapPair.DepositAmount < expectedAmount)
             {
                 Deposit(expectedAmount);
-                swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+                swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInfoInput
                     {SwapId = PairId, Symbol = SwapSymbol});
             }
 
@@ -98,7 +98,7 @@ namespace AElf.Automation.SwapTokenTest
             amount.ShouldBe(expectedAmount);
             var after = TokenService.GetUserBalance(receiveAddress, SwapSymbol);
             after.ShouldBe(balance + expectedAmount);
-            var afterSwapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+            var afterSwapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInfoInput
                 {SwapId = PairId, Symbol = SwapSymbol});
             afterSwapPair.DepositAmount.ShouldBe(swapPair.DepositAmount - expectedAmount);
 
@@ -133,7 +133,7 @@ namespace AElf.Automation.SwapTokenTest
             var manager =
                 Regiment.CallViewMethod<RegimentInfo>(RegimentMethod.GetRegimentInfo,
                     swapPairInfo.RegimentId).Manager;
-            var swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+            var swapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInfoInput
                 {SwapId = PairId, Symbol = SwapSymbol});
 
             Bridge.SetAccount(manager.ToBase58());
@@ -145,7 +145,7 @@ namespace AElf.Automation.SwapTokenTest
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
-            var afterSwapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInput
+            var afterSwapPair = Bridge.CallViewMethod<SwapPairInfo>(BridgeMethod.GetSwapPairInfo, new GetSwapPairInfoInput
                 {SwapId = PairId, Symbol = SwapSymbol});
             afterSwapPair.DepositAmount.ShouldBe(swapPair.DepositAmount + depositAmount);
         }
