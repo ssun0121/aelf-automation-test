@@ -4,7 +4,7 @@
         <IsPackable>true</IsPackable>
         <LangVersion>latest</LangVersion>
         <NoWarn>0436</NoWarn>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
@@ -70,9 +70,9 @@
 
     <ItemGroup>
         <!--AElf packages-->
-        <PackageReference Include="AElf.Kernel.Types" Version="1.0.0" />
-        <PackageReference Include="AElf.Types" Version="1.1.0-18960" />
-        <PackageReference Include="AElf.CSharp.Core" Version="1.1.0-18960" />
+        <PackageReference Include="AElf.Kernel.Types" Version="1.2.1" />
+        <PackageReference Include="AElf.Types" Version="1.2.1" />
+        <PackageReference Include="AElf.CSharp.Core" Version="1.2.1" />
         <PackageReference Include="AElf.Cryptography" Version="1.1.0-18960" />
         <PackageReference Include="AElf.Client" Version="1.1.0" />
         <!--end packages-->
