@@ -29,6 +29,9 @@ namespace AElfChain.Common.Contracts
         ReleaseCodeCheckedContract,
         ChangeContractDeploymentController,
         ChangeCodeCheckController,
+        
+        DeployUserSmartContract,
+        UpdateUserSmartContract,
 
         //view
         CurrentContractSerialNumber,
@@ -144,6 +147,43 @@ namespace AElfChain.Common.Contracts
             var result = AsyncHelper.RunSync(() => tester.ProposeUpdateContract.SendAsync(input));
             return result.TransactionResult;
         }
+        
+        public TransactionResultDto DeployUserSmartContract(string contractFileName, string author = null)
+        {
+            var contractReader = new SmartContractReader();
+            var codeArray = contractReader.Read(contractFileName);
+            var sender = author ?? CallAddress;
+            SetAccount(sender);
+            var txResult = ExecuteMethodWithResult(GenesisMethod.DeployUserSmartContract, new ContractDeploymentInput
+            {
+                Code = ByteString.CopyFrom(codeArray),
+                Category = 0
+            });
+
+            return txResult;
+        }
+        
+        public TransactionResultDto UpdateUserSmartContract(string contractFileName, string contractAddress,
+            string author)
+        {
+            var contractReader = new SmartContractReader();
+            var codeArray = contractReader.Read(contractFileName);
+            SetAccount(author);
+            var txResult = ExecuteMethodWithResult(GenesisMethod.UpdateUserSmartContract, new ContractUpdateInput
+            {
+                Code = ByteString.CopyFrom(codeArray),
+                Address = Address.FromBase58(contractAddress)
+            });
+
+            return txResult;
+        }
+        
+        public SmartContractRegistration GetSmartContractRegistrationByCodeHash(Hash codeHash)
+        {
+            return CallViewMethod<SmartContractRegistration>(GenesisMethod.GetSmartContractRegistrationByCodeHash,
+                codeHash);
+        }
+        
 
         public Dictionary<NameProvider, Address> GetAllSystemContracts()
         {

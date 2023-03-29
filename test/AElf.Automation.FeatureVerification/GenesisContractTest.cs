@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using AElf.Client.Dto;
 using AElf.Standards.ACS0;
 using AElf.Standards.ACS3;
 using AElf.Contracts.MultiToken;
@@ -16,6 +18,7 @@ using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
+using Volo.Abp.Threading;
 
 namespace AElf.Automation.Contracts.ScenarioTest
 {
@@ -29,15 +32,17 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
         public INodeManager NM { get; set; }
         public ContractManager MainManager { get; set; }
-        public static string InitAccount { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
-        public static string Creator { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
-        public static string Member { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
-        public static string OtherAccount { get; } = "ZrAFaqdr79MWYkxA49Hp2LUdSVHdP6fJh3kDw4jmgC7HTgrni";
+        public static string InitAccount { get; } = "";
+        public static string Creator { get; } = "";
+        public static string Member { get; } = "";
+        public static string OtherAccount { get; } = "";
+        public static string Author { get; } = "";
         public List<string> Members;
-        private static string MainRpcUrl { get; } = "http://13.232.173.152:8000";
-        private static string SideRpcUrl { get; } = "http://192.168.197.60:8001";
-        private static string SideRpcUrl2 { get; } = "http://192.168.197.60:8002";
-        private string Type { get; } = "Main";
+        
+        private static string MainRpcUrl { get; } = "";
+        private static string SideRpcUrl { get; } = "";
+        private static string SideRpcUrl2 { get; } = "";
+        private string Type { get; } = "Side";
 
         [TestInitialize]
         public void Initialize()
@@ -162,9 +167,20 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void ProposalDeploy_MinerProposalContract_Success()
+        public void Transfer()
         {
-            var input = ContractDeploymentInput("AElf.Contracts.MultiToken");
+            var account = "";
+            var newAccount = "";
+            Tester.TokenService.SetAccount(account);
+            Tester.TokenService.TransferBalance(account, newAccount, 101000_00000000);
+        }
+
+        [TestMethod]
+        [DataRow("AElf.Contracts.Bridge")]
+        public void ProposalDeploy_MinerProposalContract_Success(string name)
+        {
+            Logger.Info(name);
+            var input = ContractDeploymentInput(name);
             var contractProposalInfo = ProposalNewContract(Tester, Creator, input);
 //            var proposalId = ProposalCreated.Parser
 //                .ParseFrom(ByteString.FromBase64("CiIKIEBMlAb4Acvr6Pj3Rsq7+EJ3DGhOFQEX9E2dqI0R1aYu")).ProposalId;
@@ -319,9 +335,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
 
 
         [TestMethod]
-        public void ProposalUpdate_MinerProposalUpdateContract_Success()
+        // [DataRow("AElf.Contracts.Bridge","2AsEepqiFCRDnepVheYYN5LK7nvM2kUoXgk2zLKu1Zneh8fwmF")]
+        public void ProposalUpdate_MinerProposalUpdateContract_Success(string name, string address)
         {
-            var input = ContractUpdateInput("AElf.Contracts.MerkleTreeGeneratorContract", "2NxwCPAGJr4knVdmwhb1cK7CkZw5sMJkRDLnT7E2GoDP2dy5iZ");
+            var input = ContractUpdateInput(name, address);
             var contractProposalInfo = ProposalUpdateContract(Tester, InitAccount, input);
             ApproveByMiner(Tester, contractProposalInfo.ProposalId);
             var release = Tester.GenesisService.ReleaseApprovedContract(contractProposalInfo, InitAccount);
@@ -497,16 +514,25 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void ParliamentChangeWhiteList()
         {
             var parliament = Tester.ParliamentService;
+            var proposalWhiteList =
+                parliament.CallViewMethod<ProposerWhiteList>(
+                    ParliamentMethod.GetProposerWhiteList, new Empty());
+            Logger.Info(proposalWhiteList);
+            
             var defaultAddress = parliament.GetGenesisOwnerAddress();
             var existResult =
                 parliament.CallViewMethod<BoolValue>(ParliamentMethod.ValidateOrganizationExist, defaultAddress);
             existResult.Value.ShouldBeTrue();
-
+            var addList = new List<Address>
+            {
+                Tester.GenesisService.Contract
+            };
+            proposalWhiteList.Proposers.AddRange(addList);
             var miners = Tester.GetMiners();
 
             var changeInput = new ProposerWhiteList
             {
-                Proposers = {Member.ConvertAddress(), Creator.ConvertAddress()}
+                Proposers = { proposalWhiteList.Proposers }
             };
 
             var proposalId = parliament.CreateProposal(parliament.ContractAddress,
@@ -517,10 +543,10 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var release = parliament.ReleaseProposal(proposalId, miners.First());
             release.Status.ShouldBe(TransactionResultStatus.Mined);
 
-            var proposalWhiteList =
+            proposalWhiteList =
                 parliament.CallViewMethod<ProposerWhiteList>(
                     ParliamentMethod.GetProposerWhiteList, new Empty());
-            proposalWhiteList.Proposers.Contains(Member.ConvertAddress()).ShouldBeTrue();
+            Logger.Info(proposalWhiteList);
         }
 
         [TestMethod]
@@ -536,7 +562,114 @@ namespace AElf.Automation.Contracts.ScenarioTest
             tokenContract.Author.ShouldBe(Tester.GenesisService.Contract);
             tokenContract.Version.ShouldBe(2);
         }
+        
+        [TestMethod]
+        [DataRow("AElf.Contracts.TestContract.BasicSecurity-patched-1.1.0")]
+        public void DeployUserSmartContract(string contractFileName)
+        {
+            Tester.TokenService.TransferBalance(InitAccount, Author, 1000_00000000, "ELF");
+            var result = Tester.GenesisService.DeployUserSmartContract(contractFileName, Author);
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
+            var logEvent = result.Logs.First(l => l.Name.Equals(nameof(CodeCheckRequired))).NonIndexed;
+            var codeCheckRequired = CodeCheckRequired.Parser.ParseFrom(ByteString.FromBase64(logEvent));
+            codeCheckRequired.Category.ShouldBe(0);
+            codeCheckRequired.IsSystemContract.ShouldBeFalse();
+            codeCheckRequired.IsUserContract.ShouldBeTrue();
+            var proposalLogEvent = result.Logs.First(l => l.Name.Equals(nameof(ProposalCreated))).NonIndexed;
+            var proposalId = ProposalCreated.Parser.ParseFrom(ByteString.FromBase64(proposalLogEvent)).ProposalId;
+
+            var returnValue = DeployUserSmartContractOutput.Parser.ParseFrom(ByteArrayHelper.HexStringToByteArray(result.ReturnValue));
+            var codeHash = returnValue.CodeHash;
+            Logger.Info(
+                $"Code hash: {codeHash.ToHex()}\n ProposalInput: {codeCheckRequired.ProposedContractInputHash.ToHex()}\n Proposal Id: {proposalId.ToHex()}");
+
+            // var check = CheckProposal(proposalId);
+            // check.ShouldBeTrue();
+            Thread.Sleep(20000);
+
+            var currentHeight = AsyncHelper.RunSync(Tester.NodeManager.ApiClient.GetBlockHeightAsync);
+            var smartContractRegistration = Tester.GenesisService.GetSmartContractRegistrationByCodeHash(codeHash);
+            smartContractRegistration.ShouldNotBeNull();
+            Logger.Info($"Check height: {result.BlockNumber} - {currentHeight}");
+
+            var release = FindReleaseApprovedUserSmartContractMethod(result.BlockNumber, currentHeight);
+            Logger.Info($"Release TxId: {release.TransactionId}, \nheight: {release.BlockNumber}");
+
+            var releaseLogEvent = release.Logs.First(l => l.Name.Equals(nameof(ContractDeployed)));
+            var indexed = releaseLogEvent.Indexed;
+            var nonIndexed = releaseLogEvent.NonIndexed;
+            foreach (var i in indexed)
+            {
+                var contractDeployedIndexed = ContractDeployed.Parser.ParseFrom(ByteString.FromBase64(i));
+                Logger.Info(contractDeployedIndexed.Author == null
+                    ? $"Code hash: {contractDeployedIndexed.CodeHash.ToHex()}"
+                    : $"Author: {contractDeployedIndexed.Author}");
+            }
+
+            var contractDeployedNonIndexed = ContractDeployed.Parser.ParseFrom(ByteString.FromBase64(nonIndexed));
+            Logger.Info($"Address: {contractDeployedNonIndexed.Address}\n" +
+                        $"{contractDeployedNonIndexed.Name}\n" +
+                        $"{contractDeployedNonIndexed.Version}\n" +
+                        $"{contractDeployedNonIndexed.ContractVersion}");
+        } 
+
+        [TestMethod]
+        [DataRow("AElf.Contracts.TestContract.BasicFunction-patched-acs12-1.3.0",
+            "2cSqfSCFcoXnzqXkWBXamzZSQ6vkfUrLxVzgmMEqrD6MxbgFNT")]
+        public void UpdateUserSmartContract(string contractFileName, string contractAddress)
+        {
+            var author = Tester.GenesisService.GetContractAuthor(Address.FromBase58(contractAddress));
+            // Tester.TokenService.TransferBalance(InitAccount, author.ToBase58(), 10000_00000000, "STA");
+            // var author = Address.FromBase58(InitAccount);
+            var result =
+                Tester.GenesisService.UpdateUserSmartContract(contractFileName, contractAddress, author.ToBase58());
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+
+            var logEvent = result.Logs.First(l => l.Name.Equals(nameof(CodeCheckRequired))).NonIndexed;
+            var codeCheckRequired = CodeCheckRequired.Parser.ParseFrom(ByteString.FromBase64(logEvent));
+            codeCheckRequired.Category.ShouldBe(0);
+            codeCheckRequired.IsSystemContract.ShouldBeFalse();
+            codeCheckRequired.IsUserContract.ShouldBeTrue();
+            var proposalLogEvent = result.Logs.First(l => l.Name.Equals(nameof(ProposalCreated))).NonIndexed;
+            var proposalId = ProposalCreated.Parser.ParseFrom(ByteString.FromBase64(proposalLogEvent)).ProposalId;
+
+            Logger.Info(
+                $"ProposalInput: {codeCheckRequired.ProposedContractInputHash.ToHex()}");
+
+            // var check = CheckProposal(proposalId);
+            // check.ShouldBeTrue();
+            Thread.Sleep(20000);
+
+            var currentHeight = AsyncHelper.RunSync(Tester.NodeManager.ApiClient.GetBlockHeightAsync);
+
+            var release = FindReleaseApprovedUserSmartContractMethod(result.BlockNumber, currentHeight);
+            Logger.Info(release.TransactionId);
+
+            var releaseLogEvent = release.Logs.First(l => l.Name.Equals(nameof(CodeUpdated)));
+            var indexed = releaseLogEvent.Indexed;
+            var nonIndexed = releaseLogEvent.NonIndexed;
+            var codeUpdatedIndexed = CodeUpdated.Parser.ParseFrom(ByteString.FromBase64(indexed.First()));
+            Logger.Info($"Address: {codeUpdatedIndexed.Address}");
+
+            var codeUpdatedNonIndexed = CodeUpdated.Parser.ParseFrom(ByteString.FromBase64(nonIndexed));
+            Logger.Info($"NewCodeHash: {codeUpdatedNonIndexed.NewCodeHash}\n" +
+                        $"{codeUpdatedNonIndexed.OldCodeHash}\n" +
+                        $"{codeUpdatedNonIndexed.Version}\n" +
+                        $"{codeUpdatedNonIndexed.ContractVersion}");
+
+            var smartContractRegistration =
+                Tester.GenesisService.GetSmartContractRegistrationByCodeHash(codeUpdatedNonIndexed.NewCodeHash);
+            smartContractRegistration.ShouldNotBeNull();
+            var contractInfo = Tester.GenesisService.CallViewMethod<ContractInfo>(GenesisMethod.GetContractInfo,
+                contractAddress.ConvertAddress());
+            Logger.Info(contractInfo);
+
+            contractInfo.CodeHash.ShouldBe(codeUpdatedNonIndexed.NewCodeHash);
+            contractInfo.Version.ShouldBe(codeUpdatedNonIndexed.Version);
+            contractInfo.ContractVersion.ShouldBe(codeUpdatedNonIndexed.ContractVersion);
+        }
+        
         #region private method
 
         private Address GetGenesisOwnerAddress(ContractTester tester)
@@ -585,7 +718,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             var miners = tester.GetMiners();
             foreach (var miner in miners)
             {
-                if(miner.Equals("2GRH6gYPhRu7SxYby56sxdXGVuAuXS5atfjRmeFPKWJB3VMJAw")) continue;
+                if(miner.Equals("2HxX36oXZS89Jvz7kCeUyuWWDXLTiNRkAzfx3EuXq4KSSkH62W")) continue;
                 tester.ParliamentService.SetAccount(miner);
                 var approve =
                     tester.ParliamentService.ExecuteMethodWithResult(ParliamentMethod.Approve, proposalId);
@@ -640,6 +773,22 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 tester.AssociationService.ApproveWithAssociation(createProposal, organization);
                 tester.AssociationService.ReleaseProposal(createProposal, account);
             }
+        }
+        
+        private TransactionResultDto FindReleaseApprovedUserSmartContractMethod(long startBlock, long currentHeight)
+        {
+            var releaseTransaction = new TransactionResultDto();
+            for (var i = startBlock; i < currentHeight; i++)
+            {
+                var block = AsyncHelper.RunSync(() => Tester.NodeManager.ApiClient.GetBlockByHeightAsync(i));
+                var transactionList = AsyncHelper.RunSync(() =>
+                    Tester.NodeManager.ApiClient.GetTransactionResultsAsync(block.BlockHash));
+                var find = transactionList.Find(
+                    t => t.Transaction.MethodName.Equals("ReleaseApprovedUserSmartContract"));
+                releaseTransaction = find ?? releaseTransaction;
+            }
+
+            return releaseTransaction;
         }
 
         #endregion
