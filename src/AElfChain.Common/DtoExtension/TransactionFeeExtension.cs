@@ -55,7 +55,10 @@ namespace AElfChain.Common.DtoExtension
                 if (log.Name == "ResourceTokenCharged" || log.Name == "TransactionFeeCharged")
                 {
                     var info = TransactionFeeCharged.Parser.ParseFrom(ByteString.FromBase64(log.NonIndexed));
-                    dic.Add(info.Symbol, info.Amount);
+                    if (dic.ContainsKey(info.Symbol))
+                        dic[info.Symbol] += info.Amount;
+                    else
+                        dic.Add(info.Symbol, info.Amount);
                 }
 
             return dic;

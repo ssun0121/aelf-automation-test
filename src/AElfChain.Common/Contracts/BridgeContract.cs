@@ -8,7 +8,9 @@ namespace AElfChain.Common.Contracts
         ChangeController,
         ChangeAdmin,
         ChangeTransactionFeeController,
-        
+        SetTokenMaximumAmount,
+        ApproveTransfer,
+
         //To AElf
         CreateSwap,
         SwapToken,
@@ -32,6 +34,7 @@ namespace AElfChain.Common.Contracts
         GetPriceRatio,
         GetFeeFloatingRatio,
         GetGasLimit,
+        SetPriceFluctuationRatio,
         
         //View
         GetReceiptIdInfo,
@@ -39,6 +42,7 @@ namespace AElfChain.Common.Contracts
         GetLockTokens,
         GetReceiptInfo,
         GetSwapPairInfo,
+        GetSwapIdByToken,
 
         GetSwapInfo,
         GetSwapAmounts,
@@ -50,7 +54,8 @@ namespace AElfChain.Common.Contracts
         GetContractAdmin,
         GetTransactionFeeRatioController,
         GetTokenWhitelist,
-        GetReceiptHashList
+        GetReceiptHashList,
+        GetTokenMaximumAmount
     }
 
     public class BridgeContract : BaseContract<BridgeMethod>

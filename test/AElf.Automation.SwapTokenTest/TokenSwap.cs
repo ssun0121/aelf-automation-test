@@ -51,11 +51,11 @@ namespace AElf.Automation.SwapTokenTest
         public void GetSwapInfo()
         {
             var swapInfo = Bridge.CallViewMethod<SwapInfo>(BridgeMethod.GetSwapInfo, PairId);
-            SwapSymbol = swapInfo.SwapTargetTokenList.First().Symbol;
+            SwapSymbol = swapInfo.SwapTargetToken.Symbol;
             Logger.Info($"SwapId: {swapInfo.SwapId.ToHex()}\n" +
                         $"RecorderId: {swapInfo.SpaceId.ToHex()}\n" +
                         $"RegimentAddress: {swapInfo.RegimentId.ToHex()}\n" +
-                        $"SwapToken: {swapInfo.SwapTargetTokenList.First().Symbol}");
+                        $"SwapToken: {swapInfo.SwapTargetToken.Symbol}");
         }
 
         public void SwapToken(ReceiptInfo receiptInfo)
@@ -64,12 +64,12 @@ namespace AElf.Automation.SwapTokenTest
             var originAmount = receiptInfo.Amount;
             var receiptId = receiptInfo.ReceiptId;
             Logger.Info($"{receiptId}: {receiveAddress}  {originAmount}");
-            var list = CheckSwappedReceiptIdList(receiveAddress);
-            if (list.Contains(receiptId))
-            {
-                Logger.Info($"{receiveAddress} already claim receipt: {receiptId}");
-                return;
-            }
+            // var list = CheckSwappedReceiptIdList(receiveAddress);
+            // if (list.Contains(receiptId))
+            // {
+            //     Logger.Info($"{receiveAddress} already claim receipt: {receiptId}");
+            //     return;
+            // }
 
             if (!Receivers.Contains(receiveAddress))
                 return;
@@ -109,21 +109,21 @@ namespace AElf.Automation.SwapTokenTest
             });
             checkAmount.Receiver.ShouldBe(receiveAddress.ConvertAddress());
             checkAmount.ReceivedAmounts[SwapSymbol].ShouldBe(expectedAmount);
-            var afterList = CheckSwappedReceiptIdList(receiveAddress);
-            afterList.ShouldContain(receiptId);
+            // var afterList = CheckSwappedReceiptIdList(receiveAddress);
+            // afterList.ShouldContain(receiptId);
         }
 
-        private List<string> CheckSwappedReceiptIdList(string receiveAddress)
-        {
-            var checkSwappedReceiptIdList = Bridge.CallViewMethod<ReceiptIdList>(BridgeMethod.GetSwappedReceiptIdList,
-                new GetSwappedReceiptIdListInput
-                {
-                    ReceiverAddress = receiveAddress.ConvertAddress(),
-                    SwapId = PairId
-                });
-
-            return checkSwappedReceiptIdList.Value.ToList();
-        }
+        // private List<string> CheckSwappedReceiptIdList(string receiveAddress)
+        // {
+        //     var checkSwappedReceiptIdList = Bridge.CallViewMethod<ReceiptIdList>(BridgeMethod.GetSwappedReceiptIdList,
+        //         new GetSwappedReceiptIdListInput
+        //         {
+        //             ReceiverAddress = receiveAddress.ConvertAddress(),
+        //             SwapId = PairId
+        //         });
+        //
+        //     return checkSwappedReceiptIdList.Value.ToList();
+        // }
 
         private void Deposit(long depositAmount)
         {

@@ -22,12 +22,6 @@ service MerkleTreeContract {
   rpc RecordMerkleTree(RecordMerkleTreeInput) returns(google.protobuf.Empty){
   }
 
-  rpc ChangeLastLeafIndex(ChangeLastLeafIndexInput) returns (google.protobuf.Empty){
-  }
-
-  rpc ClearMerkleTree(aelf.Hash)returns(google.protobuf.Empty){
-  }
-
   // regiment related
 
   rpc CreateRegiment (CreateRegimentInput) returns (google.protobuf.Empty) {
@@ -60,9 +54,6 @@ service MerkleTreeContract {
     option (aelf.is_view) = true;
   }
   rpc GetRegimentSpaceCount(aelf.Hash) returns(google.protobuf.Int64Value){
-    option (aelf.is_view) = true;
-  }
-  rpc GetRegimentSpaceIdList(aelf.Hash) returns(HashList){
     option (aelf.is_view) = true;
   }
   rpc GetSpaceInfo(aelf.Hash) returns(SpaceInfo){
@@ -132,12 +123,6 @@ message RecordMerkleTreeInput{
   aelf.Hash space_id = 1;
   repeated aelf.Hash leaf_node_hash = 2;
 }
-
-message ChangeLastLeafIndexInput{
-  aelf.Hash space_id = 1;
-  int64 leaf_index = 2;
-}
-
 
 
 message GetMerkleTreeByIndexInput{
