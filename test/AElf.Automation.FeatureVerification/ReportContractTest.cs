@@ -4,8 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using AElf.Contracts.MultiToken;
-using AElf.Contracts.Oracle;
-using AElf.Contracts.Report;
+using EBridge.Contracts.Oracle;
+using EBridge.Contracts.Report;
 using AElf.Types;
 using AElfChain.Common;
 using AElfChain.Common.Contracts;
@@ -18,7 +18,7 @@ using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Shouldly;
-using InitializeInput = AElf.Contracts.Oracle.InitializeInput;
+using InitializeInput = EBridge.Contracts.Oracle.InitializeInput;
 
 namespace AElf.Automation.Contracts.ScenarioTest
 {
@@ -143,7 +143,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         public void InitializeReportTest()
         {
             var result = _reportContract.ExecuteMethodWithResult(ReportMethod.Initialize,
-                new AElf.Contracts.Report.InitializeInput()
+                new EBridge.Contracts.Report.InitializeInput()
                 {
                     OracleContractAddress = _oracleContract.Contract,
                     ReportFee = _defaultReportFee,

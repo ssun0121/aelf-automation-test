@@ -8,7 +8,7 @@ import "google/protobuf/wrappers.proto";
 import "callback_input.proto";
 import "authority_info.proto";
 
-option csharp_namespace = "AElf.Contracts.Bridge";
+option csharp_namespace = "EBridge.Contracts.Bridge";
 
 service BridgeContract {
     rpc Initialize (InitializeInput) returns (google.protobuf.Empty) {}
@@ -19,6 +19,7 @@ service BridgeContract {
     rpc ChangeTransactionFeeController(AuthorityInfo) returns (google.protobuf.Empty){}
     rpc ChangeRestartOrganization(aelf.Address) returns (google.protobuf.Empty){}
     rpc ChangePauseController(aelf.Address) returns (google.protobuf.Empty){}
+    rpc ChangeApproveTransferController(aelf.Address) returns (google.protobuf.Empty){}
     
     rpc Pause(google.protobuf.Empty) returns (google.protobuf.Empty){}
     rpc Restart(google.protobuf.Empty) returns (google.protobuf.Empty){}
@@ -52,6 +53,9 @@ service BridgeContract {
         option (aelf.is_view) = true;
     }
     rpc GetApproveReceiptIdList (google.protobuf.Empty) returns (ReceiptIdList){
+        option (aelf.is_view) = true;
+    }
+    rpc GetApproveTransferController(google.protobuf.Empty) returns (aelf.Address){
         option (aelf.is_view) = true;
     }
     
@@ -152,6 +156,8 @@ message InitializeInput {
     aelf.Address admin = 5;
     aelf.Address controller = 6;
     aelf.Address organization_address = 7;
+    aelf.Address pause_controller = 8;
+    aelf.Address approve_transfer_controller = 9;
 }
 
 message SetMaximumAmountInput{
@@ -405,4 +411,22 @@ message ReceiptCreated{
     string targetAddress = 4;
     int64 amount = 5;
     string target_chain_id = 6;
+}
+
+message Pause{
+    option (aelf.is_event) = true;
+    aelf.Address sender = 1;
+    bool is_contract_pause = 2;
+}
+
+message Restart{
+    option (aelf.is_event) = true;
+    aelf.Address sender = 1;
+    bool is_contract_pause = 2;
+}
+
+message ApproveTransfer{
+    option (aelf.is_event) = true;
+    aelf.Address sender = 1;
+    string receipt_id = 2;  
 }

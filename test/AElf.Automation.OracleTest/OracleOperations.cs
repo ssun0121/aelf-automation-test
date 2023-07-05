@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using AElf.Contracts.MultiToken;
-using AElf.Contracts.Oracle;
-using AElf.Contracts.Report;
+using EBridge.Contracts.Oracle;
+using EBridge.Contracts.Report;
 using AElf.CSharp.Core;
 using AElf.Types;
 using AElfChain.Common.Contracts;
@@ -14,7 +14,7 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Shouldly;
-using InitializeInput = AElf.Contracts.Oracle.InitializeInput;
+using InitializeInput = EBridge.Contracts.Oracle.InitializeInput;
 
 namespace AElf.Automation.OracleTest
 {
@@ -375,7 +375,7 @@ namespace AElf.Automation.OracleTest
         {
             _reportService.SetAccount(_owner, _password);
             var result = _reportService.ExecuteMethodWithResult(ReportMethod.Initialize,
-                new AElf.Contracts.Report.InitializeInput()
+                new EBridge.Contracts.Report.InitializeInput()
                 {
                     OracleContractAddress = _oracleService.Contract,
                     ReportFee = _reportFee,

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading;
 using AElf.Client.Dto;
 using AElf.Contracts.MultiToken;
-using AElf.Contracts.Oracle;
+using EBridge.Contracts.Oracle;
 using AElf.Contracts.OracleUser;
-using AElf.Contracts.Regiment;
+using EBridge.Contracts.Regiment;
 using AElf.CSharp.Core;
 using AElf.Types;
 using AElfChain.Common;
@@ -19,16 +19,16 @@ using Google.Protobuf.WellKnownTypes;
 using log4net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
-using AddAdminsInput = AElf.Contracts.Oracle.AddAdminsInput;
-using AddRegimentMemberInput = AElf.Contracts.Oracle.AddRegimentMemberInput;
-using CallbackInfo = AElf.Contracts.Oracle.CallbackInfo;
-using CreateRegimentInput = AElf.Contracts.Oracle.CreateRegimentInput;
-using DeleteAdminsInput = AElf.Contracts.Oracle.DeleteAdminsInput;
-using DeleteRegimentMemberInput = AElf.Contracts.Oracle.DeleteRegimentMemberInput;
-using InitializeInput = AElf.Contracts.Oracle.InitializeInput;
-using JoinRegimentInput = AElf.Contracts.Oracle.JoinRegimentInput;
-using LeaveRegimentInput = AElf.Contracts.Oracle.LeaveRegimentInput;
-using TransferRegimentOwnershipInput = AElf.Contracts.Oracle.TransferRegimentOwnershipInput;
+using AddAdminsInput = EBridge.Contracts.Oracle.AddAdminsInput;
+using AddRegimentMemberInput = EBridge.Contracts.Oracle.AddRegimentMemberInput;
+using CallbackInfo = EBridge.Contracts.Oracle.CallbackInfo;
+using CreateRegimentInput = EBridge.Contracts.Oracle.CreateRegimentInput;
+using DeleteAdminsInput = EBridge.Contracts.Oracle.DeleteAdminsInput;
+using DeleteRegimentMemberInput = EBridge.Contracts.Oracle.DeleteRegimentMemberInput;
+using InitializeInput = EBridge.Contracts.Oracle.InitializeInput;
+using JoinRegimentInput = EBridge.Contracts.Oracle.JoinRegimentInput;
+using LeaveRegimentInput = EBridge.Contracts.Oracle.LeaveRegimentInput;
+using TransferRegimentOwnershipInput = EBridge.Contracts.Oracle.TransferRegimentOwnershipInput;
 
 namespace AElf.Automation.Contracts.ScenarioTest
 {

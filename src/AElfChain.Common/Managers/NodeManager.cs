@@ -6,9 +6,8 @@ using System.Linq;
 using System.Threading;
 using AElf.Standards.ACS0;
 using AElf;
-using AElf.Client;
-using AElf.Client.Dto;
 using AElf.Client.Service;
+using AElf.Client.Dto;
 using AElf.Types;
 using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
@@ -33,7 +32,7 @@ namespace AElfChain.Common.Managers
             else
             {
                 _chainId = GetChainId();
-                Logger.Warn($"Url:{baseUrl} is connected");
+                Logger.Info($"Url:{baseUrl} is connected!");
             }
         }
 
@@ -64,7 +63,7 @@ namespace AElfChain.Common.Managers
             if (_chainId != null)
                 return _chainId;
 
-            var chainStatus = AsyncHelper.RunSync(() => ApiClient.GetChainStatusAsync());
+            var chainStatus = AsyncHelper.RunSync(ApiClient.GetChainStatusAsync);
             _chainId = chainStatus.ChainId;
 
             return _chainId;
@@ -83,18 +82,10 @@ namespace AElfChain.Common.Managers
         private string CallTransaction(Transaction tx)
         {
             var rawTransaction = TransactionManager.ConvertTransactionRawTxString(tx);
-            try
+            return AsyncHelper.RunSync(() => ApiClient.ExecuteTransactionAsync(new ExecuteTransactionDto
             {
-                return AsyncHelper.RunSync(() => ApiClient.ExecuteTransactionAsync(new ExecuteTransactionDto
-                {
-                    RawTransaction = rawTransaction
-                }));
-            }
-            catch (AElfClientException e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
+                RawTransaction = rawTransaction
+            }));
         }
 
         private TransactionManager GetTransactionManager()
@@ -137,11 +128,6 @@ namespace AElfChain.Common.Managers
         public string NewAccount(string password = "")
         {
             return AccountManager.NewAccount(password);
-        }
-        
-        public string InputAccount(string privateKey,string password = "")
-        {
-            return AccountManager.InputNewAccount(privateKey,password);
         }
 
         public string GetRandomAccount()
@@ -241,20 +227,12 @@ namespace AElfChain.Common.Managers
 
         public List<string> SendTransactions(string rawTransactions)
         {
-            try
+            var transactions = AsyncHelper.RunSync(() => ApiClient.SendTransactionsAsync(new SendTransactionsInput
             {
-                var transactions = AsyncHelper.RunSync(() => ApiClient.SendTransactionsAsync(new SendTransactionsInput
-                {
-                    RawTransactions = rawTransactions
-                }));
-                return transactions.ToList();
+                RawTransactions = rawTransactions
+            }));
 
-            }
-            catch (AElfClientException e)
-            {
-                Logger.Error(e);
-                return new List<string>();
-            }
+            return transactions.ToList();
         }
 
         public string GenerateRawTransaction(string from, string to, string methodName, IMessage inputParameter)
@@ -278,6 +256,13 @@ namespace AElfChain.Common.Managers
             TransactionManager.SignTransaction(tr);
 
             return tr.ToByteArray().ToHex();
+        }
+
+        public Transaction GenerateTransaction(string from, string to, string methodName, IMessage inputParameter)
+        {
+            var transaction = AsyncHelper.RunSync(() =>
+                ApiClient.GenerateTransactionAsync(from, to, methodName, inputParameter));
+            return transaction;
         }
 
         public TransactionResultDto CheckTransactionResult(string txId, int maxSeconds = -1)
@@ -374,6 +359,7 @@ namespace AElfChain.Common.Managers
                     Logger.Info($"Check {id} again:");
                     transactionResult = AsyncHelper.RunSync(() => ApiClient.GetTransactionResultAsync(id));
                 }
+
                 var status = transactionResult.Status.ConvertTransactionResultStatus();
                 switch (status)
                 {
@@ -387,7 +373,7 @@ namespace AElfChain.Common.Managers
                         break;
                     case TransactionResultStatus.NodeValidationFailed:
                         Logger.Error(
-                            $"TransactionId: {id}, Status: {status}. \nError: {transactionResult.Error}",
+                            $"TransactionId: {id}, Method: {transactionResult.Transaction.MethodName}, Status: {status}. \nError: {transactionResult.Error}",
                             true);
                         break;
                     case TransactionResultStatus.Mined:
@@ -463,17 +449,17 @@ namespace AElfChain.Common.Managers
         //Net Api
         public List<PeerDto> NetGetPeers()
         {
-            return AsyncHelper.RunSync(() => ApiClient.GetPeersAsync(true));
+            return AsyncHelper.RunSync(() => ApiClient.GetPeersAsync(false));
         }
 
-        public bool NetAddPeer(string address)
+        public bool NetAddPeer(string address, string userName, string password)
         {
-            return AsyncHelper.RunSync(() => ApiClient.AddPeerAsync(address));
+            return AsyncHelper.RunSync(() => ApiClient.AddPeerAsync(address, userName, password));
         }
 
-        public bool NetRemovePeer(string address)
+        public bool NetRemovePeer(string address, string userName, string password)
         {
-            return AsyncHelper.RunSync(() => ApiClient.RemovePeerAsync(address));
+            return AsyncHelper.RunSync(() => ApiClient.RemovePeerAsync(address, userName, password));
         }
 
         public NetworkInfoOutput NetworkInfo()

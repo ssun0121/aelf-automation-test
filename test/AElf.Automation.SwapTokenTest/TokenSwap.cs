@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using AElf.Contracts.Bridge;
+using EBridge.Contracts.Bridge;
 using AElf.Contracts.MultiToken;
-using AElf.Contracts.Regiment;
+using EBridge.Contracts.Regiment;
 using AElf.Types;
 using AElfChain.Common;
 using AElfChain.Common.Contracts;

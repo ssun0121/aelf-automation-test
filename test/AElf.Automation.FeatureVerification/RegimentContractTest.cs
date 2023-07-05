@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using AElf.Contracts.Regiment;
+using EBridge.Contracts.Regiment;
 using AElf.Types;
 using AElfChain.Common;
 using AElfChain.Common.Contracts;

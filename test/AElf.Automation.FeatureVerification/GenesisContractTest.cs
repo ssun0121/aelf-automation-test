@@ -564,7 +564,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
         
         [TestMethod]
-        [DataRow("AElf.Contracts.TestContract.BasicSecurity-patched-1.1.0")]
+        [DataRow("Awaken.Contracts.Token")]
         public void DeployUserSmartContract(string contractFileName)
         {
             Tester.TokenService.TransferBalance(InitAccount, Author, 1000_00000000, "ELF");

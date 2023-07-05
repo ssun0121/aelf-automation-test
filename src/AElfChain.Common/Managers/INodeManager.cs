@@ -1,6 +1,9 @@
 using System.Collections.Generic;
+using AElf.Client.Service;
 using AElf.Client.Dto;
 using AElf.Client.Service;
+using AElf.Client.Service;
+using AElf.Types;
 using Google.Protobuf;
 
 namespace AElfChain.Common.Managers
@@ -17,8 +20,6 @@ namespace AElfChain.Common.Managers
 
         //account
         string NewAccount(string password = "");
-        string InputAccount(string privateKey,string password = "");
-
         string GetRandomAccount();
         string GetAccountPublicKey(string account, string password = "");
         List<string> ListAccounts();
@@ -31,6 +32,7 @@ namespace AElfChain.Common.Managers
         string SendTransaction(string rawTransaction);
         List<string> SendTransactions(string rawTransactions);
         string GenerateRawTransaction(string from, string to, string methodName, IMessage inputParameter);
+        Transaction GenerateTransaction(string from, string to, string methodName, IMessage inputParameter);
         TransactionResultDto CheckTransactionResult(string txId, int maxSeconds = -1);
         void CheckTransactionListResult(List<string> transactionIds);
 
@@ -41,8 +43,8 @@ namespace AElfChain.Common.Managers
 
         //net
         List<PeerDto> NetGetPeers();
-        bool NetAddPeer(string address);
-        bool NetRemovePeer(string address);
+        bool NetAddPeer(string address, string username, string password);
+        bool NetRemovePeer(string address, string username, string password);
         NetworkInfoOutput NetworkInfo();
     }
 }
