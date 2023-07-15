@@ -2,12 +2,12 @@
   "RequireAuthority": true,
   "Nodes": [
     {
-      "name": "bp1",
-      "endpoint": "127.0.0.1:8000",
-      "account": "zptx91dhHVJjJRxf5Wg5KAoMrDrWX6i1H2FAyKAiv2q8VZfbg",
+      "name": "ebridge",
+      "endpoint": "https://aelf-test-node.aelf.io",
+      "account": "2uBC9bMz5DXSbMnFdSQu7RYr8Vu3nKo1xFx6R2KVaf6mHhdD3r",
       "password": "12345678"
     }
   ],
   "NativeTokenSymbol" : "ELF",
-  "DefaultPassword": "123"
+  "DefaultPassword": "12345678"
 }
