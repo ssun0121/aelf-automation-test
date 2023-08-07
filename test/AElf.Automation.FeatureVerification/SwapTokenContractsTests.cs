@@ -19,6 +19,8 @@ using AElfChain.Common.Contracts;
 using AElfChain.Common.DtoExtension;
 using AElfChain.Common.Helpers;
 using AElfChain.Common.Managers;
+using Awaken.Contracts.Swap;
+using Awaken.Contracts.Token;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using log4net;
@@ -26,11 +28,19 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 using Volo.Abp.Threading;
 using AddAdminsInput = EBridge.Contracts.Oracle.AddAdminsInput;
+using CreateInput = AElf.Contracts.MultiToken.CreateInput;
 using CreateRegimentInput = EBridge.Contracts.Regiment.CreateRegimentInput;
+using DeleteAdminsInput = EBridge.Contracts.Oracle.DeleteAdminsInput;
 using DeleteRegimentMemberInput = EBridge.Contracts.Oracle.DeleteRegimentMemberInput;
+using GetAllowanceInput = Awaken.Contracts.Token.GetAllowanceInput;
 using GetMerklePathInput = EBridge.Contracts.MerkleTreeContract.GetMerklePathInput;
+using GetTokenInfoInput = Awaken.Contracts.Token.GetTokenInfoInput;
 using HashList = EBridge.Contracts.MerkleTreeContract.HashList;
+using InitializeInput = EBridge.Contracts.Oracle.InitializeInput;
+using IssueInput = AElf.Contracts.MultiToken.IssueInput;
 using ReceiptCreated = EBridge.Contracts.Bridge.ReceiptCreated;
+using TokenInfo = AElf.Contracts.MultiToken.TokenInfo;
+using Transferred = AElf.Contracts.MultiToken.Transferred;
 using TransferRegimentOwnershipInput = EBridge.Contracts.Regiment.TransferRegimentOwnershipInput;
 
 namespace AElf.Automation.Contracts.ScenarioTest
@@ -41,6 +51,8 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private ILog Logger { get; set; }
         private INodeManager NodeManager { get; set; }
         private AuthorityManager AuthorityManager { get; set; }
+        private List<AuthorityManager> AuthorityManager1 { get; set; } = new List<AuthorityManager>(); 
+
 
         private GenesisContract _genesisContract;
         private TokenContract _tokenContract;
@@ -59,24 +71,24 @@ namespace AElf.Automation.Contracts.ScenarioTest
         //2R1rgEKkG84XGtbx6fvxExzChaXEyJrfSnvMpuKCGrUFoR5SKz
         //2ExtaRkjDiFhkGH8hwLZYVpRAnXe7awa25C61KVWy47uwnRw4s
 
-        private string BpAccount { get; } = "2uBC9bMz5DXSbMnFdSQu7RYr8Vu3nKo1xFx6R2KVaf6mHhdD3r";
-        private string UsdtAccount { get; } = "eyDPrhJdofZ9f7Qdyi8FtbA8BePubP1M3gwfVMs6MnMHHNwik";
-        private string BNBAccount { get; } = "eyDPrhJdofZ9f7Qdyi8FtbA8BePubP1M3gwfVMs6MnMHHNwik";
-        private string ETHAccount { get; } = "eyDPrhJdofZ9f7Qdyi8FtbA8BePubP1M3gwfVMs6MnMHHNwik";
-        private string InitAccount { get; } = "2uBC9bMz5DXSbMnFdSQu7RYr8Vu3nKo1xFx6R2KVaf6mHhdD3r";
-        private string TestAccount { get; } = "6eR4wXd2CmUDKboe7zrka1xAHTPi8xTuXFE1LXKsrpzhEhWQX";
+        private string BpAccount { get; } = "";
+        private string UsdtAccount { get; } = "";
+        private string BNBAccount { get; } = "";
+        private string ETHAccount { get; } = "";
+        private string InitAccount { get; } = "";
+        private string TestAccount { get; } = "";
 
-        private string Admin { get; } = "prUs55EDnCWNXWYFgATbWTmgZrBTnbYqGuTUFsLXHprneecZY";
+        private string Admin { get; } = "";
 
-        private string RegimentManager = "prUs55EDnCWNXWYFgATbWTmgZrBTnbYqGuTUFsLXHprneecZY";
+        private string RegimentManager = "";
 
         private readonly List<string> _associationMember = new List<string>
         {
-            "2n2sxMso8GAC2ZGdNDpQ9tFPJxSGdhN7fft7DegspSABzR4N3Q",
-            "hQ4ztC61u9KxdybxHT5qJ15epssyDtH7VNsvhc6iv2ZBpCvkR",
-            "2iuJop83hh1DpUntoiN3MnnpRfdGV7Y2vvVpuYQ9GHXn9aa5uK",
-            "2LvVpZxdNZtTBYwggw1RNG3PoHEGK7HV7CBH9jPaP3tXdaDH3h",
-            "2i8L1kQkjihEXiX5jZMyzsoP2WGfuCyFQzWoKgQgq3uKLQ8fkp"
+            "4yjxY2DVp8ywfrodjpHCC1ssK9wP1WXypztQmNBSK2poWAfjm",
+            "p1rQ1TphTAGeqkcUosgb1CpCNbhiTgb8mhmab2V8M4Ef21ZHe",
+            "2NEKAgwrH26UqZN81poEyPVftRbH8M8t8SPgnZD5oajDcdsyvs",
+            "2NMCQAaqRQmerhJNkT4ZPB5oYWHtCqUcFFrRxEwLChS4G8SB9b",
+            "s9rp7z8VPEg6YcfpNNdre7qJe4sxyL2N2Amq3UYqENKj5spig"
         };
 
         private readonly List<string> _stableMember = new List<string>
@@ -86,6 +98,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private readonly List<string> _newAssociationMember = new List<string>
         {
         };
+
 
         //2LUmicHyH4RXrMjG4beDwuDsiWJESyLkgkwPdGTR8kahRzq5XS
         //2WHXRoLRjbUTDQsuqR5CntygVfnDb125qdJkudev4kVNbLhTdG
@@ -104,44 +117,49 @@ namespace AElf.Automation.Contracts.ScenarioTest
         private string _stringAggregatorAddress = "";
 
         //MainChain
-        private string _oracleContractAddressMain = "xwfQDMdE5xCmyKcDDKV8EDTJdmVfSY6zxiojUxjYKvWpkeu65";
-        private string _reportContractAddressMain = "2QtXdKR1ap9Sxgvz3ksiozXx88xf12rfQhk7kNGYuamveDh1ZX";
-        private string _bridgeContractAddressMain = "foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz";
-        private string _merkleTreeAddressMain = "R9Das6RzsmpGC79fHZCapUR8yimXguvwfvkgq6sKikrtidJqc";
-        private string _regimentContractAddressMain = "2hQPHPHUjcQGrdXXYFHJhXQhL5vEw78rTDpigftCUC6b2W8DTL";
-        private string _stringAggregatorAddressMain = "xhhLqDthzC4rmyNURwQpASKWWF6o2eJHbGF5j9H1MyxAxNLap";
+        private string _oracleContractAddressMain = "URyXBKB47QXW8TAXqJBGVt9edz2Ev5QzR6T2V6YV1hn14mVPp";
+        private string _reportContractAddressMain = "owZisaahpior7HEqfwCvbSEiMTEQxYGhEyBXacpuCNkeoCZd5";
+        private string _bridgeContractAddressMain = "2dKF3svqDXrYtA5mYwKfADiHajo37mLZHPHVVuGbEDoD9jSgE8";
+        private string _merkleTreeAddressMain = "iUY5CLwzU8L8vjVgH95vx3ZRuvD5d9hVK3EdPMVD8v9EaQT75";
+        private string _regimentContractAddressMain = "2imqjpkCwnvYzfnr61Lp2XQVN2JU17LPkA9AZzmRZzV5LRRWmR";
+        private string _stringAggregatorAddressMain = "2M24EKAecggCnttZ9DUUMCXi4xC67rozA87kFgid9qEwRUMHTs";
 
         //
         //SideChain
-        private string _oracleContractAddressSide = "2smYuXnjc6P1DTZmJ59BatuQrwwxAEkRDy6LT6YeXbAKrsW4GX";
-        private string _reportContractAddressSide = "G5Fu3sH7YDoVsGja2ruwccNMMPAtsduFS7HZZfiZhMU4fqKPL";
-        private string _bridgeContractAddressSide = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
-        private string _merkleTreeAddressSide = "BG7b87noRQbxqmGuTb8BRrV8yMHMbDQh4ReoHMAnqsbs3FkZB";
-        private string _regimentContractAddressSide = "ZwMH9FZwndiJgycM1boWLRS8Fdb33vBPFfnaiM1aisXjUb53S";
-        private string _stringAggregatorAddressSide = "ehvZVJPtuCVx9xJYJPCZpS29Baq6mhyefrMWUXAFR6CeS4GMq";
+        private string _oracleContractAddressSide = "";
+        private string _reportContractAddressSide = "";
+        private string _bridgeContractAddressSide = "";
+        private string _merkleTreeAddressSide = "";
+        private string _regimentContractAddressSide = "";
+        private string _stringAggregatorAddressSide = "";
+        
 
         private string Password { get; } = "12345678";
 
         private static string RpcUrl { get; set; } = "";
 
         // private static string MainRpcUrl { get; } = "http://192.168.67.18:8000";
-        private static string MainRpcUrl { get; } = "https://aelf-test-node.aelf.io";
+        private static string MainRpcUrl { get; } = "https://aelf-public-node.aelf.io";
 
         // private static string SideRpcUrl { get; } = "http://192.168.66.106:8000";
-        private static string SideRpcUrl { get; } = "https://tdvw-test-node.aelf.io";
+        private static string SideRpcUrl { get; } = "https://tdvv-public-node.aelf.io";
 
 
         private string Symbol { get; } = "PORT";
         private string SwapSymbol { get; } = "ELF";
         private string UsdSymbol { get; } = "USDT";
+        
+        private string UsdcSymbol { get; } = "USDC";
         private string EthSymbol { get; } = "ETH";
         private string BnbSymbol { get; } = "BNB";
+        
+        private string DAISymbol { get; } = "DAI";
 
         private readonly bool isNeedInitialize = false;
 
         private readonly bool isNeedCreate = false;
 
-        private readonly string _organizationAddress = "veApaXJAt4ZGivkLXE123kJboamzSqbtA2WGy7LWhJYYFXtQu";
+        private readonly string _organizationAddress = "C2HWB4YZ9JkL4aMxh8kGqpvP36PRC8aKRtF8W2PBEh9ySBWXv";
 
         //DKQJtqZDqCfUDFPysHqqDeZNHdzHBmKTZe1bedcRnY5B147Go
         private string _regiment = "";
@@ -264,6 +282,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             _stringAggregator = _stringAggregatorAddress == ""
                 ? AuthorityManager.DeployContractWithAuthority(InitAccount, "AElf.Contracts.StringAggregator")
                 : Address.FromBase58(_stringAggregatorAddress);
+
             Logger.Info(
                 $"\nOracle: {_oracleContract.ContractAddress}" +
                 $"\nReport: {_reportContract.ContractAddress}" +
@@ -287,7 +306,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
             // if (!isNeedInitialize) return;
             //InitializeContract();
         }
-
 
         [TestMethod]
         public void CreateAssociation()
@@ -323,47 +341,49 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info(info.ProposerWhiteList.Proposers.Count);
         }
 
+        #region main
+        
         [TestMethod]
         public void InitializeContract()
         {
-            // var list = new List<Address>();
-            // _associationMember.ForEach(l => { list.Add(l.ConvertAddress()); });
-            // list.Add(InitAccount.ConvertAddress());
-            // // _tokenContract.TransferBalance(InitAccount, Admin, 100_0000000);
-            // Logger.Info("Initialize Oracle: ");
-            // var initializeOracle = _oracleContract.ExecuteMethodWithResult(OracleMethod.Initialize,
-            //     new AElf.Contracts.Oracle.InitializeInput
-            //     {
-            //         RegimentContractAddress = _regimentContract.Contract,
-            //         MinimumOracleNodesCount = 5,
-            //         DefaultRevealThreshold = 3,
-            //         DefaultAggregateThreshold = 3,
-            //         IsChargeFee = false,
-            //         DefaultExpirationSeconds = 3600
-            //     });
-            // initializeOracle.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            //
-            // Logger.Info("Initialize Report: ");
-            // var initializeReport = _reportContract.ExecuteMethodWithResult(ReportMethod.Initialize,
-            //     new AElf.Contracts.Report.InitializeInput
-            //     {
-            //         OracleContractAddress = _oracleContract.Contract,
-            //         ReportFee = 0,
-            //         ApplyObserverFee = 0,
-            //         RegimentContractAddress = _regimentContract.Contract,
-            //         InitialRegisterWhiteList = {list},
-            //         OwnerAddress = InitAccount.ConvertAddress()
-            //     });
-            // initializeReport.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            //
-            // Logger.Info("Initialize Merkle: ");
-            // var initializeMerkle = _merkleTreeContract.ExecuteMethodWithResult(MerkleTreeMethod.Initialize,
-            //     new AElf.Contracts.MerkleTreeContract.InitializeInput
-            //     {
-            //         RegimentContractAddress = _regimentContract.Contract,
-            //         Owner = InitAccount.ConvertAddress()
-            //     });
-            // initializeMerkle.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            var list = new List<Address>();
+            _associationMember.ForEach(l => { list.Add(l.ConvertAddress()); });
+            list.Add(InitAccount.ConvertAddress());
+            // _tokenContract.TransferBalance(InitAccount, Admin, 100_0000000);
+            Logger.Info("Initialize Oracle: ");
+            var initializeOracle = _oracleContract.ExecuteMethodWithResult(OracleMethod.Initialize,
+                new InitializeInput
+                {
+                    RegimentContractAddress = _regimentContract.Contract,
+                    MinimumOracleNodesCount = 5,
+                    DefaultRevealThreshold = 3,
+                    DefaultAggregateThreshold = 3,
+                    IsChargeFee = false,
+                    DefaultExpirationSeconds = 3600
+                });
+            initializeOracle.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            Logger.Info("Initialize Report: ");
+            var initializeReport = _reportContract.ExecuteMethodWithResult(ReportMethod.Initialize,
+                new EBridge.Contracts.Report.InitializeInput()
+                {
+                    OracleContractAddress = _oracleContract.Contract,
+                    ReportFee = 0,
+                    ApplyObserverFee = 0,
+                    RegimentContractAddress = _regimentContract.Contract,
+                    InitialRegisterWhiteList = {list},
+                    OwnerAddress = InitAccount.ConvertAddress()
+                });
+            initializeReport.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            
+            Logger.Info("Initialize Merkle: ");
+            var initializeMerkle = _merkleTreeContract.ExecuteMethodWithResult(MerkleTreeMethod.Initialize,
+                new EBridge.Contracts.MerkleTreeContract.InitializeInput
+                {
+                    RegimentContractAddress = _regimentContract.Contract,
+                    Owner = InitAccount.ConvertAddress()
+                });
+            initializeMerkle.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
 
             Logger.Info("Initialize Bridge: ");
             _bridgeContract.SetAccount(InitAccount);
@@ -413,11 +433,12 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
-        public void AddAdmin()
+        public void AddAdmins()
         {
             var regimentInfo =
                 _regimentContract.CallViewMethod<RegimentInfo>(RegimentMethod.GetRegimentInfo,
                     _regiment.ConvertAddress());
+            Logger.Info(regimentInfo);
             _oracleContract.SetAccount(RegimentManager);
             var result = _oracleContract.ExecuteMethodWithResult(OracleMethod.AddAdmins, new AddAdminsInput
             {
@@ -425,36 +446,23 @@ namespace AElf.Automation.Contracts.ScenarioTest
                 NewAdmins = { _bridgeContract.Contract }
             });
             result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            regimentInfo =
+                _regimentContract.CallViewMethod<RegimentInfo>(RegimentMethod.GetRegimentInfo,
+                    _regiment.ConvertAddress());
+            Logger.Info(regimentInfo);
         }
-
-        #region bridge
-
+        
         [TestMethod]
-        public void ChangeSwapRatio()
-        {
-            var swapId = "424485a0dc459869380f1bc186ebc2da195d51005e62ff67d6fce56fcc829769";
-            var pairIdHash = Hash.LoadFromHex(swapId);
-            _bridgeContract.SetAccount(Admin);
-            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.ChangeSwapRatio, new ChangeSwapRatioInput
-            {
-                SwapId = pairIdHash,
-                SwapRatio = new SwapRatio
-                {
-                    OriginShare = 10000_00000000,
-                    TargetShare = 1
-                },
-                TargetTokenSymbol = UsdSymbol
-            });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
-
-        [TestMethod]
-        [DataRow("ELF", "Sepolia", 100_00000000)]
-        [DataRow("ETH", "Sepolia", 100_00000000)]
-        [DataRow("USDT", "Sepolia", 1)]
-        [DataRow("ELF", "BSCTest", 100_00000000)]
-        [DataRow("BNB", "BSCTest", 100_00000000)]
-        [DataRow("USDT", "BSCTest", 10000_00000000)]
+        [DataRow("ELF", "Ethereum", 100_00000000)]
+        [DataRow("ETH", "Ethereum", 100_00000000)]
+        [DataRow("USDT", "Ethereum", 1)]
+        [DataRow("USDC", "Ethereum", 1)]
+        [DataRow("DAI", "Ethereum", 100_00000000)]
+        [DataRow("ELF", "BSC", 100_00000000)]
+        [DataRow("BNB", "BSC", 100_00000000)]
+        [DataRow("USDT", "BSC", 10000_00000000)]
+        [DataRow("USDC", "BSC", 10000_00000000)]
+        [DataRow("DAI", "BSC", 100_00000000)]
         public void CreateSwap(string symbol, string fromChainId, long originShare)
         {
             var swapRatio = new SwapRatio
@@ -469,7 +477,7 @@ namespace AElf.Automation.Contracts.ScenarioTest
             {
                 RegimentId = Hash.LoadFromHex(_regimentId),
                 MerkleTreeLeafLimit = maximalLeafCount,
-                SwapTargetToken = new SwapTargetToken()
+                SwapTargetToken = new SwapTargetToken
                 {
                     FromChainId = fromChainId,
                     SwapRatio = swapRatio,
@@ -501,6 +509,234 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info(swapPair);
             Logger.Info(swapInfo);
         }
+        
+        [TestMethod]
+        [DataRow(1000000,320000,320000,320000,153,930)]
+        public void SetTokenMaximumAmount(long amountElf,long amountUsdt,long amountUsdc,long amountDai, long amountEth,long amountBnb)
+        {
+            _bridgeContract.SetAccount(Admin);
+            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.SetTokenMaximumAmount,
+                new SetMaximumAmountInput
+                {
+                    Value =
+                    {
+                        new TokenMaximumAmount
+                        {
+                            Symbol = SwapSymbol,
+                            MaximumAmount = amountElf
+                        },
+                        new TokenMaximumAmount
+                        {
+                            Symbol = UsdSymbol,
+                            MaximumAmount = amountUsdt
+                        },
+                        new TokenMaximumAmount
+                        {
+                            Symbol = UsdcSymbol,
+                            MaximumAmount = amountUsdc
+                        },
+                        new TokenMaximumAmount
+                        {
+                            Symbol = DAISymbol,
+                            MaximumAmount = amountDai
+                        },new TokenMaximumAmount
+                        {
+                            Symbol = EthSymbol,
+                            MaximumAmount = amountEth
+                        },
+                        new TokenMaximumAmount
+                        {
+                            Symbol = BnbSymbol,
+                            MaximumAmount = amountBnb
+                        }
+                    }
+                });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        [DataRow("Ethereum", "")]
+        [DataRow("BSC", "")]
+        public void RegisterOffChainAggregation(string chainId, string token)
+        {
+            //BridgeOut address on eth
+            _reportContract.SetAccount(RegimentManager);
+            var result = _reportContract.ExecuteMethodWithResult(ReportMethod.RegisterOffChainAggregation,
+                new RegisterOffChainAggregationInput
+                {
+                    Token = token,
+                    RegimentId = Hash.LoadFromHex(_regimentId),
+                    ChainId = chainId
+                });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        [DataRow("Ethereum", "")]
+        [DataRow("BSC", "")]
+        public void SetSkipMemberList(string chainId, string token)
+        {
+            //BridgeOut address on eth
+            _reportContract.SetAccount(RegimentManager);
+            var result = _reportContract.ExecuteMethodWithResult(ReportMethod.SetSkipMemberList,
+                new SetSkipMemberListInput
+                {
+                    ChainId = chainId,
+                    Token = token,
+                    Value = new MemberList
+                    {
+                        Value = { RegimentManager.ConvertAddress() }
+                    }
+                });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        [DataRow("Ethereum", "BSC")]
+        public void AddToken(string chainId1, string chainId2)
+        {
+            var adminBalance = _tokenContract.GetUserBalance(Admin, SwapSymbol);
+            if (adminBalance <= 0)
+                _tokenContract.TransferBalance(InitAccount, Admin, 10_00000000, SwapSymbol);
+            _bridgeContract.SetAccount(Admin);
+            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.AddToken, new AddTokenInput
+            {
+                Value =
+                {
+                    new ChainToken
+                    {
+                        ChainId = chainId1,
+                        Symbol = SwapSymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId1,
+                        Symbol = UsdSymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId1,
+                        Symbol = UsdcSymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId1,
+                        Symbol = DAISymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId1,
+                        Symbol = EthSymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId2,
+                        Symbol = SwapSymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId2,
+                        Symbol = UsdSymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId2,
+                        Symbol = UsdcSymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId2,
+                        Symbol = DAISymbol
+                    },
+                    new ChainToken
+                    {
+                        ChainId = chainId2,
+                        Symbol = BnbSymbol
+                    }
+                }
+            });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        [DataRow("Ethereum")]
+        [DataRow("BSC")]
+        public void SetGasLimit(string chainId)
+        {
+            var gasLimit = (long)((21000 + 68 * 3400) * 1.1);
+            //var limit = _bridgeContract.CallViewMethod<Int64Value>(BridgeMethod.GetGasLimit, new StringValue{Value = chainId});
+            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.SetGasLimit, new SetGasLimitInput
+            {
+                GasLimitList =
+                {
+                    new GasLimit
+                    {
+                        ChainId = chainId,
+                        GasLimit_ = gasLimit
+                    }
+                }
+            });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+        
+        [TestMethod]
+        [DataRow("Ethereum")]
+        [DataRow("BSC")]
+        public void SetPriceFluctuationRatio(string chainId)
+        {
+            _bridgeContract.SetAccount(Admin);
+            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.SetPriceFluctuationRatio,
+                new SetRatioInput
+                {
+                    Value =
+                    {
+                        new Ratio
+                        {
+                            ChainId = chainId,
+                            Ratio_ = 10
+                        }
+                    }
+                });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+            Logger.Info($"transaction id:{result.TransactionId}");
+        }
+        #endregion
+
+       
+        
+        
+        #region bridge
+        
+        [TestMethod]
+        public void GetTokenMaxAmount()
+        {
+            var amount = _bridgeContract.CallViewMethod<Int64Value>(BridgeMethod.GetTokenMaximumAmount, new StringValue
+            {
+                Value = SwapSymbol
+            });
+            Logger.Info($"amount:{amount.Value}");
+        }
+
+        [TestMethod]
+        public void ChangeSwapRatio()
+        {
+            var swapId = "424485a0dc459869380f1bc186ebc2da195d51005e62ff67d6fce56fcc829769";
+            var pairIdHash = Hash.LoadFromHex(swapId);
+            _bridgeContract.SetAccount(Admin);
+            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.ChangeSwapRatio, new ChangeSwapRatioInput
+            {
+                SwapId = pairIdHash,
+                SwapRatio = new SwapRatio
+                {
+                    OriginShare = 10000_00000000,
+                    TargetShare = 1
+                },
+                TargetTokenSymbol = UsdSymbol
+            });
+            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
+        }
+
+        
 
         [TestMethod]
         public void SwapToken()
@@ -570,15 +806,24 @@ namespace AElf.Automation.Contracts.ScenarioTest
             Logger.Info(swapPair.DepositAmount);
         }
 
-        // [TestMethod]
-        // public void GetSwapIdByToken()
-        // {
-        //     await _bridgeContract.CallViewMethod<Hash>(BridgeMethod.GetSwapIdByToken, new GetSwapIdByTokenInput
-        //     {
-        //         Symbol = SwapSymbol,
-        //         ChainId = "Goerli"
-        //     });
-        // }
+        [TestMethod]
+        // [DataRow("ELF","5cddc4e57f8592730700ddb99088aa3501cb8d3508bed7f86c32acf502dbfafa")]
+        [DataRow("ELF","b9a4c7eefe7a8db8304c8839f9aef904c1ca03d079b516cb00953ec9d851f4de")]
+        // [DataRow("USDT","99961b2795e725449a3dbcbb4c8e927132e3060c7eda77d57e70248273bc6f7c")]
+        // [DataRow("USDT","e5f2e0dbfdf5ac5598310b5f47bcb8d0621329e1b73844303fb001624308ba00")]
+        // [DataRow("USDC","40754cd7c8e7d41a7b2f42e2fdc57c500bf0bf5ae3858cf7b3481653c5df909a")]
+        // [DataRow("USDC","091820eec3e40116e0bee47c6ffb8b4eb1daef27f64931011bec3b613b38721a")]
+        // [DataRow("DAI","3dcfb4351ca6843d9869240a3e326daaf1e24f70f20fec4199c0f0ee82937116")]
+        // [DataRow("DAI","da1e1e825b3ab2843c0d328b313d37b316d96c9b2782859019af93c3f85f75d4")]
+        // [DataRow("BNB","3ba1ec6ee92c3280bf33381a80f56a1864b7d27e94339675b853d633bd55aedb")]
+        // [DataRow("ETH","1ed1a306ef6a50e500b95ddecdf6d78b77029dd9d80af2a9e0764513910e6c64")]
+        public void GetDepositAmount(string symbol,string swapId)
+        {
+            // var depositAmount = GetSwapPairInfo(swapId, symbol).DepositAmount;
+            // Logger.Info(depositAmount);
+            var fee = _bridgeContract.CallViewMethod<Int64Value>(BridgeMethod.GetCurrentTransactionFee,new Empty());
+            Logger.Info(fee);
+        }
 
         [TestMethod]
         [DataRow("a6e1820157855d10a340bf5c81ed9a88b92b1005171dc9f1d9587c641a0ac491")]
@@ -608,14 +853,21 @@ namespace AElf.Automation.Contracts.ScenarioTest
         }
 
         [TestMethod]
+        public void TransferTo()
+        {
+            _tokenContract.TransferBalance(InitAccount, TestAccount, 200_00000000, SwapSymbol);
+        }
+        [TestMethod]
         public void GetBalance()
         {
-            var address = UsdtAccount;
-            var token = UsdSymbol;
-            var balance = _tokenContract.GetUserBalance(address, token);
-            Logger.Info($"balance is {balance}");
-            // var allowance = _tokenContract.GetAllowance(address, _bridgeContractAddress, token);
-            // Logger.Info($"allowance is {allowance}");
+            var address = _genesisContract.GetContractAddressByName(NameProvider.CrossChain);
+            Logger.Info(address);
+            // var address = UsdtAccount;
+            // var token = UsdSymbol;
+            // var balance = _tokenContract.GetUserBalance(address, token);
+            // Logger.Info($"balance is {balance}");
+            // // var allowance = _tokenContract.GetAllowance(address, _bridgeContractAddress, token);
+            // // Logger.Info($"allowance is {allowance}");
         }
 
         [TestMethod]
@@ -627,48 +879,6 @@ namespace AElf.Automation.Contracts.ScenarioTest
                     SpaceId = Hash.LoadFromHex("0a59e106470259020b4fdcebfd6840071d90006906e29e7a4c2979dc20ace3fc")
                 });
             Logger.Info(index);
-        }
-
-        [TestMethod]
-        public void SetTokenMaximumAmount()
-        {
-            _bridgeContract.SetAccount(Admin);
-            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.SetTokenMaximumAmount,
-                new SetMaximumAmountInput
-                {
-                    Value =
-                    {
-                        new TokenMaximumAmount
-                        {
-                            Symbol = SwapSymbol,
-                            MaximumAmount = 100000_00000000
-                        },
-                        new TokenMaximumAmount
-                        {
-                            Symbol = UsdSymbol,
-                            MaximumAmount = 100000_000000
-                        },new TokenMaximumAmount
-                        {
-                            Symbol = EthSymbol,
-                            MaximumAmount = 100000_00000000
-                        },new TokenMaximumAmount
-                        {
-                            Symbol = BnbSymbol,
-                            MaximumAmount = 100000_00000000
-                        }
-                    }
-                });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
-
-        [TestMethod]
-        public void GetTokenMaxAmount()
-        {
-            var amount = _bridgeContract.CallViewMethod<Int64Value>(BridgeMethod.GetTokenMaximumAmount, new StringValue
-            {
-                Value = SwapSymbol
-            });
-            Logger.Info($"amount:{amount.Value}");
         }
 
         [TestMethod]
@@ -943,119 +1153,54 @@ namespace AElf.Automation.Contracts.ScenarioTest
             result.Status.ShouldBe(TransactionResultStatus.Mined);
             
         }
+
+        [TestMethod]
+        public void CalculateReceiptHash()
+        {
+            var addressHash = HashHelper.ComputeFrom(ByteArrayHelper.HexStringToByteArray("0x75392dDfD264d645992bB22365B05b487cF565Eb"));
+            var amountEthereum = ConvertLong(20000000);
+            var amountHash = HashHelper.ComputeFrom(amountEthereum.ToArray());
+            var receiptIdHash = HashHelper.ComputeFrom("fc958f44a28a4abe387f9be1ebec01c4fd52a457c0397d621b2d8648783a1e08.7");
+            var result = HashHelper.ConcatAndCompute(receiptIdHash, amountHash, addressHash);
+            Logger.Info(result.ToHex());
+        }
         
-        [TestMethod]
-        [DataRow("Sepolia", "0x276A12Bd934cb9753AdB89DFe88CA1442c5B1B47")]
-        [DataRow("BSCTest", "0x4C6720dec7C7dcdE1c7B5E9dd2b327370AC9F834")]
-        public void RegisterOffChainAggregation(string chainId, string token)
+        private IEnumerable<byte> ConvertLong(long data)
         {
-            //BridgeOut address on eth
-            _reportContract.SetAccount(RegimentManager);
-            var result = _reportContract.ExecuteMethodWithResult(ReportMethod.RegisterOffChainAggregation,
-                new RegisterOffChainAggregationInput
-                {
-                    Token = token,
-                    RegimentId = Hash.LoadFromHex(_regimentId),
-                    ChainId = chainId
-                });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
-
-        [TestMethod]
-        [DataRow("Sepolia", "0x276A12Bd934cb9753AdB89DFe88CA1442c5B1B47")]
-        [DataRow("BSCTest", "0x4C6720dec7C7dcdE1c7B5E9dd2b327370AC9F834")]
-        public void SetSkipMemberList(string chainId, string token)
-        {
-            //BridgeOut address on eth
-            _reportContract.SetAccount(RegimentManager);
-            var result = _reportContract.ExecuteMethodWithResult(ReportMethod.SetSkipMemberList,
-                new SetSkipMemberListInput
-                {
-                    ChainId = chainId,
-                    Token = token,
-                    Value = new MemberList
-                    {
-                        Value = { RegimentManager.ConvertAddress() }
-                    }
-                });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
-
-        [TestMethod]
-        [DataRow("Sepolia", "ETH")]
-        [DataRow("BSCTest", "BNB")]
-        public void AddToken(string chainId, string symbol)
-        {
-            var adminBalance = _tokenContract.GetUserBalance(Admin, SwapSymbol);
-            if (adminBalance <= 0)
-                _tokenContract.TransferBalance(InitAccount, Admin, 10_00000000, SwapSymbol);
-            _bridgeContract.SetAccount(Admin);
-            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.AddToken, new AddTokenInput
+            var b = data.ToBytes();
+            if (b.Length == 32)
+                return b;
+            var diffCount = 32.Sub(b.Length);
+            var longDataBytes = GetByteListWithCapacity(32);
+            byte c = 0;
+            if (data < 0)
             {
-                Value =
-                {
-                    new ChainToken
-                    {
-                        ChainId = chainId,
-                        Symbol = SwapSymbol
-                    },
-                    new ChainToken
-                    {
-                        ChainId = chainId,
-                        Symbol = symbol
-                    },
-                    new ChainToken
-                    {
-                        ChainId = chainId,
-                        Symbol = UsdSymbol
-                    }
-                }
-            });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
+                c = 0xff;
+            }
 
-        [TestMethod]
-        [DataRow("Sepolia")]
-        [DataRow("BSCTest")]
-        public void SetGasLimit(string chainId)
-        {
-            var gasLimit = (long)((21000 + 68 * 3400) * 1.1);
-            //var limit = _bridgeContract.CallViewMethod<Int64Value>(BridgeMethod.GetGasLimit, new StringValue{Value = chainId});
-            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.SetGasLimit, new SetGasLimitInput
+            for (var j = 0; j < diffCount; j++)
             {
-                GasLimitList =
-                {
-                    new GasLimit
-                    {
-                        ChainId = chainId,
-                        GasLimit_ = gasLimit
-                    }
-                }
-            });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-        }
+                longDataBytes[j] = c;
+            }
 
-        [TestMethod]
-        [DataRow("Sepolia")]
-        [DataRow("BSCTest")]
-        public void SetPriceFluctuationRatio(string chainId)
-        {
-            _bridgeContract.SetAccount(Admin);
-            var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.SetPriceFluctuationRatio,
-                new SetRatioInput
-                {
-                    Value =
-                    {
-                        new Ratio
-                        {
-                            ChainId = chainId,
-                            Ratio_ = 10
-                        }
-                    }
-                });
-            result.Status.ConvertTransactionResultStatus().ShouldBe(TransactionResultStatus.Mined);
-            Logger.Info($"transaction id:{result.TransactionId}");
+            BytesCopy(b, 0, longDataBytes, diffCount, b.Length);
+            return longDataBytes;
         }
+        private List<byte> GetByteListWithCapacity(int count)
+        {
+            var list = new List<byte>();
+            list.AddRange(Enumerable.Repeat((byte) 0, count));
+            return list;
+        }
+        private void BytesCopy(IReadOnlyList<byte> src, int srcOffset, List<byte> dst, int dstOffset, int count)
+        {
+            for (var i = srcOffset; i < srcOffset + count; i++)
+            {
+                dst[dstOffset] = src[i];
+                dstOffset++;
+            }
+        }
+        
 
         [TestMethod]
         public void ChangeRegimentManager()
@@ -1150,14 +1295,15 @@ namespace AElf.Automation.Contracts.ScenarioTest
         [TestMethod]
         public void CreateReceipt()
         {
-            _tokenContract.TransferBalance(BNBAccount, TestAccount, 10_00000000, BnbSymbol);
-            // _bridgeContract.SetAccount(TestAccount);
-            _tokenContract.ApproveToken(TestAccount, _bridgeContract.ContractAddress, 200_00000000, BnbSymbol);
+            _tokenContract.TransferBalance(InitAccount, TestAccount, 200_00000000, SwapSymbol);
+            // _tokenContract.TransferBalance(UsdtAccount, TestAccount, 10_000000, UsdSymbol);
+            _bridgeContract.SetAccount(TestAccount);
+            // _tokenContract.ApproveToken(TestAccount, _bridgeContract.ContractAddress, 200_000000, UsdSymbol);
             var result = _bridgeContract.ExecuteMethodWithResult(BridgeMethod.CreateReceipt,
                 new CreateReceiptInput
                 {
-                    Symbol = SwapSymbol,
-                    Amount = 2_00000000,
+                    Symbol = UsdSymbol,
+                    Amount = 5_000000,
                     TargetAddress = "0xfe88A8E3a7Eac01CF6018c0Ec6Ed114C5892C3a2",
                     TargetChainId = "Sepolia"
                 });

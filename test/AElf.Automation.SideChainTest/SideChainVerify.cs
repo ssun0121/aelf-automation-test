@@ -704,9 +704,12 @@ namespace AElf.Automation.SideChainTests
         }
 
         [TestMethod]
-        public async Task ValidTokenSymbol()
+        [DataRow("ETH")]
+        [DataRow("BTC")]
+        [DataRow("USDT")]
+        [DataRow("USDC")]
+        public async Task ValidTokenSymbol(string symbol)
         {
-            var symbol = "SHARE";
             var stub = MainServices.TokenImplContractStub;
             var tokenInfo = await stub.GetTokenInfo.CallAsync(new GetTokenInfoInput
                 {Symbol = symbol});

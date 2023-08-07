@@ -55,7 +55,8 @@ namespace AElfChain.Common.Contracts
         GetTransactionFeeRatioController,
         GetTokenWhitelist,
         GetReceiptHashList,
-        GetTokenMaximumAmount
+        GetTokenMaximumAmount,
+        GetCurrentTransactionFee
     }
 
     public class BridgeContract : BaseContract<BridgeMethod>

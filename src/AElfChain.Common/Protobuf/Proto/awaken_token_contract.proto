@@ -41,6 +41,8 @@ service TokenContract {
     }
     rpc RemoveMinter(aelf.Address) returns (google.protobuf.Empty) {
     }
+    rpc ChangeOwner(aelf.Address) returns (google.protobuf.Empty) {
+    }
     // Views
     rpc GetTokenInfo (GetTokenInfoInput) returns (TokenInfo) {
         option (aelf.is_view) = true;
